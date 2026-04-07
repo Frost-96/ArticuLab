@@ -1,0 +1,240 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =====================
+// Enums
+// =====================
+
+enum ConversationType {
+  coach
+  writing
+  speaking
+}
+
+enum MessageRole {
+  user
+  assistant
+}
+
+enum EnglishLevel {
+  beginner
+  intermediate
+  advanced
+}
+
+enum MembershipTier {
+  free
+  pro
+}
+
+enum ScenarioType {
+  ielts_task1
+  ielts_task2
+  cet4
+  cet6
+  daily
+  interview
+  travel
+  business
+}
+
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
+enum SubscriptionStatus {
+  active
+  cancelled
+  expired
+}
+
+// =====================
+// User
+// =====================
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String?
+  avatar            String?
+  password          String?  // nullable for OAuth users
+
+  englishLevel      EnglishLevel?
+  learningGoal      String?
+
+  membershipTier    MembershipTier @default(free)
+  membershipExpiry  DateTime?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  conversations     Conversation[]
+  writingExercises  WritingExercise[]
+  speakingExercises SpeakingExercise[]
+  subscriptions     Subscription[]
+}
+
+// =====================
+// Conversation
+// =====================
+
+model Conversation {
+  id          String           @id @default(cuid())
+  userId      String
+  type        ConversationType
+  title       String?
+  scenarioId  String?
+
+  createdAt   DateTime         @default(now())
+
+  // Relations
+  user        User             @relation(fields: [userId], references: [id])
+  messages    Message[]
+
+  speakingExercise SpeakingExercise?
+
+  scenario    Scenario?        @relation(fields: [scenarioId], references: [id])
+}
+
+// =====================
+// Message
+// =====================
+
+model Message {
+  id              String       @id @default(cuid())
+  conversationId  String
+  role            MessageRole
+  content         String
+  audioUrl        String?
+
+  createdAt       DateTime     @default(now())
+
+  // Relations
+  conversation    Conversation @relation(fields: [conversationId], references: [id])
+}
+
+// =====================
+// Writing Exercise
+// =====================
+
+model WritingExercise {
+  id               String   @id @default(cuid())
+  userId           String
+  scenarioType     ScenarioType
+  prompt           String
+  isCustomPrompt   Boolean  @default(false)
+
+  content          String
+  wordCount        Int
+
+  // Scores
+  overallScore     Float?
+  grammarScore     Float?
+  vocabularyScore  Float?
+  coherenceScore   Float?
+  taskScore        Float?
+
+  // JSON structured feedback
+  feedback         Json?
+
+  createdAt        DateTime @default(now())
+
+  // Relations
+  user             User     @relation(fields: [userId], references: [id])
+  scenario         Scenario? @relation(fields: [scenarioId], references: [id])
+
+  scenarioId       String?
+}
+
+// =====================
+// Speaking Exercise
+// =====================
+
+model SpeakingExercise {
+  id               String   @id @default(cuid())
+  userId           String
+  scenarioType     ScenarioType
+  scenarioRole     String
+
+  conversationId   String   @unique
+
+  totalTurns       Int
+  durationSeconds  Int
+
+  fluencyScore     Float?
+  accuracyScore    Float?
+
+  feedback         Json?
+
+  createdAt        DateTime @default(now())
+
+  // Relations
+  user             User     @relation(fields: [userId], references: [id])
+  conversation     Conversation @relation(fields: [conversationId], references: [id])
+  scenario         Scenario? @relation(fields: [scenarioId], references: [id])
+
+  scenarioId       String?
+}
+
+// =====================
+// Scenario
+// =====================
+
+model Scenario {
+  id          String        @id @default(cuid())
+  type        String        // writing / speaking
+  category    ScenarioType
+
+  title       String
+  description String
+  prompt      String
+
+  aiRole      String?
+  difficulty  Difficulty
+
+  isGenerated Boolean       @default(false)
+
+  createdAt   DateTime      @default(now())
+
+  // Relations
+  writingExercises  WritingExercise[]
+  speakingExercises SpeakingExercise[]
+  conversations     Conversation[]
+}
+
+// =====================
+// Subscription
+// =====================
+
+model Subscription {
+  id               String             @id @default(cuid())
+  userId           String
+
+  plan             String             // monthly / yearly
+  status           SubscriptionStatus
+
+  startDate        DateTime
+  endDate          DateTime
+
+  paymentProvider  String
+  externalId       String
+
+  createdAt        DateTime           @default(now())
+
+  // Relations
+  user             User               @relation(fields: [userId], references: [id])
+}
