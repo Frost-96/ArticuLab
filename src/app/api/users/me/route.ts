@@ -2,6 +2,39 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateRequest } from "@/lib/auth/middleware";
 
+/**
+ * 获取当前用户信息接口
+ *
+ * 输入格式：
+ * - 请求方法：GET
+ * - 请求头：
+ *   - Authorization: Bearer <token>  // JWT认证令牌，必填
+ *   - Content-Type: application/json
+ *
+ * 输出格式（成功响应）：
+ * - 状态码：200
+ * - 响应体（JSON格式）：
+ *   {
+ *     "success": true,
+ *     "data": {
+ *       "id": "string",
+ *       "email": "string",
+ *       "name": "string | null",
+ *       "avatar": "string | null",
+ *       "englishLevel": "string | null",
+ *       "membershipTier": "string",
+ *       "membershipExpiry": "string | null",
+ *       "learningGoal": "string | null",
+ *       "createdAt": "string",
+ *       "updatedAt": "string"
+ *     }
+ *   }
+ *
+ * 错误响应：
+ * - 401：未授权访问（缺少或无效的认证令牌）
+ * - 404：用户不存在
+ * - 500：服务器内部错误
+ */
 export async function GET(request: NextRequest) {
   try {
     // 验证请求的认证状态

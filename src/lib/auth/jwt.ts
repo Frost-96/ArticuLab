@@ -30,6 +30,34 @@ if (JWT_SECRET === 'your-secret-key-change-in-production') {
 
 /**
  * 生成JWT token
+ *
+ * 输入格式：
+ * - userId: string - 用户ID，必填
+ * - email: string - 用户邮箱，必填
+ *
+ * 配置参数：
+ * - JWT_SECRET: 环境变量，用于签名token
+ * - JWT_EXPIRES_IN: 环境变量，token过期时间（默认："7d"）
+ *
+ * 生成规则：
+ * 1. 验证userId和email都是有效的非空字符串
+ * 2. 使用jwt.sign()生成token
+ * 3. payload包含：{ userId, email }
+ * 4. 使用JWT_SECRET进行签名
+ * 5. 设置过期时间为JWT_EXPIRES_IN
+ *
+ * 输出格式：
+ * - string - 生成的JWT token字符串
+ *
+ * 错误处理：
+ * - 如果输入无效，抛出错误："生成token需要有效的userId参数" 或 "生成token需要有效的email参数"
+ * - 如果生成失败，抛出错误："认证令牌生成失败，请稍后重试"
+ *
+ * 示例：
+ * ```
+ * const token = generateToken("user123", "test@example.com");
+ * // 返回: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ * ```
  */
 export function generateToken(userId: string, email: string): string {
   try {
@@ -54,6 +82,37 @@ export function generateToken(userId: string, email: string): string {
 
 /**
  * 验证JWT token - 返回结构化结果
+ *
+ * 输入格式：
+ * - token: string - 需要验证的JWT token字符串
+ *
+ * 验证规则：
+ * 1. 检查token是否为空或无效字符串
+ * 2. 使用jwt.verify()验证token签名和过期时间
+ * 3. 使用JWT_SECRET进行验证
+ *
+ * 输出格式：
+ * - TokenVerificationResult 对象包含：
+ *   - isValid: boolean - token是否有效
+ *   - payload: JwtPayload | null - 解码后的payload（有效时）
+ *   - error: string | null - 错误信息（无效时）
+ *   - errorType: 'missing' | 'invalid' | 'expired' | 'malformed' | 'other' | null - 错误类型
+ *
+ * 错误类型说明：
+ * - 'missing': token为空或未提供
+ * - 'expired': token已过期
+ * - 'invalid': token无效（签名错误、格式错误等）
+ * - 'malformed': token格式错误
+ * - 'other': 其他未知错误
+ *
+ * 示例：
+ * ```
+ * const result = verifyToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...");
+ * // 有效时返回: { isValid: true, payload: { userId: "user123", email: "test@example.com" }, error: null, errorType: null }
+ *
+ * const result2 = verifyToken("invalid.token.here");
+ * // 无效时返回: { isValid: false, payload: null, error: "Token无效", errorType: "invalid" }
+ * ```
  */
 export function verifyToken(token: string): TokenVerificationResult {
   const defaultResult: TokenVerificationResult = {
@@ -114,6 +173,32 @@ export function verifyToken(token: string): TokenVerificationResult {
 
 /**
  * 从请求头提取token
+ *
+ * 输入格式：
+ * - authHeader: string | null - Authorization请求头值
+ *
+ * 提取规则：
+ * 1. 验证Authorization头格式：必须为 "Bearer <token>"
+ * 2. 检查是否包含两部分：认证方案和token
+ * 3. 认证方案必须为 "Bearer"
+ * 4. token不能为空
+ *
+ * 输出格式：
+ * - string | null - 提取到的token字符串，如果提取失败则返回null
+ *
+ * 错误处理：
+ * - 如果Authorization头为空或不是字符串，返回null
+ * - 如果格式不正确，记录警告日志并返回null
+ * - 如果提取过程出错，记录错误日志并返回null
+ *
+ * 示例：
+ * ```
+ * const token = extractTokenFromHeader("Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...");
+ * // 返回: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *
+ * const token2 = extractTokenFromHeader("Basic dXNlcjpwYXNz");
+ * // 返回: null (认证方案不是Bearer)
+ * ```
  */
 export function extractTokenFromHeader(authHeader: string | null): string | null {
   try {
@@ -149,6 +234,31 @@ export function extractTokenFromHeader(authHeader: string | null): string | null
 
 /**
  * 检查JWT配置是否有效
+ *
+ * 输入格式：无
+ *
+ * 检查规则：
+ * 1. 检查JWT_SECRET是否已设置
+ * 2. 检查JWT_SECRET是否使用默认值（生产环境不安全）
+ * 3. 检查JWT_SECRET长度是否足够（建议至少32个字符）
+ *
+ * 输出格式：
+ * - 对象包含：
+ *   - isValid: boolean - 配置是否有效（没有错误）
+ *   - warnings: string[] - 警告信息数组
+ *   - errors: string[] - 错误信息数组
+ *
+ * 使用场景：
+ * - 应用启动时检查配置
+ * - 开发环境提醒配置问题
+ * - 生产环境确保安全性
+ *
+ * 示例：
+ * ```
+ * const configCheck = validateJwtConfig();
+ * // 返回: { isValid: true, warnings: [], errors: [] } (配置正确)
+ * // 或: { isValid: false, warnings: ["JWT_SECRET使用的是默认值..."], errors: ["JWT_SECRET未设置"] }
+ * ```
  */
 export function validateJwtConfig(): { isValid: boolean; warnings: string[]; errors: string[] } {
   const warnings: string[] = [];

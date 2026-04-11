@@ -4,6 +4,53 @@ import { validateEmail, validateAuthRequest, sanitizeEmail } from '@/lib/auth/va
 import { validatePasswordStrength, hashPassword } from '@/lib/auth/password';
 import { generateToken } from '@/lib/auth/jwt';
 
+/**
+ * 用户注册接口
+ *
+ * 输入格式：
+ * - 请求方法：POST
+ * - 请求头：Content-Type: application/json
+ * - 请求体（JSON格式）：
+ *   {
+ *     "email": "string",    // 用户邮箱地址，必填
+ *     "password": "string"  // 用户密码，必填
+ *   }
+ *
+ * 密码要求：
+ * - 至少8个字符
+ * - 包含至少一个大写字母
+ * - 包含至少一个小写字母
+ * - 包含至少一个数字
+ * - 包含至少一个特殊字符
+ *
+ * 输出格式（成功响应）：
+ * - 状态码：201
+ * - 响应体（JSON格式）：
+ *   {
+ *     "success": true,
+ *     "message": "用户注册成功",
+ *     "data": {
+ *       "user": {
+ *         "id": "string",
+ *         "email": "string",
+ *         "name": "string | null",
+ *         "avatar": "string | null",
+ *         "englishLevel": "string | null",
+ *         "membershipTier": "string",  // 默认为 "free"
+ *         "membershipExpiry": "string | null",
+ *         "learningGoal": "string | null",
+ *         "createdAt": "string",
+ *         "updatedAt": "string"
+ *       },
+ *       "token": "string"  // JWT认证令牌
+ *     }
+ *   }
+ *
+ * 错误响应：
+ * - 400：请求参数错误（邮箱格式错误、密码强度不足、缺少必填字段等）
+ * - 409：邮箱已被注册
+ * - 500：服务器内部错误
+ */
 export async function POST(request: NextRequest) {
   try {
     // 解析请求体

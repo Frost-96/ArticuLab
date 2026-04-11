@@ -8,8 +8,31 @@ export interface PasswordValidationResult {
 }
 
 /**
- * 验证密码强度：至少8位，包含字母和数字
- * 返回详细的验证结果和错误信息
+ * 验证密码强度
+ *
+ * 输入格式：
+ * - password: string - 需要验证的密码
+ *
+ * 验证规则：
+ * 1. 必须是字符串类型
+ * 2. 不能为空
+ * 3. 长度至少8个字符
+ * 4. 必须包含至少一个字母（大小写均可）
+ * 5. 必须包含至少一个数字
+ *
+ * 输出格式：
+ * - PasswordValidationResult 对象包含：
+ *   - isValid: boolean - 验证是否通过
+ *   - errors: string[] - 错误信息数组（验证失败时）
+ *
+ * 示例：
+ * ```
+ * const result = validatePasswordStrength("Password123");
+ * // 返回: { isValid: true, errors: [] }
+ *
+ * const result2 = validatePasswordStrength("weak");
+ * // 返回: { isValid: false, errors: ["密码长度至少需要8位", "密码必须包含至少一个数字"] }
+ * ```
  */
 export function validatePasswordStrength(password: string): PasswordValidationResult {
   const errors: string[] = [];
@@ -49,6 +72,27 @@ export function validatePasswordStrength(password: string): PasswordValidationRe
 
 /**
  * 哈希密码
+ *
+ * 输入格式：
+ * - password: string - 需要哈希的原始密码
+ *
+ * 处理规则：
+ * 1. 验证输入必须是有效的非空字符串
+ * 2. 使用bcrypt算法进行哈希
+ * 3. 使用10轮盐值（SALT_ROUNDS = 10）
+ *
+ * 输出格式：
+ * - Promise<string> - 哈希后的密码字符串
+ *
+ * 错误处理：
+ * - 如果输入无效，抛出错误："密码必须是有效的非空字符串"
+ * - 如果哈希失败，抛出错误："密码处理失败，请稍后重试"
+ *
+ * 示例：
+ * ```
+ * const hashed = await hashPassword("myPassword123");
+ * // 返回: "$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"
+ * ```
  */
 export async function hashPassword(password: string): Promise<string> {
   try {
@@ -65,9 +109,33 @@ export async function hashPassword(password: string): Promise<string> {
 
 /**
  * 验证密码
+ *
+ * 输入格式：
+ * - password: string - 用户输入的原始密码
+ * - hashedPassword: string - 数据库中存储的哈希密码
+ *
+ * 验证规则：
+ * 1. 验证两个输入都是有效的字符串
+ * 2. 使用bcrypt.compare()进行密码比对
+ *
+ * 输出格式：
+ * - Promise<boolean> - 密码是否匹配
+ *   - true: 密码匹配
+ *   - false: 密码不匹配或输入无效
+ *
+ * 错误处理：
+ * - 如果输入无效，返回false并记录警告日志
+ * - 如果验证过程出错，返回false并记录错误日志
+ *
+ * 示例：
+ * ```
+ * const isValid = await verifyPassword("myPassword123", storedHash);
+ * // 返回: true (如果密码匹配)
+ * // 返回: false (如果密码不匹配)
+ * ```
  */
 export async function verifyPassword(
-  password: string, 
+  password: string,
   hashedPassword: string
 ): Promise<boolean> {
   try {

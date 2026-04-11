@@ -4,6 +4,46 @@ import { validateEmail, validateAuthRequest, sanitizeEmail } from '@/lib/auth/va
 import { verifyPassword } from '@/lib/auth/password';
 import { generateToken } from '@/lib/auth/jwt';
 
+/**
+ * 用户登录接口
+ *
+ * 输入格式：
+ * - 请求方法：POST
+ * - 请求头：Content-Type: application/json
+ * - 请求体（JSON格式）：
+ *   {
+ *     "email": "string",    // 用户邮箱地址，必填
+ *     "password": "string"  // 用户密码，必填
+ *   }
+ *
+ * 输出格式（成功响应）：
+ * - 状态码：200
+ * - 响应体（JSON格式）：
+ *   {
+ *     "success": true,
+ *     "message": "登录成功",
+ *     "data": {
+ *       "user": {
+ *         "id": "string",
+ *         "email": "string",
+ *         "name": "string | null",
+ *         "avatar": "string | null",
+ *         "englishLevel": "string | null",
+ *         "membershipTier": "string",
+ *         "membershipExpiry": "string | null",
+ *         "learningGoal": "string | null",
+ *         "createdAt": "string",
+ *         "updatedAt": "string"
+ *       },
+ *       "token": "string"  // JWT认证令牌
+ *     }
+ *   }
+ *
+ * 错误响应：
+ * - 400：请求参数错误（邮箱格式错误、缺少必填字段等）
+ * - 401：认证失败（邮箱或密码错误、账户未设置密码等）
+ * - 500：服务器内部错误
+ */
 export async function POST(request: NextRequest) {
   try {
     // 解析请求体
