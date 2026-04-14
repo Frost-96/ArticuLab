@@ -1,10 +1,7 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// prisma/schema.prisma
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../generated/prisma"
 }
 
@@ -13,79 +10,38 @@ datasource db {
 }
 
 // =====================
-// Enums
-// =====================
-
-enum ConversationType {
-  coach
-  writing
-  speaking
-}
-
-enum MessageRole {
-  user
-  assistant
-}
-
-enum EnglishLevel {
-  beginner
-  intermediate
-  advanced
-}
-
-enum MembershipTier {
-  free
-  pro
-}
-
-enum ScenarioType {
-  ielts_task1
-  ielts_task2
-  cet4
-  cet6
-  daily
-  interview
-  travel
-  business
-}
-
-enum Difficulty {
-  easy
-  medium
-  hard
-}
-
-enum SubscriptionStatus {
-  active
-  cancelled
-  expired
-}
-
-// =====================
 // User
 // =====================
 
 model User {
-  id                String   @id @default(cuid())
-  email             String   @unique
-  name              String?
-  avatar            String?
-  password          String?  // nullable for OAuth users
+  id               String    @id @default(cuid())
+  email            String    @unique @db.VarChar(254)
+  name             String?   @db.VarChar(100)
+  avatar           String?   @db.VarChar(500)
+  password         String?   @db.VarChar(255) // nullable for OAuth users
 
-  englishLevel      EnglishLevel?
-  learningGoal      String?
+  // Profile
+  englishLevel     String?   @default("beginner") @map("english_level") @db.VarChar(20)
+  learningGoal     String?   @map("learning_goal") @db.Text
 
-  membershipTier    MembershipTier @default(free)
-  membershipExpiry  DateTime?
+  // Membership
+  membershipTier   String    @default("free") @map("membership_tier") @db.VarChar(20)
+  membershipExpiry DateTime? @map("membership_expiry")
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  // Audit fields
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  isDeleted        Boolean   @default(false) @map("is_deleted")
 
   // Relations
   conversations     Conversation[]
   writingExercises  WritingExercise[]
   speakingExercises SpeakingExercise[]
   subscriptions     Subscription[]
+
+  @@index([email], map: "idx_users_email")
+  @@index([membershipTier], map: "idx_users_membership_tier")
+  @@map("users")
 }
 
 // =====================
@@ -93,21 +49,27 @@ model User {
 // =====================
 
 model Conversation {
-  id          String           @id @default(cuid())
-  userId      String
-  type        ConversationType
-  title       String?
-  scenarioId  String?
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  type       String   @db.VarChar(20) // coach | writing | speaking
+  title      String?  @db.VarChar(200)
+  scenarioId String?  @map("scenario_id")
 
-  createdAt   DateTime         @default(now())
+  // Audit fields
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  isDeleted  Boolean  @default(false) @map("is_deleted")
 
   // Relations
-  user        User             @relation(fields: [userId], references: [id])
-  messages    Message[]
-
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages         Message[]
   speakingExercise SpeakingExercise?
+  scenario         Scenario?         @relation(fields: [scenarioId], references: [id])
 
-  scenario    Scenario?        @relation(fields: [scenarioId], references: [id])
+  @@index([userId], map: "idx_conversations_user_id")
+  @@index([scenarioId], map: "idx_conversations_scenario_id")
+  @@index([type], map: "idx_conversations_type")
+  @@map("conversations")
 }
 
 // =====================
@@ -115,16 +77,23 @@ model Conversation {
 // =====================
 
 model Message {
-  id              String       @id @default(cuid())
-  conversationId  String
-  role            MessageRole
-  content         String
-  audioUrl        String?
+  id             String   @id @default(cuid())
+  conversationId String   @map("conversation_id")
+  role           String   @db.VarChar(20) // user | assistant
+  content        String   @db.Text
+  audioUrl       String?  @map("audio_url") @db.VarChar(500)
 
-  createdAt       DateTime     @default(now())
+  // Audit fields
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  isDeleted      Boolean  @default(false) @map("is_deleted")
 
   // Relations
-  conversation    Conversation @relation(fields: [conversationId], references: [id])
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId], map: "idx_messages_conversation_id")
+  @@index([conversationId, createdAt], map: "idx_messages_conversation_created_at")
+  @@map("messages")
 }
 
 // =====================
@@ -132,32 +101,39 @@ model Message {
 // =====================
 
 model WritingExercise {
-  id               String   @id @default(cuid())
-  userId           String
-  scenarioType     ScenarioType
-  prompt           String
-  isCustomPrompt   Boolean  @default(false)
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  scenarioId     String?  @map("scenario_id")
+  scenarioType   String   @map("scenario_type") @db.VarChar(30) // ielts_task1 | ielts_task2 | cet4 | cet6 | daily | interview | travel | business
+  prompt         String   @db.Text
+  isCustomPrompt Boolean  @default(false) @map("is_custom_prompt")
 
-  content          String
-  wordCount        Int
+  content        String   @db.Text
+  wordCount      Int      @map("word_count")
 
-  // Scores
-  overallScore     Float?
-  grammarScore     Float?
-  vocabularyScore  Float?
-  coherenceScore   Float?
-  taskScore        Float?
+  // Scores — use Decimal for precision
+  overallScore    Decimal? @map("overall_score") @db.Decimal(5, 2)
+  grammarScore    Decimal? @map("grammar_score") @db.Decimal(5, 2)
+  vocabularyScore Decimal? @map("vocabulary_score") @db.Decimal(5, 2)
+  coherenceScore  Decimal? @map("coherence_score") @db.Decimal(5, 2)
+  taskScore       Decimal? @map("task_score") @db.Decimal(5, 2)
 
   // JSON structured feedback
-  feedback         Json?
+  feedback       Json?
 
-  createdAt        DateTime @default(now())
+  // Audit fields
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  isDeleted      Boolean  @default(false) @map("is_deleted")
 
   // Relations
-  user             User     @relation(fields: [userId], references: [id])
-  scenario         Scenario? @relation(fields: [scenarioId], references: [id])
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scenario Scenario? @relation(fields: [scenarioId], references: [id])
 
-  scenarioId       String?
+  @@index([userId], map: "idx_writing_exercises_user_id")
+  @@index([scenarioId], map: "idx_writing_exercises_scenario_id")
+  @@index([userId, createdAt], map: "idx_writing_exercises_user_created_at")
+  @@map("writing_exercises")
 }
 
 // =====================
@@ -165,29 +141,37 @@ model WritingExercise {
 // =====================
 
 model SpeakingExercise {
-  id               String   @id @default(cuid())
-  userId           String
-  scenarioType     ScenarioType
-  scenarioRole     String
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  scenarioId      String?  @map("scenario_id")
+  scenarioType    String   @map("scenario_type") @db.VarChar(30) // ielts_task1 | ielts_task2 | cet4 | ...
+  scenarioRole    String   @map("scenario_role") @db.VarChar(100)
 
-  conversationId   String   @unique
+  conversationId  String   @unique @map("conversation_id")
 
-  totalTurns       Int
-  durationSeconds  Int
+  totalTurns      Int      @map("total_turns")
+  durationSeconds Int      @map("duration_seconds")
 
-  fluencyScore     Float?
-  accuracyScore    Float?
+  // Scores — use Decimal for precision
+  fluencyScore    Decimal? @map("fluency_score") @db.Decimal(5, 2)
+  accuracyScore   Decimal? @map("accuracy_score") @db.Decimal(5, 2)
 
-  feedback         Json?
+  feedback        Json?
 
-  createdAt        DateTime @default(now())
+  // Audit fields
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  isDeleted       Boolean  @default(false) @map("is_deleted")
 
   // Relations
-  user             User     @relation(fields: [userId], references: [id])
-  conversation     Conversation @relation(fields: [conversationId], references: [id])
-  scenario         Scenario? @relation(fields: [scenarioId], references: [id])
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  scenario     Scenario?    @relation(fields: [scenarioId], references: [id])
 
-  scenarioId       String?
+  @@index([userId], map: "idx_speaking_exercises_user_id")
+  @@index([scenarioId], map: "idx_speaking_exercises_scenario_id")
+  @@index([userId, createdAt], map: "idx_speaking_exercises_user_created_at")
+  @@map("speaking_exercises")
 }
 
 // =====================
@@ -195,25 +179,32 @@ model SpeakingExercise {
 // =====================
 
 model Scenario {
-  id          String        @id @default(cuid())
-  type        String        // writing / speaking
-  category    ScenarioType
+  id          String   @id @default(cuid())
+  type        String   @db.VarChar(20) // writing | speaking
+  category    String   @db.VarChar(30) // ielts_task1 | ielts_task2 | cet4 | cet6 | daily | interview | travel | business
 
-  title       String
-  description String
-  prompt      String
+  title       String   @db.VarChar(200)
+  description String   @db.Text
+  prompt      String   @db.Text
 
-  aiRole      String?
-  difficulty  Difficulty
+  aiRole      String?  @map("ai_role") @db.VarChar(100)
+  difficulty  String   @db.VarChar(10) // easy | medium | hard
 
-  isGenerated Boolean       @default(false)
+  isGenerated Boolean  @default(false) @map("is_generated")
 
-  createdAt   DateTime      @default(now())
+  // Audit fields
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
 
   // Relations
   writingExercises  WritingExercise[]
   speakingExercises SpeakingExercise[]
   conversations     Conversation[]
+
+  @@index([type, category], map: "idx_scenarios_type_category")
+  @@index([difficulty], map: "idx_scenarios_difficulty")
+  @@map("scenarios")
 }
 
 // =====================
@@ -221,20 +212,28 @@ model Scenario {
 // =====================
 
 model Subscription {
-  id               String             @id @default(cuid())
-  userId           String
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
 
-  plan             String             // monthly / yearly
-  status           SubscriptionStatus
+  plan            String   @db.VarChar(20) // monthly | yearly
+  status          String   @db.VarChar(20) // active | cancelled | expired
 
-  startDate        DateTime
-  endDate          DateTime
+  startDate       DateTime @map("start_date")
+  endDate         DateTime @map("end_date")
 
-  paymentProvider  String
-  externalId       String
+  paymentProvider String   @map("payment_provider") @db.VarChar(50)
+  externalId      String   @map("external_id") @db.VarChar(200)
 
-  createdAt        DateTime           @default(now())
+  // Audit fields
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  isDeleted       Boolean  @default(false) @map("is_deleted")
 
   // Relations
-  user             User               @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_subscriptions_user_id")
+  @@index([status], map: "idx_subscriptions_status")
+  @@index([externalId], map: "idx_subscriptions_external_id")
+  @@map("subscriptions")
 }
