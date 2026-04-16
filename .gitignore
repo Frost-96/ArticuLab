@@ -46,3 +46,9 @@ CLAUDE.md
 docs
 learning-guide
 /generated/prisma
+
+
+# plan
+plan/
+plan.md
+.env
