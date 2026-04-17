@@ -7,9 +7,9 @@ import {
     signInSchema,
     type SignUpInput,
     type SignInInput,
-} from "@/validators";
-import type { ActionResult } from "@/validators/shared";
-import type { EnglishLevel, MembershipTier } from "@/validators";
+} from "@/schema";
+import type { ActionResult } from "@/schema/shared";
+import type { EnglishLevel, MembershipTier } from "@/schema";
 import { getFirstError } from "@/lib/error";
 
 // ==================== 注册 ====================

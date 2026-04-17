@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { writingScenarioTypeEnum } from "./enums";
-import { idSchema, paginationSchema } from "./shared";
+import { idSchema, paginationSchema } from "./shared.schema";
 
 // ==================== 写作练习 ====================
 

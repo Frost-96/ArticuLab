@@ -1,7 +1,7 @@
 // src/validators/coach.ts
 
 import { z } from "zod";
-import { idSchema } from "./shared";
+import { idSchema } from "./shared.schema";
 
 // ==================== AI 教练对话 ====================
 

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { speakingScenarioTypeEnum, difficultyEnum } from "./enums";
-import { idSchema, paginationSchema } from "./shared";
+import { idSchema, paginationSchema } from "./shared.schema";
 
 // ==================== 口语练习 ====================
 

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { conversationTypeEnum, messageRoleEnum } from "./enums";
-import { idSchema } from "./shared";
+import { idSchema } from "./shared.schema.ts";
 
 // ==================== 会话相关 ====================
 

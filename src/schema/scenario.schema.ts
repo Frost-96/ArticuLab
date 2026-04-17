@@ -6,7 +6,7 @@ import {
     scenarioTypeEnum,
     difficultyEnum,
 } from "./enums";
-import { paginationSchema } from "./shared";
+import { paginationSchema } from "./shared.schema";
 
 // ==================== 场景相关 ====================
 

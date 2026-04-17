@@ -1,7 +1,7 @@
 // src/validators/dashboard.ts
 
 import { z } from "zod";
-import { dateRangeSchema } from "./shared";
+import { dateRangeSchema } from "./shared.schema.ts";
 
 // ==================== 学习中心 ====================
 

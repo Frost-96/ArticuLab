@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import type { EnglishLevel, MembershipTier } from "@/validators";
+import type { EnglishLevel, MembershipTier } from "@/schema";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
 
