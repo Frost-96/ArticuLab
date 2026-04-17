@@ -1,5 +1,3 @@
-// src/validators/shared.ts
-
 import { z } from "zod";
 
 // ==================== 通用校验 ====================

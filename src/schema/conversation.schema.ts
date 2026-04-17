@@ -1,8 +1,6 @@
-// src/validators/conversation.ts
-
 import { z } from "zod";
 import { conversationTypeEnum, messageRoleEnum } from "./enums";
-import { idSchema } from "./shared.schema.ts";
+import { idSchema } from "./shared.schema";
 
 // ==================== 会话相关 ====================
 

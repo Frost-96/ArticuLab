@@ -1,5 +1,5 @@
 import type React from "react";
-import type { Prisma } from "../../generated/prisma";
+import type { Prisma } from "../../generated/prisma/client";
 
 // UI 导航
 export interface NavItem {

@@ -1,88 +1,8 @@
-/*
-  Warnings:
-
-  - You are about to drop the `Conversation` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `Message` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `Scenario` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `SpeakingExercise` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `Subscription` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `User` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `WritingExercise` table. If the table is not empty, all the data it contains will be lost.
-
-*/
--- DropForeignKey
-ALTER TABLE "Conversation" DROP CONSTRAINT "Conversation_scenarioId_fkey";
-
--- DropForeignKey
-ALTER TABLE "Conversation" DROP CONSTRAINT "Conversation_userId_fkey";
-
--- DropForeignKey
-ALTER TABLE "Message" DROP CONSTRAINT "Message_conversationId_fkey";
-
--- DropForeignKey
-ALTER TABLE "SpeakingExercise" DROP CONSTRAINT "SpeakingExercise_conversationId_fkey";
-
--- DropForeignKey
-ALTER TABLE "SpeakingExercise" DROP CONSTRAINT "SpeakingExercise_scenarioId_fkey";
-
--- DropForeignKey
-ALTER TABLE "SpeakingExercise" DROP CONSTRAINT "SpeakingExercise_userId_fkey";
-
--- DropForeignKey
-ALTER TABLE "Subscription" DROP CONSTRAINT "Subscription_userId_fkey";
-
--- DropForeignKey
-ALTER TABLE "WritingExercise" DROP CONSTRAINT "WritingExercise_scenarioId_fkey";
-
--- DropForeignKey
-ALTER TABLE "WritingExercise" DROP CONSTRAINT "WritingExercise_userId_fkey";
-
--- DropTable
-DROP TABLE "Conversation";
-
--- DropTable
-DROP TABLE "Message";
-
--- DropTable
-DROP TABLE "Scenario";
-
--- DropTable
-DROP TABLE "SpeakingExercise";
-
--- DropTable
-DROP TABLE "Subscription";
-
--- DropTable
-DROP TABLE "User";
-
--- DropTable
-DROP TABLE "WritingExercise";
-
--- DropEnum
-DROP TYPE "ConversationType";
-
--- DropEnum
-DROP TYPE "Difficulty";
-
--- DropEnum
-DROP TYPE "EnglishLevel";
-
--- DropEnum
-DROP TYPE "MembershipTier";
-
--- DropEnum
-DROP TYPE "MessageRole";
-
--- DropEnum
-DROP TYPE "ScenarioType";
-
--- DropEnum
-DROP TYPE "SubscriptionStatus";
-
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
     "email" VARCHAR(254) NOT NULL,
+    "email_verified" TIMESTAMP(3),
     "name" VARCHAR(100),
     "avatar" VARCHAR(500),
     "password" VARCHAR(255),
@@ -95,6 +15,20 @@ CREATE TABLE "users" (
     "is_deleted" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "email_verifications" (
+    "id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "email" VARCHAR(254) NOT NULL,
+    "token" VARCHAR(64) NOT NULL,
+    "type" VARCHAR(20) NOT NULL,
+    "expires_at" TIMESTAMP(3) NOT NULL,
+    "used_at" TIMESTAMP(3),
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "email_verifications_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -135,11 +69,12 @@ CREATE TABLE "writing_exercises" (
     "is_custom_prompt" BOOLEAN NOT NULL DEFAULT false,
     "content" TEXT NOT NULL,
     "word_count" INTEGER NOT NULL,
-    "overall_score" DECIMAL(5,2),
-    "grammar_score" DECIMAL(5,2),
-    "vocabulary_score" DECIMAL(5,2),
-    "coherence_score" DECIMAL(5,2),
-    "task_score" DECIMAL(5,2),
+    "status" VARCHAR(20) NOT NULL DEFAULT 'draft',
+    "overall_score" DOUBLE PRECISION,
+    "grammar_score" DOUBLE PRECISION,
+    "vocabulary_score" DOUBLE PRECISION,
+    "coherence_score" DOUBLE PRECISION,
+    "task_score" DOUBLE PRECISION,
     "feedback" JSONB,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -156,10 +91,11 @@ CREATE TABLE "speaking_exercises" (
     "scenario_type" VARCHAR(30) NOT NULL,
     "scenario_role" VARCHAR(100) NOT NULL,
     "conversation_id" TEXT NOT NULL,
-    "total_turns" INTEGER NOT NULL,
-    "duration_seconds" INTEGER NOT NULL,
-    "fluency_score" DECIMAL(5,2),
-    "accuracy_score" DECIMAL(5,2),
+    "status" VARCHAR(20) NOT NULL DEFAULT 'in_progress',
+    "total_turns" INTEGER,
+    "duration_seconds" INTEGER,
+    "fluency_score" DOUBLE PRECISION,
+    "accuracy_score" DOUBLE PRECISION,
     "feedback" JSONB,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -176,7 +112,7 @@ CREATE TABLE "scenarios" (
     "title" VARCHAR(200) NOT NULL,
     "description" TEXT NOT NULL,
     "prompt" TEXT NOT NULL,
-    "ai_role" VARCHAR(100),
+    "ai_role" TEXT,
     "difficulty" VARCHAR(10) NOT NULL,
     "is_generated" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -213,7 +149,19 @@ CREATE INDEX "idx_users_email" ON "users"("email");
 CREATE INDEX "idx_users_membership_tier" ON "users"("membership_tier");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "email_verifications_token_key" ON "email_verifications"("token");
+
+-- CreateIndex
+CREATE INDEX "idx_email_verifications_email" ON "email_verifications"("email");
+
+-- CreateIndex
+CREATE INDEX "idx_email_verifications_token" ON "email_verifications"("token");
+
+-- CreateIndex
 CREATE INDEX "idx_conversations_user_id" ON "conversations"("user_id");
+
+-- CreateIndex
+CREATE INDEX "idx_conversations_user_updated_at" ON "conversations"("user_id", "updated_at");
 
 -- CreateIndex
 CREATE INDEX "idx_conversations_scenario_id" ON "conversations"("scenario_id");
@@ -231,10 +179,13 @@ CREATE INDEX "idx_messages_conversation_created_at" ON "messages"("conversation_
 CREATE INDEX "idx_writing_exercises_user_id" ON "writing_exercises"("user_id");
 
 -- CreateIndex
+CREATE INDEX "idx_writing_exercises_user_created_at" ON "writing_exercises"("user_id", "created_at");
+
+-- CreateIndex
 CREATE INDEX "idx_writing_exercises_scenario_id" ON "writing_exercises"("scenario_id");
 
 -- CreateIndex
-CREATE INDEX "idx_writing_exercises_user_created_at" ON "writing_exercises"("user_id", "created_at");
+CREATE INDEX "idx_writing_exercises_status" ON "writing_exercises"("status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "speaking_exercises_conversation_id_key" ON "speaking_exercises"("conversation_id");
@@ -243,10 +194,13 @@ CREATE UNIQUE INDEX "speaking_exercises_conversation_id_key" ON "speaking_exerci
 CREATE INDEX "idx_speaking_exercises_user_id" ON "speaking_exercises"("user_id");
 
 -- CreateIndex
+CREATE INDEX "idx_speaking_exercises_user_created_at" ON "speaking_exercises"("user_id", "created_at");
+
+-- CreateIndex
 CREATE INDEX "idx_speaking_exercises_scenario_id" ON "speaking_exercises"("scenario_id");
 
 -- CreateIndex
-CREATE INDEX "idx_speaking_exercises_user_created_at" ON "speaking_exercises"("user_id", "created_at");
+CREATE INDEX "idx_speaking_exercises_status" ON "speaking_exercises"("status");
 
 -- CreateIndex
 CREATE INDEX "idx_scenarios_type_category" ON "scenarios"("type", "category");
@@ -262,6 +216,9 @@ CREATE INDEX "idx_subscriptions_status" ON "subscriptions"("status");
 
 -- CreateIndex
 CREATE INDEX "idx_subscriptions_external_id" ON "subscriptions"("external_id");
+
+-- AddForeignKey
+ALTER TABLE "email_verifications" ADD CONSTRAINT "email_verifications_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "conversations" ADD CONSTRAINT "conversations_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

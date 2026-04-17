@@ -1,5 +1,3 @@
-// src/validators/scenario.ts
-
 import { z } from "zod";
 import {
     scenarioCategoryEnum,

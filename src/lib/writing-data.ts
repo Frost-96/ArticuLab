@@ -1,3 +1,5 @@
+import type { WritingScenarioType } from "@/schema";
+
 // ─── Daily prompts ────────────────────────────────────────────────────────────
 
 export const DAILY_PROMPTS: string[] = [
@@ -9,9 +11,20 @@ export const DAILY_PROMPTS: string[] = [
 
 // ─── Exam configurations ──────────────────────────────────────────────────────
 
-export const EXAM_CONFIGS = [
+export const EXAM_CONFIGS: Array<{
+    id: WritingScenarioType;
+    label: string;
+    shortLabel: string;
+    badgeColor: string;
+    pillActive: string;
+    wordTarget: number;
+    wordRange: string;
+    timeLimit: string;
+    description: string;
+    prompts: string[];
+}> = [
     {
-        id: "ielts-task2",
+        id: "ielts_task2",
         label: "IELTS Task 2",
         shortLabel: "IELTS 2",
         badgeColor: "bg-amber-100 text-amber-700",
@@ -28,7 +41,7 @@ export const EXAM_CONFIGS = [
         ],
     },
     {
-        id: "ielts-task1",
+        id: "ielts_task1",
         label: "IELTS Task 1",
         shortLabel: "IELTS 1",
         badgeColor: "bg-orange-100 text-orange-700",
@@ -42,23 +55,6 @@ export const EXAM_CONFIGS = [
             "The bar chart below shows the percentage of households in owned and rented accommodation in England and Wales between 1918 and 2011. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
             "The diagram below shows the water cycle, which is the continuous movement of water on, above, and below the surface of the Earth. Summarise the information by selecting and reporting the main features.",
             "The table below gives information about the underground railway systems in six cities. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.",
-        ],
-    },
-    {
-        id: "toefl",
-        label: "TOEFL",
-        shortLabel: "TOEFL",
-        badgeColor: "bg-blue-100 text-blue-700",
-        pillActive: "bg-blue-600 text-white",
-        wordTarget: 300,
-        wordRange: "300+ words",
-        timeLimit: "30 min",
-        description:
-            "Independent writing task — state and support your opinion",
-        prompts: [
-            "Do you agree or disagree with the following statement? It is better to work in a team than to work alone. Use specific reasons and examples to support your answer.",
-            "Some people prefer to spend their free time outdoors. Others prefer to spend it indoors. Which do you prefer? Use specific reasons and examples to explain your choice.",
-            "A company is going to give some money to the local community. What do you think the company should do with this money? Use specific reasons and examples to support your answer.",
         ],
     },
     {
@@ -93,27 +89,11 @@ export const EXAM_CONFIGS = [
             "Write an essay: Campus Volunteerism — Why Should College Students Participate? You should write at least 120 words.",
         ],
     },
-    {
-        id: "kaoyan",
-        label: "考研英语",
-        shortLabel: "考研",
-        badgeColor: "bg-rose-100 text-rose-700",
-        pillActive: "bg-rose-600 text-white",
-        wordTarget: 160,
-        wordRange: "160+ words",
-        timeLimit: "30 min",
-        description: "大作文：图表/漫画描述 + 分析，160~200词",
-        prompts: [
-            "Write an essay of about 160–200 words based on the following drawing. Your essay should cover the main point of the drawing, interpret its intended meaning, and give your own opinion.",
-            "The bar chart shows the changes in the proportion of college students who volunteer in community service from 2000 to 2020. Describe the chart and explain the reasons behind these changes in about 160 words.",
-            "Look at the following cartoon carefully and write an essay in which you should describe the cartoon, interpret its intended meaning, and give your comment. Write your essay in no less than 160 words.",
-        ],
-    },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-export function getExamConfig(id: string) {
+export function getExamConfig(id: WritingScenarioType) {
     return EXAM_CONFIGS.find((e) => e.id === id);
 }
 

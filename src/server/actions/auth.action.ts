@@ -8,7 +8,7 @@ import {
     type SignUpInput,
     type SignInInput,
 } from "@/schema";
-import type { ActionResult } from "@/schema/shared";
+import type { ActionResult } from "@/schema/shared.schema";
 import type { EnglishLevel, MembershipTier } from "@/schema";
 import { getFirstError } from "@/lib/error";
 
@@ -36,7 +36,7 @@ export async function signUp(
 
         await setAuthCookie(token);
 
-        return { success: true, data: { redirect: "/onboarding" } };
+        return { success: true, data: { redirect: "/dashboard" } };
     } catch (error) {
         return {
             success: false,
@@ -71,7 +71,7 @@ export async function signIn(
 
         await setAuthCookie(token);
 
-        const redirect = user.englishLevel ? "/coach" : "/onboarding";
+        const redirect = user.englishLevel ? "/coach" : "/dashboard";
 
         return { success: true, data: { redirect } };
     } catch (error) {

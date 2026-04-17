@@ -1,5 +1,3 @@
-// src/validators/coach.ts
-
 import { z } from "zod";
 import { idSchema } from "./shared.schema";
 

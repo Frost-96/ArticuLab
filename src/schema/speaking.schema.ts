@@ -1,5 +1,3 @@
-// src/validators/speaking.ts
-
 import { z } from "zod";
 import { speakingScenarioTypeEnum, difficultyEnum } from "./enums";
 import { idSchema, paginationSchema } from "./shared.schema";

@@ -52,9 +52,11 @@ export default function Page() {
   const charCount = content.length;
 
   // Resolve exam-specific targets
-  const examCfg = currentWritingSession?.examType
-    ? getExamConfig(currentWritingSession.examType)
-    : null;
+  const examCfg =
+    currentWritingSession?.scenarioType &&
+    currentWritingSession.scenarioType !== "daily"
+      ? getExamConfig(currentWritingSession.scenarioType)
+      : null;
   const wordTarget = examCfg?.wordTarget ?? 250;
   const timeLimitSec = examCfg ? parseInt(examCfg.timeLimit) * 60 : 1800;
 

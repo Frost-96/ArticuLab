@@ -1,5 +1,3 @@
-// src/validators/enums.ts
-
 import { z } from "zod";
 
 // ==================== 枚举定义 ====================

@@ -1,5 +1,3 @@
-// src/validators/auth.ts
-
 import { z } from "zod";
 import { englishLevelEnum } from "./enums";
 

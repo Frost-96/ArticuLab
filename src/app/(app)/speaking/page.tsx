@@ -64,11 +64,13 @@ export default function Page() {
         setCurrentSpeakingSession({
             id: Date.now().toString(),
             title: scenario.title,
+            scenarioType: "daily",
             scenario: scenario.description,
             aiRole: scenario.aiRole,
             duration: 0,
             turns: 0,
             status: "active",
+            createdAt: new Date(),
         });
         router.push(`/speaking/${scenario.id}`);
     };
