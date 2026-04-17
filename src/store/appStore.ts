@@ -1,5 +1,51 @@
 import { create } from "zustand";
-import type { User, WritingSession, SpeakingSession } from "@/types";
+import type {
+  WritingScenarioType,
+  SpeakingScenarioType,
+  MembershipTier,
+  EnglishLevel,
+} from "@/validators";
+
+// ─── Domain Types (derived from validators) ───────────────────────────────────
+
+interface User {
+  name?: string;
+  email: string;
+  avatar?: string;
+  plan: MembershipTier;
+  englishLevel?: EnglishLevel;
+  streak: number;
+  totalSessions: number;
+  studyTime: number;
+}
+
+interface WritingSession {
+  id: string;
+  title: string;
+  scenarioType: WritingScenarioType;
+  prompt: string;
+  isCustomPrompt: boolean;
+  content: string;
+  wordCount: number;
+  timeSpent: number;
+  status: "draft" | "submitted" | "reviewed";
+  overallScore?: number;
+  createdAt: Date;
+}
+
+interface SpeakingSession {
+  id: string;
+  title: string;
+  scenarioType: SpeakingScenarioType;
+  scenario: string;
+  aiRole: string;
+  duration: number;
+  turns: number;
+  fluencyScore?: number;
+  accuracyScore?: number;
+  status: "active" | "completed";
+  createdAt: Date;
+}
 
 // ─── State & Actions ──────────────────────────────────────────────────────────
 
@@ -41,10 +87,10 @@ const SEED_WRITING_SESSIONS: WritingSession[] = [
   {
     id: "1",
     title: "IELTS Task 2 - Technology",
-    mode: "exam",
-    examType: "ielts-task2",
+    scenarioType: "ielts_task2",
     prompt:
       "Some people believe that technology has made our lives more complex. To what extent do you agree or disagree?",
+    isCustomPrompt: false,
     content: "",
     wordCount: 0,
     timeSpent: 0,
@@ -54,9 +100,10 @@ const SEED_WRITING_SESSIONS: WritingSession[] = [
   {
     id: "2",
     title: "Daily Writing #47",
-    mode: "daily",
+    scenarioType: "daily",
     prompt:
       "Describe a memorable journey you have taken. What made it special?",
+    isCustomPrompt: false,
     content: "Last summer, I embarked on...",
     wordCount: 245,
     timeSpent: 1200,
@@ -66,14 +113,14 @@ const SEED_WRITING_SESSIONS: WritingSession[] = [
   {
     id: "3",
     title: "TOEFL Independent Task",
-    mode: "exam",
-    examType: "toefl",
+    scenarioType: "cet6",
     prompt:
       "Do you agree or disagree with the following statement? It is better to work in a team than to work alone.",
+    isCustomPrompt: false,
     content: "",
     wordCount: 312,
     timeSpent: 1800,
-    score: 7.5,
+    overallScore: 7.5,
     status: "reviewed",
     createdAt: new Date(Date.now() - 72 * 3600_000),
   },
@@ -83,6 +130,7 @@ const SEED_SPEAKING_SESSIONS: SpeakingSession[] = [
   {
     id: "1",
     title: "Job Interview Simulation",
+    scenarioType: "interview",
     scenario:
       "You are interviewing for a marketing position at a tech company.",
     aiRole: "Hiring Manager",
@@ -96,6 +144,7 @@ const SEED_SPEAKING_SESSIONS: SpeakingSession[] = [
   {
     id: "2",
     title: "Hotel Check-in",
+    scenarioType: "travel",
     scenario:
       "You arrive at a hotel and need to check in for your reservation.",
     aiRole: "Hotel Receptionist",
@@ -107,6 +156,7 @@ const SEED_SPEAKING_SESSIONS: SpeakingSession[] = [
   {
     id: "3",
     title: "University Discussion",
+    scenarioType: "free",
     scenario: "Discuss your research project with your professor.",
     aiRole: "Professor",
     duration: 600,
@@ -130,7 +180,6 @@ export const useAppStore = create<AppState>((set) => ({
   user: {
     name: "Sarah Chen",
     email: "sarah@example.com",
-    avatar: "",
     plan: "pro",
     streak: 12,
     totalSessions: 47,
