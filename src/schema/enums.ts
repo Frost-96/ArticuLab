@@ -5,49 +5,50 @@ import { z } from "zod";
 export const conversationTypeEnum = z.enum(["coach", "writing", "speaking"]);
 
 export const englishLevelEnum = z.enum([
-    "beginner",
-    "intermediate",
-    "advanced",
+  "beginner",
+  "intermediate",
+  "advanced",
 ]);
 
 export const membershipTierEnum = z.enum(["free", "pro"]);
 
 export const scenarioTypeEnum = z.enum([
-    "ielts_task1",
-    "ielts_task2",
-    "cet4",
-    "cet6",
-    "daily",
-    "interview",
-    "travel",
-    "business",
-    "free",
+  "ielts_task1",
+  "ielts_task2",
+  "cet4",
+  "cet6",
+  "daily",
+  "interview",
+  "travel",
+  "business",
+  "free",
 ]);
 
 // 写作场景：考试类型 + 日常
 export const writingScenarioTypeEnum = z.enum([
-    "ielts_task1",
-    "ielts_task2",
-    "cet4",
-    "cet6",
-    "daily",
+  "ielts_task1",
+  "ielts_task2",
+  "toefl",
+  "cet4",
+  "cet6",
+  "daily",
 ]);
 
 // 口语场景
 export const speakingScenarioTypeEnum = z.enum([
-    "daily",
-    "interview",
-    "travel",
-    "business",
-    "free",
+  "daily",
+  "interview",
+  "travel",
+  "business",
+  "free",
 ]);
 
 export const difficultyEnum = z.enum(["easy", "medium", "hard"]);
 
 export const subscriptionStatusEnum = z.enum([
-    "active",
-    "cancelled",
-    "expired",
+  "active",
+  "cancelled",
+  "expired",
 ]);
 
 export const subscriptionPlanEnum = z.enum(["monthly", "yearly"]);

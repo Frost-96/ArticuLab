@@ -131,7 +131,7 @@ model WritingExercise {
   id             String  @id @default(cuid())
   userId         String  @map("user_id")
   scenarioId     String? @map("scenario_id")
-  scenarioType   String  @map("scenario_type") @db.VarChar(30) // ielts_task1 | ielts_task2 | cet4 | cet6 | daily
+  scenarioType   String  @map("scenario_type") @db.VarChar(30) // ielts_task1 | ielts_task2 | toefl | cet4 | cet6 | daily
   prompt         String  @db.Text
   isCustomPrompt Boolean @default(false) @map("is_custom_prompt")
   content        String  @db.Text

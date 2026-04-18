@@ -120,7 +120,7 @@ export function LeftSidebar({ type }: LeftSidebarProps) {
           id: s.id,
           title: s.title,
           date: new Date(Date.now() - Math.random() * 7 * 86_400_000), // mock dates
-          badge: s.score ? String(s.score) : undefined,
+          badge: s.overallScore ? String(s.overallScore) : undefined,
           href: `/writing/${s.id}`,
         }));
       case "speaking":

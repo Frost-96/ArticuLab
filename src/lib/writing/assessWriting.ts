@@ -1,4 +1,4 @@
-import type { ScenarioType } from "../../../generated/prisma/enums";
+import type { WritingScenarioType } from "@/schema";
 import { getWritingLlmClient, getWritingLlmModel } from "./llmClient";
 import { scoreRangeForScenarioType } from "./constants";
 import type {
@@ -11,21 +11,23 @@ import type {
 /**
  * 批改入参（JSON语义）
  *   {
- *     "scenarioType": "string",    // Prisma ScenarioType
+ *     "scenarioType": "string",    // WritingScenarioType
  *     "prompt": "string",           // 题目
  *     "content": "string",          // 作文正文
  *     "wordCount": "number"        // 客户端词数（与 content 已在校验层对齐）
  *   }
  */
 export type AssessInput = {
-  scenarioType: ScenarioType;
+  scenarioType: WritingScenarioType;
   prompt: string;
   content: string;
   wordCount: number;
   description?: string; // 题目的详细描述（可选，从scenario中获取）
 };
 
-function mockAssessment(input: AssessInput): Omit<StoredWritingFeedback, "_meta"> {
+function mockAssessment(
+  input: AssessInput,
+): Omit<StoredWritingFeedback, "_meta"> {
   const [minS, maxS] = scoreRangeForScenarioType(input.scenarioType);
   const span = maxS - minS;
   const overall = minS + span * 0.72;
@@ -144,8 +146,11 @@ IMPORTANT:
  * - 失败：{ "ok": false, "error": "string" }
  */
 export async function assessWriting(
-  input: AssessInput
-): Promise<{ ok: true; data: Omit<StoredWritingFeedback, "_meta"> } | { ok: false; error: string }> {
+  input: AssessInput,
+): Promise<
+  | { ok: true; data: Omit<StoredWritingFeedback, "_meta"> }
+  | { ok: false; error: string }
+> {
   const client = getWritingLlmClient();
   if (!client) {
     return { ok: true, data: mockAssessment(input) };
