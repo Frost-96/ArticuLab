@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useAppStore } from "@/store/appStore";
+import { useSpeakingStore } from "@/stores/speakingStore";
 
 const scenarios = [
     {
@@ -58,11 +58,12 @@ const scenarios = [
 
 export default function Page() {
     const router = useRouter();
-    const { setCurrentSpeakingSession } = useAppStore();
+    const { speakingSessions, setCurrentSpeakingSession } = useSpeakingStore();
 
     const handleStart = (scenario: (typeof scenarios)[0]) => {
+        const nextSessionId = `speaking-${speakingSessions.length + 1}`;
         setCurrentSpeakingSession({
-            id: Date.now().toString(),
+            id: nextSessionId,
             title: scenario.title,
             scenarioType: "daily",
             scenario: scenario.description,

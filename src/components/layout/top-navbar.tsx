@@ -15,8 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useAppStore } from "@/store/appStore";
+import { useUIStore } from "@/stores/uiStore";
 import { UserNav } from "./user-nav";
 
 const navItems = [
@@ -44,7 +43,7 @@ const navItems = [
 
 export function TopNavbar() {
     const pathname = usePathname();
-    const { toggleSidebar } = useAppStore();
+    const { toggleSidebar } = useUIStore();
 
     return (
         <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-slate-200 bg-white/95 backdrop-blur-sm">

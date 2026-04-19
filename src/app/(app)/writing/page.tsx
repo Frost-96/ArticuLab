@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { DAILY_PROMPTS, EXAM_CONFIGS, pickRandom } from "@/lib/writing-data";
-import { useAppStore } from "@/store/appStore";
+import { useWritingStore } from "@/stores/writingStore";
 import type { WritingScenarioType } from "@/schema";
 import { useRouter } from "next/navigation";
 import {
@@ -33,7 +33,7 @@ const WRITING_STATUS_CONFIG = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Page() {
-    const { setCurrentWritingSession, writingSessions } = useAppStore();
+    const { setCurrentWritingSession, writingSessions } = useWritingStore();
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<"daily" | "exam">("daily");
     const [examScenarioType, setExamScenarioType] =

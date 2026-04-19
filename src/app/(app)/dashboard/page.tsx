@@ -38,8 +38,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useAppStore } from "@/store/appStore";
-
 export default function Page() {
   const skillData = [
     { skill: "Grammar", score: 82 },
