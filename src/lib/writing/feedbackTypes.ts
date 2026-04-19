@@ -1,96 +1,68 @@
+import type { WritingReviewResult } from "@/schema"
+
+
 /**
  * 持久化在 WritingExercise.feedback（Json）内的结构说明（不新增表字段）
  *
  * 典型结构（JSON格式）：
  *   {
- *     "_meta": {
- *       "lastSavedAt": "string",     // 可选，ISO 8601
- *       "submittedAt": "string",     // 可选
- *       "evaluatedAt": "string"      // 可选
- *     },
- *     "scores": {
- *       "overall": "number",
- *       "grammar": "number",
- *       "vocabulary": "number",
- *       "coherence": "number",
- *       "taskCompletion": "number"
- *     },
- *     "feedback": {
- *       "summary": "string",
- *       "issues": []                 // IssueItem 数组
- *     },
- *     "suggestionsPayload": {
- *       "suggestions": [],            // SuggestionCategoryBlock 数组
- *       "modelEssay": {
- *         "title": "string",
- *         "content": "string",
- *         "analysis": "string"
- *       }
- *     }
+ *     "overallScore": "number",
+ *     "grammarScore": "number",
+ *     "vocabularyScore": "number",
+ *     "coherenceScore": "number",
+ *     "taskScore": "number",
+ *     "overallComment": "string",
+ *     "sentenceFeedback": [],           // SentenceFeedback 数组
+ *     "strengths": [],                  // string 数组
+ *     "improvements": [],               // string 数组
+ *     "sampleExpressions": []           // 可选，SampleExpression 数组
  *   }
  */
 
-export type FeedbackMeta = {
-  lastSavedAt?: string;
-  submittedAt?: string;
-  evaluatedAt?: string;
-};
-
-export type IssueItem = {
-  id: number;
-  type: "error" | "suggestion" | "enhancement";
-  severity: "high" | "medium" | "low";
-  sentence: string;
-  correction: string;
+/* export type SentenceFeedback = {
+  original: string;
+  corrected?: string;
+  severity: "error" | "warning" | "suggestion";
+  category: string; // grammar / vocabulary / coherence / task
   explanation: string;
-  position: { start: number; end: number };
-  category?: string;
+  alternatives?: string[];
 };
 
-export type SuggestionCategoryBlock = {
-  category: string;
-  title: string;
-  description: string;
-  items: Array<Record<string, unknown>>;
+export type SampleExpression = {
+  original: string;
+  improved: string;
+  explanation: string;
 };
-
-export type ModelEssay = {
-  title: string;
-  content: string;
-  analysis: string;
-};
-
-export type StoredWritingFeedback = {
-  _meta?: FeedbackMeta;
-  scores?: {
-    overall: number;
-    grammar: number;
-    vocabulary: number;
-    coherence: number;
-    taskCompletion: number;
-  };
-  feedback?: {
-    summary: string;
-    issues: IssueItem[];
-  };
-  suggestionsPayload?: {
-    suggestions: SuggestionCategoryBlock[];
-    modelEssay?: ModelEssay;
-  };
-};
-
+ */
 /**
- * 将 Prisma Json 安全转为 StoredWritingFeedback
+ * AI 批改返回的完整结果
+ * 对应 schema/writing.schema.ts 中的 WritingReviewResult
+ */
+/* export type WritingReviewResult = {
+  overallScore: number;
+  grammarScore: number;
+  vocabularyScore: number;
+  coherenceScore: number;
+  taskScore: number;
+  overallComment: string;
+  sentenceFeedback: SentenceFeedback[];
+  strengths: string[];
+  improvements: string[];
+  sampleExpressions?: SampleExpression[];
+};
+ */
+/**
+ * 将 Prisma Json 安全转为 WritingReviewResult
  *
  * 输入格式：
  * - raw：unknown（WritingExercise.feedback）
  *
  * 输出格式：
- * - StoredWritingFeedback；非 object 时返回 {}
+ * - WritingReviewResult；非 object 时返回 null
  */
-export function parseFeedback(raw: unknown): StoredWritingFeedback {
+export function parseFeedback(raw: unknown): WritingReviewResult | null {
   if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-    return raw as StoredWritingFeedback;
+    return raw as WritingReviewResult;
   }
-  return {};
+  return null;
 }
