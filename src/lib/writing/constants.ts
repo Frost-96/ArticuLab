@@ -31,9 +31,10 @@ export const WRITING_SCENARIO_TYPES: readonly ScenarioType[] = [
 ] as const;
 
 export const SPEAKING_SCENARIO_TYPES: readonly ScenarioType[] = [
-  "interview",
-  "travel",
-  "business",
+    "daily",
+    "interview",
+    "travel",
+    "business",
 ] as const;
 
 /**

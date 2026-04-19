@@ -17,9 +17,10 @@ datasource db {
 model User {
   id               String    @id @default(cuid())
   email            String    @unique @db.VarChar(254)
+  emailVerified    DateTime? @map("email_verified")
   name             String?   @db.VarChar(100)
   avatar           String?   @db.VarChar(500)
-  password         String?   @db.VarChar(255) // nullable for OAuth users
+  password         String?   @db.VarChar(255)
 
   // Profile
   englishLevel     String?   @default("beginner") @map("english_level") @db.VarChar(20)
@@ -29,20 +30,44 @@ model User {
   membershipTier   String    @default("free") @map("membership_tier") @db.VarChar(20)
   membershipExpiry DateTime? @map("membership_expiry")
 
-  // Audit fields
+  // Audit
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
   isDeleted        Boolean   @default(false) @map("is_deleted")
 
   // Relations
-  conversations     Conversation[]
-  writingExercises  WritingExercise[]
-  speakingExercises SpeakingExercise[]
-  subscriptions     Subscription[]
+  conversations      Conversation[]
+  writingExercises   WritingExercise[]
+  speakingExercises  SpeakingExercise[]
+  subscriptions      Subscription[]
+  emailVerifications EmailVerification[]
 
   @@index([email], map: "idx_users_email")
   @@index([membershipTier], map: "idx_users_membership_tier")
   @@map("users")
+}
+
+// =====================
+// Email Verification
+// =====================
+
+model EmailVerification {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  email     String    @db.VarChar(254)
+  token     String    @unique @db.VarChar(64)
+  type      String    @db.VarChar(20) // register | reset_password
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email], map: "idx_email_verifications_email")
+  @@index([token], map: "idx_email_verifications_token")
+  @@map("email_verifications")
 }
 
 // =====================
@@ -56,7 +81,7 @@ model Conversation {
   title      String?  @db.VarChar(200)
   scenarioId String?  @map("scenario_id")
 
-  // Audit fields
+  // Audit
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
   isDeleted  Boolean  @default(false) @map("is_deleted")
@@ -68,6 +93,7 @@ model Conversation {
   scenario         Scenario?         @relation(fields: [scenarioId], references: [id])
 
   @@index([userId], map: "idx_conversations_user_id")
+  @@index([userId, updatedAt], map: "idx_conversations_user_updated_at")
   @@index([scenarioId], map: "idx_conversations_scenario_id")
   @@index([type], map: "idx_conversations_type")
   @@map("conversations")
@@ -84,7 +110,7 @@ model Message {
   content        String   @db.Text
   audioUrl       String?  @map("audio_url") @db.VarChar(500)
 
-  // Audit fields
+  // Audit
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
   isDeleted      Boolean  @default(false) @map("is_deleted")
@@ -102,38 +128,41 @@ model Message {
 // =====================
 
 model WritingExercise {
-  id             String   @id @default(cuid())
-  userId         String   @map("user_id")
-  scenarioId     String?  @map("scenario_id")
-  scenarioType   String   @map("scenario_type") @db.VarChar(30) // ielts_task1 | ielts_task2 | cet4 | cet6 | daily | interview | travel | business
-  prompt         String   @db.Text
-  isCustomPrompt Boolean  @default(false) @map("is_custom_prompt")
+  id             String  @id @default(cuid())
+  userId         String  @map("user_id")
+  scenarioId     String? @map("scenario_id")
+  scenarioType   String  @map("scenario_type") @db.VarChar(30) // ielts_task1 | ielts_task2 | cet4 | cet6 | daily
+  prompt         String  @db.Text
+  isCustomPrompt Boolean @default(false) @map("is_custom_prompt")
+  content        String  @db.Text
+  wordCount      Int     @map("word_count")
 
-  content        String   @db.Text
-  wordCount      Int      @map("word_count")
+  // Status: draft | submitted | reviewing | reviewed | failed
+  status         String  @default("draft") @db.VarChar(20)
 
-  // Scores — use Decimal for precision
-  overallScore    Decimal? @map("overall_score") @db.Decimal(5, 2)
-  grammarScore    Decimal? @map("grammar_score") @db.Decimal(5, 2)
-  vocabularyScore Decimal? @map("vocabulary_score") @db.Decimal(5, 2)
-  coherenceScore  Decimal? @map("coherence_score") @db.Decimal(5, 2)
-  taskScore       Decimal? @map("task_score") @db.Decimal(5, 2)
+  // Scores
+  overallScore    Float? @map("overall_score")
+  grammarScore    Float? @map("grammar_score")
+  vocabularyScore Float? @map("vocabulary_score")
+  coherenceScore  Float? @map("coherence_score")
+  taskScore       Float? @map("task_score")
 
   // JSON structured feedback
-  feedback       Json?
+  feedback Json?
 
-  // Audit fields
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-  isDeleted      Boolean  @default(false) @map("is_deleted")
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isDeleted Boolean  @default(false) @map("is_deleted")
 
   // Relations
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   scenario Scenario? @relation(fields: [scenarioId], references: [id])
 
   @@index([userId], map: "idx_writing_exercises_user_id")
-  @@index([scenarioId], map: "idx_writing_exercises_scenario_id")
   @@index([userId, createdAt], map: "idx_writing_exercises_user_created_at")
+  @@index([scenarioId], map: "idx_writing_exercises_scenario_id")
+  @@index([status], map: "idx_writing_exercises_status")
   @@map("writing_exercises")
 }
 
@@ -142,27 +171,30 @@ model WritingExercise {
 // =====================
 
 model SpeakingExercise {
-  id              String   @id @default(cuid())
-  userId          String   @map("user_id")
-  scenarioId      String?  @map("scenario_id")
-  scenarioType    String   @map("scenario_type") @db.VarChar(30) // ielts_task1 | ielts_task2 | cet4 | ...
-  scenarioRole    String   @map("scenario_role") @db.VarChar(100)
+  id           String  @id @default(cuid())
+  userId       String  @map("user_id")
+  scenarioId   String? @map("scenario_id")
+  scenarioType String  @map("scenario_type") @db.VarChar(30) // daily | interview | travel | business | free
+  scenarioRole String  @map("scenario_role") @db.VarChar(100)
 
-  conversationId  String   @unique @map("conversation_id")
+  conversationId String @unique @map("conversation_id")
 
-  totalTurns      Int      @map("total_turns")
-  durationSeconds Int      @map("duration_seconds")
+  // Status: in_progress | completed | reviewed | failed
+  status         String @default("in_progress") @db.VarChar(20)
 
-  // Scores — use Decimal for precision
-  fluencyScore    Decimal? @map("fluency_score") @db.Decimal(5, 2)
-  accuracyScore   Decimal? @map("accuracy_score") @db.Decimal(5, 2)
+  totalTurns      Int? @map("total_turns")
+  durationSeconds Int? @map("duration_seconds")
 
-  feedback        Json?
+  // Scores
+  fluencyScore  Float? @map("fluency_score")
+  accuracyScore Float? @map("accuracy_score")
 
-  // Audit fields
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  isDeleted       Boolean  @default(false) @map("is_deleted")
+  feedback Json?
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isDeleted Boolean  @default(false) @map("is_deleted")
 
   // Relations
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -170,8 +202,9 @@ model SpeakingExercise {
   scenario     Scenario?    @relation(fields: [scenarioId], references: [id])
 
   @@index([userId], map: "idx_speaking_exercises_user_id")
-  @@index([scenarioId], map: "idx_speaking_exercises_scenario_id")
   @@index([userId, createdAt], map: "idx_speaking_exercises_user_created_at")
+  @@index([scenarioId], map: "idx_speaking_exercises_scenario_id")
+  @@index([status], map: "idx_speaking_exercises_status")
   @@map("speaking_exercises")
 }
 
@@ -180,23 +213,23 @@ model SpeakingExercise {
 // =====================
 
 model Scenario {
-  id          String   @id @default(cuid())
-  type        String   @db.VarChar(20) // writing | speaking
-  category    String   @db.VarChar(30) // ielts_task1 | ielts_task2 | cet4 | cet6 | daily | interview | travel | business
+  id          String  @id @default(cuid())
+  type        String  @db.VarChar(20) // writing | speaking
+  category    String  @db.VarChar(30) // ielts_task1 | ielts_task2 | cet4 | cet6 | daily | interview | travel | business | free
 
-  title       String   @db.VarChar(200)
-  description String   @db.Text
-  prompt      String   @db.Text
+  title       String  @db.VarChar(200)
+  description String  @db.Text
+  prompt      String  @db.Text
 
-  aiRole      String?  @map("ai_role") @db.VarChar(100)
-  difficulty  String   @db.VarChar(10) // easy | medium | hard
+  aiRole      String? @map("ai_role") @db.Text
+  difficulty  String  @db.VarChar(10) // easy | medium | hard
 
-  isGenerated Boolean  @default(false) @map("is_generated")
+  isGenerated Boolean @default(false) @map("is_generated")
 
-  // Audit fields
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  isDeleted   Boolean  @default(false) @map("is_deleted")
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isDeleted Boolean  @default(false) @map("is_deleted")
 
   // Relations
   writingExercises  WritingExercise[]
@@ -215,20 +248,17 @@ model Scenario {
 model Subscription {
   id              String   @id @default(cuid())
   userId          String   @map("user_id")
-
   plan            String   @db.VarChar(20) // monthly | yearly
   status          String   @db.VarChar(20) // active | cancelled | expired
-
   startDate       DateTime @map("start_date")
   endDate         DateTime @map("end_date")
-
   paymentProvider String   @map("payment_provider") @db.VarChar(50)
   externalId      String   @map("external_id") @db.VarChar(200)
 
-  // Audit fields
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  isDeleted       Boolean  @default(false) @map("is_deleted")
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isDeleted Boolean  @default(false) @map("is_deleted")
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

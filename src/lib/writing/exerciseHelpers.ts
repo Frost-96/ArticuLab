@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { WritingExercise } from "../../../generated/prisma/client";
-import { parseFeedback, type StoredWritingFeedback } from "./feedbackTypes";
-
+import { parseFeedback} from "./feedbackTypes";
+import type { WritingReviewResult } from "@/schema"
 /**
  * 按练习 id 与用户 id 查询一条 WritingExercise（用于鉴权后读写）
  *
@@ -41,9 +41,9 @@ export function isGraded(ex: WritingExercise): boolean {
  * - ex：WritingExercise
  *
  * 输出格式：
- * - StoredWritingFeedback
+ * - WritingReviewResult | null
  */
-export function getFeedback(ex: WritingExercise): StoredWritingFeedback {
+export function getFeedback(ex: WritingExercise): WritingReviewResult | null {
   return parseFeedback(ex.feedback);
 }
 
