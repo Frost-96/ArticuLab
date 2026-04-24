@@ -23,11 +23,14 @@ export default function Page() {
     const { user } = useUIStore();
     const { writingSessions } = useWritingStore();
     const { speakingSessions } = useSpeakingStore();
+    const displayName = user.name?.trim() || user.email;
 
-    const initials = user.name
-        .split(" ")
-        .map((n) => n[0])
+    const initials = displayName
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((part) => part[0] ?? "")
         .join("")
+        .slice(0, 2)
         .toUpperCase();
 
     const reviewedWriting = writingSessions.filter(
@@ -80,7 +83,7 @@ export default function Page() {
                 <CardContent className="p-6">
                     <div className="flex items-start gap-6">
                         <Avatar className="h-20 w-20">
-                            <AvatarImage src={user.avatar} alt={user.name} />
+                            <AvatarImage src={user.avatar} alt={displayName} />
                             <AvatarFallback className="bg-indigo-100 text-indigo-700 text-2xl font-semibold">
                                 {initials}
                             </AvatarFallback>
@@ -88,7 +91,7 @@ export default function Page() {
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 flex-wrap">
                                 <h1 className="text-2xl font-semibold text-slate-900">
-                                    {user.name}
+                                    {displayName}
                                 </h1>
                                 {user.plan === "pro" ? (
                                     <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white">

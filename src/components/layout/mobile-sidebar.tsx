@@ -41,6 +41,15 @@ const secondaryNavItems = [
 export function MobileSidebar() {
     const pathname = usePathname();
     const { sidebarOpen, setSidebarOpen, user } = useUIStore();
+    const displayName = user.name?.trim() || user.email;
+    const userInitials =
+        displayName
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((part) => part[0] ?? "")
+            .join("")
+            .slice(0, 2)
+            .toUpperCase() || "U";
 
     return (
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -61,15 +70,12 @@ export function MobileSidebar() {
                             <Avatar className="h-10 w-10">
                                 <AvatarImage src={user.avatar} />
                                 <AvatarFallback className="bg-indigo-100 text-indigo-700">
-                                    {user.name
-                                        .split(" ")
-                                        .map((n) => n[0])
-                                        .join("")}
+                                    {userInitials}
                                 </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
                                 <p className="font-medium text-sm truncate">
-                                    {user.name}
+                                    {displayName}
                                 </p>
                                 <p className="text-xs text-slate-500 truncate">
                                     {user.email}

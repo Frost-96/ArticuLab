@@ -50,7 +50,7 @@ export async function signUp(
 
 // ==================== 登录 ====================
 
-export async function signIn(
+export async function login(
     input: SignInInput,
 ): Promise<ActionResult<{ redirect: string }>> {
     const parsed = signInSchema.safeParse(input);
@@ -87,6 +87,6 @@ export async function signIn(
 
 // ==================== 退出 ====================
 
-export async function signOut(): Promise<void> {
+export async function logOut(): Promise<void> {
     await clearAuthCookie();
 }

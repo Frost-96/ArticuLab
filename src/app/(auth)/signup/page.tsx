@@ -10,6 +10,7 @@ import { useState } from "react";
 import { Check, Eye, EyeOff, Sparkles } from "lucide-react";
 import { signUp } from "@/server/actions/auth.action";
 import { redirect } from "next/navigation";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function Page() {
     const [name, setName] = useState("");
@@ -28,9 +29,10 @@ export default function Page() {
         };
         const user = await signUp(input);
         if (!user.success) {
-            alert(user.error);
+            toast.error(user.error);
             return;
         }
+        toast.success("Sign up successfully");
         redirect(user.data.redirect);
     }
 
@@ -236,6 +238,7 @@ export default function Page() {
                     </div>
                 ))}
             </div>
+            <Toaster />
         </div>
     );
 }

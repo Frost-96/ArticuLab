@@ -17,11 +17,14 @@ import { useUIStore } from "@/stores/uiStore";
 
 export function UserNav() {
     const { user } = useUIStore();
+    const displayName = user.name?.trim() || user.email;
 
-    const initials = user.name
-        .split(" ")
-        .map((n) => n[0])
+    const initials = displayName
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((part) => part[0] ?? "")
         .join("")
+        .slice(0, 2)
         .toUpperCase();
 
     return (
@@ -29,7 +32,7 @@ export function UserNav() {
             <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                     <Avatar className="h-8 w-8 cursor-pointer">
-                        <AvatarImage src={user.avatar} alt={user.name} />
+                        <AvatarImage src={user.avatar} alt={displayName} />
                         <AvatarFallback className="bg-indigo-100 text-indigo-700 text-sm">
                             {initials}
                         </AvatarFallback>
@@ -39,7 +42,7 @@ export function UserNav() {
             <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium">{user.name}</p>
+                        <p className="text-sm font-medium">{displayName}</p>
                         <p className="text-xs text-slate-500">{user.email}</p>
                         {user.plan === "free" && (
                             <Badge
