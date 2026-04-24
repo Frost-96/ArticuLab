@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { redirect, usePathname } from "next/navigation";
 import {
     PenLine,
     Mic,
@@ -25,6 +25,9 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useUIStore } from "@/stores/uiStore";
+import { logOut } from "@/server/actions/auth.action";
+import toast, { Toaster } from "react-hot-toast";
+import { Toast } from "radix-ui";
 
 const mainNavItems = [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -50,6 +53,11 @@ export function MobileSidebar() {
             .join("")
             .slice(0, 2)
             .toUpperCase() || "U";
+    async function handleLogout() {
+        await logOut();
+        toast.error("Logged out");
+        redirect("/login");
+    }
 
     return (
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -193,11 +201,15 @@ export function MobileSidebar() {
 
                     {/* Logout */}
                     <div className="p-2 border-t border-slate-200">
-                        <button className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
+                        <button
+                            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                            onClick={handleLogout}
+                        >
                             <LogOut className="h-5 w-5" />
                             Log out
                         </button>
                     </div>
+                    <Toaster />
                 </div>
             </SheetContent>
         </Sheet>

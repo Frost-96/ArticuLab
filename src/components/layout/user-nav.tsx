@@ -14,6 +14,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useUIStore } from "@/stores/uiStore";
+import { logOut } from "@/server/actions/auth.action";
+import { redirect } from "next/navigation";
+import toast, { Toaster } from "react-hot-toast";
 
 export function UserNav() {
     const { user } = useUIStore();
@@ -26,6 +29,12 @@ export function UserNav() {
         .join("")
         .slice(0, 2)
         .toUpperCase();
+
+    async function handleLogout() {
+        await logOut();
+        toast.error("Logged out");
+        redirect("/login");
+    }
 
     return (
         <DropdownMenu>
@@ -94,10 +103,14 @@ export function UserNav() {
                         <DropdownMenuSeparator />
                     </>
                 )}
-                <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
+                <DropdownMenuItem
+                    className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                    onClick={handleLogout}
+                >
                     <LogOut className="mr-2 h-4 w-4" />
                     Log out
                 </DropdownMenuItem>
+                <Toaster />
             </DropdownMenuContent>
         </DropdownMenu>
     );

@@ -1,67 +1,73 @@
 "use client";
-import "dotenv/config";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Link from "next/link";
-import { useState } from "react";
-import { Check, Eye, EyeOff, Sparkles } from "lucide-react";
 import { signUp } from "@/server/actions/auth.action";
-import { redirect } from "next/navigation";
+import { Check, Eye, EyeOff, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function Page() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const next = searchParams.get("next") ?? undefined;
 
     async function onClick() {
-        const input = {
-            name,
+        const user = await signUp({
+            name: name.trim() || undefined,
             email,
             password,
             confirmPassword,
-        };
-        const user = await signUp(input);
+            redirectTo: next,
+        });
+
         if (!user.success) {
             toast.error(user.error);
             return;
         }
+
         toast.success("Sign up successfully");
-        redirect(user.data.redirect);
+        router.replace(user.data.redirect);
     }
+
+    const loginHref = next
+        ? `/login?next=${encodeURIComponent(next)}`
+        : "/login";
 
     return (
         <div className="w-full max-w-md">
-            {/* Logo */}
-            <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo-600 mb-4">
+            <div className="mb-8 text-center">
+                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600">
                     <Sparkles className="h-6 w-6 text-white" />
                 </div>
                 <h1 className="text-2xl font-bold text-slate-900">ArticuLab</h1>
-                <p className="text-slate-500 text-sm mt-1">
+                <p className="mt-1 text-sm text-slate-500">
                     Start your English learning journey
                 </p>
             </div>
 
-            <Card className="shadow-lg border-slate-200">
-                <CardHeader className="pb-0 pt-6 px-6">
+            <Card className="border-slate-200 shadow-lg">
+                <CardHeader className="px-6 pb-0 pt-6">
                     <h2 className="text-xl font-semibold text-slate-900">
                         Create your account
                     </h2>
-                    <p className="text-sm text-slate-500 mt-0.5">
+                    <p className="mt-0.5 text-sm text-slate-500">
                         Free forever. No credit card required.
                     </p>
                 </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                    {/* OAuth */}
+                <CardContent className="space-y-4 p-6">
                     <Button variant="outline" className="w-full" type="button">
-                        <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
+                        <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                             <path
                                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                                 fill="#4285F4"
@@ -93,7 +99,6 @@ export default function Page() {
                         </div>
                     </div>
 
-                    {/* Name */}
                     <div className="space-y-1.5">
                         <Label htmlFor="name" className="text-sm">
                             Name
@@ -104,11 +109,10 @@ export default function Page() {
                             placeholder="Sarah Chen"
                             autoComplete="name"
                             value={name}
-                            onChange={(e) => setName(e.target.value)}
+                            onChange={(event) => setName(event.target.value)}
                         />
                     </div>
 
-                    {/* Email */}
                     <div className="space-y-1.5">
                         <Label htmlFor="email" className="text-sm">
                             Email
@@ -119,11 +123,10 @@ export default function Page() {
                             placeholder="you@example.com"
                             autoComplete="email"
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            onChange={(event) => setEmail(event.target.value)}
                         />
                     </div>
 
-                    {/* Password */}
                     <div className="space-y-1.5">
                         <Label htmlFor="password" className="text-sm">
                             Password
@@ -136,11 +139,13 @@ export default function Page() {
                                 autoComplete="new-password"
                                 className="pr-10"
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                onChange={(event) =>
+                                    setPassword(event.target.value)
+                                }
                             />
                             <button
                                 type="button"
-                                onClick={() => setShowPassword((v) => !v)}
+                                onClick={() => setShowPassword((value) => !value)}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                             >
                                 {showPassword ? (
@@ -153,8 +158,8 @@ export default function Page() {
                     </div>
 
                     <div className="space-y-1.5">
-                        <Label htmlFor="password" className="text-sm">
-                            Confirmed Password
+                        <Label htmlFor="confirmedPassword" className="text-sm">
+                            Confirm Password
                         </Label>
                         <div className="relative">
                             <Input
@@ -164,14 +169,14 @@ export default function Page() {
                                 autoComplete="new-password"
                                 className="pr-10"
                                 value={confirmPassword}
-                                onChange={(e) =>
-                                    setConfirmPassword(e.target.value)
+                                onChange={(event) =>
+                                    setConfirmPassword(event.target.value)
                                 }
                             />
                             <button
                                 type="button"
                                 onClick={() =>
-                                    setShowConfirmPassword((v) => !v)
+                                    setShowConfirmPassword((value) => !value)
                                 }
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                             >
@@ -191,7 +196,7 @@ export default function Page() {
                         Create Account
                     </Button>
 
-                    <p className="text-xs text-slate-400 text-center">
+                    <p className="text-center text-xs text-slate-400">
                         By signing up you agree to our{" "}
                         <Link
                             href="/terms"
@@ -211,8 +216,8 @@ export default function Page() {
                     <p className="text-center text-sm text-slate-500">
                         Already have an account?{" "}
                         <Link
-                            href="/login"
-                            className="text-indigo-600 font-medium hover:underline"
+                            href={loginHref}
+                            className="font-medium text-indigo-600 hover:underline"
                         >
                             Sign in
                         </Link>
@@ -220,21 +225,20 @@ export default function Page() {
                 </CardContent>
             </Card>
 
-            {/* Feature bullets */}
             <div className="mt-6 space-y-2">
                 {[
                     "AI-powered writing feedback",
                     "Speaking practice with realistic scenarios",
                     "IELTS, TOEFL, CET-4/6 exam support",
-                ].map((feat) => (
+                ].map((feature) => (
                     <div
-                        key={feat}
+                        key={feature}
                         className="flex items-center gap-2 text-sm text-slate-600"
                     >
-                        <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                        <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-100">
                             <Check className="h-2.5 w-2.5 text-emerald-600" />
                         </div>
-                        {feat}
+                        {feature}
                     </div>
                 ))}
             </div>

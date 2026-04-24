@@ -23,7 +23,7 @@ model User {
   password         String?   @db.VarChar(255)
 
   // Profile
-  englishLevel     String?   @default("beginner") @map("english_level") @db.VarChar(20)
+  englishLevel     String?   @map("english_level") @db.VarChar(20)
   learningGoal     String?   @map("learning_goal") @db.Text
 
   // Membership

@@ -6,8 +6,19 @@ export const conversationTypeEnum = z.enum(["coach", "writing", "speaking"]);
 
 export const englishLevelEnum = z.enum([
   "beginner",
+  "elementary",
   "intermediate",
+  "upper-intermediate",
   "advanced",
+  "not-sure",
+]);
+
+export const learningGoalEnum = z.enum([
+  "exam-prep",
+  "academic",
+  "career",
+  "daily",
+  "immigration",
 ]);
 
 export const membershipTierEnum = z.enum(["free", "pro"]);
@@ -64,6 +75,7 @@ export const feedbackSeverityEnum = z.enum(["error", "warning", "suggestion"]);
 
 export type ConversationType = z.infer<typeof conversationTypeEnum>;
 export type EnglishLevel = z.infer<typeof englishLevelEnum>;
+export type LearningGoal = z.infer<typeof learningGoalEnum>;
 export type MembershipTier = z.infer<typeof membershipTierEnum>;
 export type ScenarioType = z.infer<typeof scenarioTypeEnum>;
 export type WritingScenarioType = z.infer<typeof writingScenarioTypeEnum>;

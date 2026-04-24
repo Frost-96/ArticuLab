@@ -26,3 +26,5 @@ export interface ChatMessageDisplay {
 export type ConversationListItem = Prisma.ConversationGetPayload<{
     include: { messages: { take: 1; orderBy: { createdAt: "desc" } } };
 }>;
+
+export * from "./onboarding";

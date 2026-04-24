@@ -1,10 +1,19 @@
 "use server";
 
-import { signToken, setAuthCookie, clearAuthCookie } from "@/lib/auth";
+import {
+    clearAuthCookie,
+    getCurrentUser,
+    hasCompletedOnboarding,
+    resolveAuthenticatedRedirect,
+    setAuthCookie,
+    signToken,
+} from "@/lib/auth";
 import * as authService from "@/server/services/auth.service";
 import {
+    onboardingSchema,
     signUpSchema,
     signInSchema,
+    type OnboardingInput,
     type SignUpInput,
     type SignInInput,
 } from "@/schema";
@@ -31,12 +40,30 @@ export async function signUp(
             email: user.email,
             name: user.name,
             englishLevel: user.englishLevel as EnglishLevel | null,
+            hasCompletedOnboarding: hasCompletedOnboarding({
+                englishLevel: user.englishLevel as EnglishLevel | null,
+                learningGoal: user.learningGoal,
+            }),
             membershipTier: user.membershipTier as MembershipTier,
         });
 
         await setAuthCookie(token);
 
-        return { success: true, data: { redirect: "/dashboard" } };
+        return {
+            success: true,
+            data: {
+                redirect: resolveAuthenticatedRedirect(
+                    {
+                        englishLevel: user.englishLevel as EnglishLevel | null,
+                        hasCompletedOnboarding: hasCompletedOnboarding({
+                            englishLevel: user.englishLevel as EnglishLevel | null,
+                            learningGoal: user.learningGoal,
+                        }),
+                    },
+                    parsed.data.redirectTo,
+                ),
+            },
+        };
     } catch (error) {
         return {
             success: false,
@@ -66,12 +93,25 @@ export async function login(
             email: user.email,
             name: user.name,
             englishLevel: user.englishLevel as EnglishLevel | null,
+            hasCompletedOnboarding: hasCompletedOnboarding({
+                englishLevel: user.englishLevel as EnglishLevel | null,
+                learningGoal: user.learningGoal,
+            }),
             membershipTier: user.membershipTier as MembershipTier,
         });
 
         await setAuthCookie(token);
 
-        const redirect = user.englishLevel ? "/coach" : "/dashboard";
+        const redirect = resolveAuthenticatedRedirect(
+            {
+                englishLevel: user.englishLevel as EnglishLevel | null,
+                hasCompletedOnboarding: hasCompletedOnboarding({
+                    englishLevel: user.englishLevel as EnglishLevel | null,
+                    learningGoal: user.learningGoal,
+                }),
+            },
+            parsed.data.redirectTo,
+        );
 
         return { success: true, data: { redirect } };
     } catch (error) {
@@ -81,6 +121,69 @@ export async function login(
                 error instanceof Error
                     ? error.message
                     : "Failed to login, please try again later",
+        };
+    }
+}
+
+// ==================== Onboarding ====================
+
+export async function completeOnboarding(
+    input: OnboardingInput,
+): Promise<ActionResult<{ redirect: string }>> {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+        return {
+            success: false,
+            error: "Please log in again and retry",
+        };
+    }
+
+    const parsed = onboardingSchema.safeParse(input);
+    if (!parsed.success) {
+        return { success: false, error: getFirstError(parsed.error) };
+    }
+
+    try {
+        const user = await authService.completeOnboarding({
+            userId: currentUser.userId,
+            englishLevel: parsed.data.englishLevel,
+            learningGoal: parsed.data.learningGoal,
+        });
+
+        const token = await signToken({
+            userId: user.id,
+            email: user.email,
+            name: user.name,
+            englishLevel: user.englishLevel as EnglishLevel | null,
+            hasCompletedOnboarding: hasCompletedOnboarding({
+                englishLevel: user.englishLevel as EnglishLevel | null,
+                learningGoal: user.learningGoal,
+            }),
+            membershipTier: user.membershipTier as MembershipTier,
+        });
+
+        await setAuthCookie(token);
+
+        return {
+            success: true,
+            data: {
+                redirect: resolveAuthenticatedRedirect({
+                    englishLevel: user.englishLevel as EnglishLevel | null,
+                    hasCompletedOnboarding: hasCompletedOnboarding({
+                        englishLevel: user.englishLevel as EnglishLevel | null,
+                        learningGoal: user.learningGoal,
+                    }),
+                }),
+            },
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error:
+                error instanceof Error
+                    ? error.message
+                    : "Failed to save onboarding details",
         };
     }
 }

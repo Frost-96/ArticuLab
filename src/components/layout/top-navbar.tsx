@@ -95,17 +95,6 @@ export function TopNavbar() {
 
                 {/* Right Section */}
                 <div className="flex items-center gap-3">
-                    {/* Auth */}
-                    <Button variant="ghost" size="sm" asChild>
-                        <Link href="/login">Login</Link>
-                    </Button>
-                    <Button
-                        size="sm"
-                        className="bg-indigo-600 hover:bg-indigo-700"
-                        asChild
-                    >
-                        <Link href="/signup">Signup</Link>
-                    </Button>
                     {/* Streak Badge */}
                     <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200">
                         <Flame className="h-4 w-4 text-amber-500" />
