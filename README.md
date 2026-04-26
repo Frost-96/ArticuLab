@@ -20,6 +20,29 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Demo Seed Data
+
+This repository includes repeatable Prisma demo seed data for the dashboard.
+
+Run the seed:
+
+```bash
+pnpm db:seed
+```
+
+Or use Prisma directly:
+
+```bash
+pnpm exec prisma db seed
+```
+
+Demo account:
+
+- Email: `demo@articulab.local`
+- Password: `Demo123456!`
+
+The seed refreshes the demo user's related practice data on each run, so you can safely rerun it without accumulating duplicates.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

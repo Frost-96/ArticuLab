@@ -62,7 +62,7 @@ export function getDefaultAuthenticatedRedirectPath(
         return "/onboarding";
     }
 
-    return payload.englishLevel ? "/coach" : "/dashboard";
+    return "/dashboard";
 }
 
 export function sanitizeRedirectTarget(

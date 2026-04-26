@@ -1,66 +1,116 @@
 import { z } from "zod";
+import {
+    conversationTypeEnum,
+    englishLevelEnum,
+    membershipTierEnum,
+} from "./enums";
 import { dateRangeSchema } from "./shared.schema";
 
-// ==================== 学习中心 ====================
+// ==================== Dashboard Queries ====================
 
-// F-040: 获取学习统计概览
 export const getLearningStatsSchema = z.object({
     ...dateRangeSchema.shape,
 });
 
-// F-041: 写作能力雷达图数据
 export const getWritingRadarSchema = z.object({
     recentCount: z.coerce.number().int().min(3).max(50).default(10),
 });
 
-// F-042: 口语能力趋势数据
 export const getSpeakingTrendSchema = z.object({
     recentCount: z.coerce.number().int().min(3).max(50).default(10),
 });
 
-// F-043: 弱项分析
 export const getWeaknessAnalysisSchema = z.object({
     recentCount: z.coerce.number().int().min(3).max(50).default(10),
     topN: z.coerce.number().int().min(1).max(10).default(3),
 });
 
-// ==================== 响应结构 ====================
+// ==================== Dashboard DTO ====================
 
-// 学习统计概览
-export const learningStatsSchema = z.object({
-    totalExercises: z.number(),
-    totalDurationMinutes: z.number(),
-    consecutiveDays: z.number(),
-    writingCount: z.number(),
-    speakingCount: z.number(),
-    coachChatCount: z.number(),
+export const dashboardHeaderSchema = z.object({
+    displayName: z.string().min(1),
+    englishLevel: englishLevelEnum.nullable(),
+    englishLevelLabel: z.string().min(1).nullable(),
+    membershipTier: membershipTierEnum,
 });
 
-// 写作雷达图数据
-export const writingRadarDataSchema = z.object({
-    grammar: z.number().min(0).max(9),
-    vocabulary: z.number().min(0).max(9),
-    coherence: z.number().min(0).max(9),
-    task: z.number().min(0).max(9),
-    overall: z.number().min(0).max(9),
+export const dashboardStatsSchema = z.object({
+    totalSessions: z.number().int().min(0),
+    recordedPracticeMinutes: z.number().int().min(0),
+    consecutiveDays: z.number().int().min(0),
+    writingCount: z.number().int().min(0),
+    speakingCount: z.number().int().min(0),
+    coachChatCount: z.number().int().min(0),
+    englishLevel: englishLevelEnum.nullable(),
+    englishLevelLabel: z.string().min(1).nullable(),
 });
 
-// 口语趋势数据点
-export const speakingTrendPointSchema = z.object({
-    date: z.string(),
-    fluency: z.number().min(0).max(10),
-    accuracy: z.number().min(0).max(10),
+export const dashboardRadarItemSchema = z.object({
+    skill: z.enum([
+        "Grammar",
+        "Vocabulary",
+        "Coherence",
+        "Task",
+        "Fluency",
+        "Accuracy",
+    ]),
+    score: z.number().min(0).max(10).nullable(),
 });
 
-// 弱项
-export const weaknessItemSchema = z.object({
-    category: z.string(),
-    description: z.string(),
-    frequency: z.number(), // 出现次数
-    suggestion: z.string(),
+export const dashboardTrendPointSchema = z.object({
+    label: z.string().min(1),
+    writingScore: z.number().min(0).max(10).nullable(),
+    speakingScore: z.number().min(0).max(10).nullable(),
 });
 
-// ==================== 类型导出 ====================
+export const dashboardActivitySchema = z.object({
+    id: z.string().min(1),
+    type: conversationTypeEnum,
+    title: z.string().min(1),
+    subtitle: z.string().nullable(),
+    score: z.number().min(0).max(10).nullable(),
+    scoreLabel: z.string().nullable(),
+    timeLabel: z.string().min(1),
+    href: z.string().min(1),
+});
+
+export const dashboardWeaknessSchema = z.object({
+    category: z.string().min(1),
+    description: z.string().min(1),
+    frequency: z.number().int().min(1),
+    suggestion: z.string().min(1),
+    href: z.string().min(1),
+});
+
+export const dashboardEmptyStatesSchema = z.object({
+    hasAnyActivity: z.boolean(),
+    hasWritingData: z.boolean(),
+    hasSpeakingData: z.boolean(),
+    hasFullRadarData: z.boolean(),
+    hasTrendData: z.boolean(),
+    hasWeaknessData: z.boolean(),
+});
+
+export const dashboardDataSchema = z.object({
+    header: dashboardHeaderSchema,
+    stats: dashboardStatsSchema,
+    radar: z.array(dashboardRadarItemSchema),
+    trend: z.array(dashboardTrendPointSchema),
+    weaknesses: z.array(dashboardWeaknessSchema),
+    recentActivities: z.array(dashboardActivitySchema),
+    emptyStates: dashboardEmptyStatesSchema,
+});
+
+// ==================== Backward-Compatible Aliases ====================
+
+export const learningStatsSchema = dashboardStatsSchema;
+export const writingRadarDataSchema = z.array(dashboardRadarItemSchema);
+export const speakingTrendPointSchema = dashboardTrendPointSchema;
+export const speakingTrendSchema = z.array(dashboardTrendPointSchema);
+export const weaknessItemSchema = dashboardWeaknessSchema;
+export const weaknessAnalysisSchema = z.array(dashboardWeaknessSchema);
+
+// ==================== Types ====================
 
 export type GetLearningStatsInput = z.infer<typeof getLearningStatsSchema>;
 export type GetWritingRadarInput = z.infer<typeof getWritingRadarSchema>;
@@ -68,7 +118,17 @@ export type GetSpeakingTrendInput = z.infer<typeof getSpeakingTrendSchema>;
 export type GetWeaknessAnalysisInput = z.infer<
     typeof getWeaknessAnalysisSchema
 >;
-export type LearningStats = z.infer<typeof learningStatsSchema>;
+
+export type DashboardHeader = z.infer<typeof dashboardHeaderSchema>;
+export type DashboardStats = z.infer<typeof dashboardStatsSchema>;
+export type DashboardRadarItem = z.infer<typeof dashboardRadarItemSchema>;
+export type DashboardTrendPoint = z.infer<typeof dashboardTrendPointSchema>;
+export type DashboardActivity = z.infer<typeof dashboardActivitySchema>;
+export type DashboardWeakness = z.infer<typeof dashboardWeaknessSchema>;
+export type DashboardEmptyStates = z.infer<typeof dashboardEmptyStatesSchema>;
+export type DashboardData = z.infer<typeof dashboardDataSchema>;
+
+export type LearningStats = DashboardStats;
 export type WritingRadarData = z.infer<typeof writingRadarDataSchema>;
-export type SpeakingTrendPoint = z.infer<typeof speakingTrendPointSchema>;
-export type WeaknessItem = z.infer<typeof weaknessItemSchema>;
+export type SpeakingTrendPoint = DashboardTrendPoint;
+export type WeaknessItem = DashboardWeakness;

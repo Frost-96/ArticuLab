@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
-import { User, Settings, CreditCard, LogOut, Crown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Crown, CreditCard, LogOut, Settings, User } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -13,27 +13,27 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { useUIStore } from "@/stores/uiStore";
+import { getInitials } from "@/lib/user-display";
+import type { CurrentUserDisplaySummary } from "@/schema";
 import { logOut } from "@/server/actions/auth.action";
-import { redirect } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 
-export function UserNav() {
-    const { user } = useUIStore();
-    const displayName = user.name?.trim() || user.email;
+type UserNavProps = {
+    userSummary: CurrentUserDisplaySummary | null;
+};
 
-    const initials = displayName
-        .split(/\s+/)
-        .filter(Boolean)
-        .map((part) => part[0] ?? "")
-        .join("")
-        .slice(0, 2)
-        .toUpperCase();
+export function UserNav({ userSummary }: UserNavProps) {
+    const router = useRouter();
+    const displayName = userSummary?.displayName ?? "Learner";
+    const email = userSummary?.email ?? "";
+    const membershipTier = userSummary?.membershipTier ?? "free";
+    const initials = getInitials(displayName);
 
     async function handleLogout() {
         await logOut();
-        toast.error("Logged out");
-        redirect("/login");
+        toast.success("Logged out");
+        router.push("/login");
+        router.refresh();
     }
 
     return (
@@ -41,7 +41,10 @@ export function UserNav() {
             <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                     <Avatar className="h-8 w-8 cursor-pointer">
-                        <AvatarImage src={user.avatar} alt={displayName} />
+                        <AvatarImage
+                            src={userSummary?.avatar ?? undefined}
+                            alt={displayName}
+                        />
                         <AvatarFallback className="bg-indigo-100 text-indigo-700 text-sm">
                             {initials}
                         </AvatarFallback>
@@ -52,18 +55,14 @@ export function UserNav() {
                 <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
                         <p className="text-sm font-medium">{displayName}</p>
-                        <p className="text-xs text-slate-500">{user.email}</p>
-                        {user.plan === "free" && (
-                            <Badge
-                                variant="secondary"
-                                className="w-fit mt-1 text-xs"
-                            >
+                        <p className="text-xs text-slate-500">{email}</p>
+                        {membershipTier === "free" ? (
+                            <Badge variant="secondary" className="mt-1 w-fit text-xs">
                                 Free Plan
                             </Badge>
-                        )}
-                        {user.plan === "pro" && (
-                            <Badge className="w-fit mt-1 text-xs bg-gradient-to-r from-amber-500 to-orange-500">
-                                <Crown className="h-3 w-3 mr-1" />
+                        ) : (
+                            <Badge className="mt-1 w-fit bg-gradient-to-r from-amber-500 to-orange-500 text-xs">
+                                <Crown className="mr-1 h-3 w-3" />
                                 Pro
                             </Badge>
                         )}
@@ -89,7 +88,7 @@ export function UserNav() {
                     </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                {user.plan === "free" && (
+                {membershipTier === "free" ? (
                     <>
                         <DropdownMenuItem asChild>
                             <Link
@@ -102,9 +101,9 @@ export function UserNav() {
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                     </>
-                )}
+                ) : null}
                 <DropdownMenuItem
-                    className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                    className="cursor-pointer text-red-600 focus:bg-red-50 focus:text-red-600"
                     onClick={handleLogout}
                 >
                     <LogOut className="mr-2 h-4 w-4" />

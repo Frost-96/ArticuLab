@@ -12,6 +12,16 @@ const userAuthSelect = {
     membershipTier: true,
 } satisfies Prisma.UserSelect;
 
+const userProfileSelect = {
+    id: true,
+    email: true,
+    name: true,
+    avatar: true,
+    englishLevel: true,
+    learningGoal: true,
+    membershipTier: true,
+} satisfies Prisma.UserSelect;
+
 export async function createUser(data: {
     email: string;
     hashedPassword: string;
@@ -77,5 +87,26 @@ export async function updateUserOnboarding(data: {
             learningGoal: true,
             membershipTier: true,
         },
+    });
+}
+
+export async function updateUserProfile(data: {
+    userId: string;
+    name: string | null;
+    avatar: string | null;
+    englishLevel: EnglishLevel | null;
+    learningGoal: LearningGoal | null;
+}) {
+    return prisma.user.update({
+        where: {
+            id: data.userId,
+        },
+        data: {
+            name: data.name,
+            avatar: data.avatar,
+            englishLevel: data.englishLevel,
+            learningGoal: data.learningGoal,
+        },
+        select: userProfileSelect,
     });
 }
