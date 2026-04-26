@@ -9,6 +9,7 @@ import {
 } from "@/schema";
 import type { ActionResult } from "@/schema";
 import { getFirstError } from "@/lib/error";
+import { getCurrentUser } from "@/lib/auth";
 
 type UserProfile = {
     id: string;
@@ -25,12 +26,16 @@ type UserProfile = {
 
 // ==================== 获取用户信息 ====================
 
-export async function getUserProfile(
-    userId: string,
-): Promise<ActionResult<{ user: UserProfile }>> {
+export async function getUserProfile(): Promise<ActionResult<{ userProfile: UserProfile }>> {
+    // 1. 鉴权：获取当前登录用户
+    const user = await getCurrentUser();
+    if (!user) {
+        return { success: false, error: "Unauthorized: Please login first" };
+    }
+
     try {
-        const user = await userService.getUserProfile(userId);
-        return { success: true, data: { user } };
+        const userProfile = await userService.getUserProfile(user.userId);
+        return { success: true, data: { userProfile } };
     } catch (error) {
         return {
             success: false,
@@ -45,11 +50,15 @@ export async function getUserProfile(
 // ==================== 修改密码 ====================
 
 export async function updatePassword(
-    userId: string,
     input: UpdatePasswordInput,
 ): Promise<ActionResult<{ success: boolean }>> {
-    const parsed = changePasswordSchema.safeParse(input);
+// 1. 鉴权：获取当前登录用户
+    const user = await getCurrentUser();
+    if (!user) {
+        return { success: false, error: "Unauthorized: Please login first" };
+    }
 
+    const parsed = changePasswordSchema.safeParse(input);
     if (!parsed.success) {
         return {
             success: false,
@@ -58,10 +67,7 @@ export async function updatePassword(
     }
 
     try {
-        await userService.updatePassword(userId, {
-            currentPassword: parsed.data.currentPassword,
-            newPassword: parsed.data.newPassword,
-        });
+        await userService.updatePassword(user.userId, parsed.data);
         return { success: true, data: { success: true } };
     } catch (error) {
         return {
@@ -79,9 +85,14 @@ export async function updatePassword(
 export async function updateUserProfile(
     userId: string,
     input: UpdateProfileInput,
-): Promise<ActionResult<{ user: UserProfile }>> {
-    const parsed = updateProfileSchema.safeParse(input);
+): Promise<ActionResult<{ userProfile: UserProfile }>> {
+// 1. 鉴权：获取当前登录用户
+    const user = await getCurrentUser();
+    if (!user) {
+        return { success: false, error: "Unauthorized: Please login first" };
+    }
 
+    const parsed = updateProfileSchema.safeParse(input);
     if (!parsed.success) {
         return {
             success: false,
@@ -90,8 +101,8 @@ export async function updateUserProfile(
     }
 
     try {
-        const user = await userService.updateUserProfile(userId, parsed.data);
-        return { success: true, data: { user } };
+        const userProfile = await userService.updateUserProfile(user.userId, parsed.data);
+        return { success: true, data: { userProfile } };
     } catch (error) {
         return {
             success: false,

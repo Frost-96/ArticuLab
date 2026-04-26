@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { ScenarioCategory, ScenarioType, Difficulty } from "@/schema/enums";
-import { WRITING_SCENARIO_TYPES, SPEAKING_SCENARIO_TYPES } from "@/lib/writing/constants";
+import { speakingScenarioTypeEnum, writingScenarioTypeEnum } from "@/schema";
 
 // Select 模板定义 - 控制返回字段
 const scenarioSelect = {
@@ -61,7 +61,7 @@ export async function findScenarios(params: {
 export async function findAllScenarioTypes(category: ScenarioCategory): Promise<readonly ScenarioType[]> {
     // 直接返回枚举值，不查数据库
     if (category === "writing") {
-        return WRITING_SCENARIO_TYPES as readonly ScenarioType[];
+        return writingScenarioTypeEnum.options as readonly ScenarioType[];
     }
-    return SPEAKING_SCENARIO_TYPES as readonly ScenarioType[];
+    return speakingScenarioTypeEnum.options as readonly ScenarioType[];
 }

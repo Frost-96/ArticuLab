@@ -1,10 +1,9 @@
-import type { ScenarioType } from "../../../generated/prisma/enums";
+//import type { ScenarioType } from "../../../generated/prisma/enums";
 import type { WritingScenarioType } from "@/schema"
 import { getWritingLlmClient, getWritingLlmModel } from "./llmClient";
-import { scoreRangeForScenarioType } from "./constants";
 import { writingReviewResultSchema , type WritingReviewResult } from "@/schema/writing.schema";
-
-
+import type { AssessInput } from "@/types/writing/writingTypes";
+import { SYSTEM_WRITING_PROMPT } from "@/lib/aiPrompt";
 /**
  * 批改入参（JSON语义）
  *   {
@@ -14,14 +13,25 @@ import { writingReviewResultSchema , type WritingReviewResult } from "@/schema/w
  *     "wordCount": "number"        // 客户端词数（与 content 已在校验层对齐）
  *   }
  */
-export type AssessInput = {
-  scenarioType: WritingScenarioType;
-  prompt: string;
-  content: string;
-  wordCount: number;
-  description?: string; // 题目的详细描述（可选，从scenario中获取）
-};
 
+
+/**
+ * 按场景类型返回分数区间
+ *
+ * 输入格式：
+ * - t：ScenarioType（Prisma 枚举）
+ *
+ * 输出格式：
+ * - [min, max]：二元组，number
+ */
+
+export function scoreRangeForScenarioType(
+  t: WritingScenarioType
+): [number, number] {
+  if (t === "ielts_task1" || t === "ielts_task2") return [0, 9];
+  if (t === "cet4" || t === "cet6") return [0, 100];
+  return [0, 9];
+}
 /**
  * 将 WritingReviewResult 转换为适合存储的格式
  * （当前直接使用 WritingReviewResult，无需转换）
@@ -30,39 +40,6 @@ function prepareFeedback(result: WritingReviewResult): WritingReviewResult {
   return result;
 }
 
-const SYSTEM_PROMPT = `You are an English writing examiner. Assess the user's essay against the given prompt.
-Respond with a single JSON object only (no markdown), with this exact structure:
-{
-  "overallScore": number,
-  "grammarScore": number,
-  "vocabularyScore": number,
-  "coherenceScore": number,
-  "taskScore": number,
-  "overallComment": string,
-  "sentenceFeedback": [
-    {
-      "original": string,
-      "corrected": string (optional),
-      "severity": "error" | "warning" | "suggestion",
-      "category": string,
-      "explanation": string,
-      "alternatives": string[] (optional)
-    }
-  ],
-  "strengths": string[],
-  "improvements": string[],
-  "sampleExpressions": [
-    {
-      "original": string,
-      "improved": string,
-      "explanation": string
-    }
-  ] (optional)
-}
-
-IMPORTANT:
-1. Score range: IELTS 0-9 or CET 0-100 depending on scenario type.
-2. If a description is provided, evaluate task completion based on whether the essay addresses all requirements mentioned in the description.`;
 
 /**
  * 执行一次 AI 批改（无 API Key 时返回 Mock；有 Key 时调用 chat.completions + json_object）
@@ -98,7 +75,7 @@ export async function assessWriting(
     const completion = await client.chat.completions.create({
       model,
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: SYSTEM_WRITING_PROMPT },
         { role: "user", content: userMsg },
       ],
       response_format: { type: "json_object" },
@@ -111,7 +88,6 @@ export async function assessWriting(
 
     const parsed = JSON.parse(raw);
     
-    // 使用 Zod 校验 AI 返回结果
     //const validated = writingReviewResultSchema.safeParse(parsed);
     return { ok: true, data: parsed };
   } catch (e) {

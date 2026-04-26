@@ -1,30 +1,9 @@
 import * as scenarioRepo from "@/server/repositories/scenario.repository";
-//import type { ScenarioType, Difficulty } from "../../../generated/prisma/enums";
-import type { ScenarioCategory, ScenarioType, Difficulty } from "@/schema/enums";
+import type { ScenarioCategory, ScenarioType, SpeakingScenarioType, WritingScenarioType, Difficulty } from "@/schema/enums";
+import { getScenarioListSchema, type GetScenarioListInput } from "@/schema/scenario.schema";
+import type { ScenarioPrompt, ScenarioListResult } from "@/types/scenario/scenarioTypes"
+import { getFirstError } from "@/lib/error";
 
-// ==================== 类型定义 ====================
-
-export type ScenarioPrompt = {
-    id: string;
-    title: string;
-    description: string;
-    prompt: string;
-    difficulty: string;
-    estimatedWords: number;
-    estimatedMinutes: number;
-    category: ScenarioType;
-    createdAt: string;
-};
-
-export type ScenarioListResult = {
-    prompts: ScenarioPrompt[];
-    pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-    };
-};
 
 // Repository 返回类型
 type FindScenariosResult = Awaited<ReturnType<typeof scenarioRepo.findScenarios>>;
@@ -40,7 +19,7 @@ function formatScenarioList(rows: FindScenariosResult["rows"]): ScenarioPrompt[]
         difficulty: s.difficulty,
         estimatedWords: 120, // 默认值
         estimatedMinutes: 15, // 默认值
-        category: s.category,
+        category: s.category as ScenarioType,
         createdAt: s.createdAt.toISOString(),
     }));
 }
@@ -52,14 +31,15 @@ function formatScenarioList(rows: FindScenariosResult["rows"]): ScenarioPrompt[]
  * @param params 筛选条件和分页参数
  * @returns 场景列表和分页信息
  */
-export async function getScenarioList(params: {
-    category: ScenarioCategory;
-    scenarioType?: ScenarioType;
-    difficulty?: Difficulty;
-    page: number;
-    pageSize: number;
-}): Promise<ScenarioListResult> {
-    const { category,scenarioType, difficulty, page, pageSize } = params;
+export async function getScenarioList(params: GetScenarioListInput): Promise<ScenarioListResult> {
+// ==================== 校验输入 ====================
+    const parsedParams=getScenarioListSchema.safeParse(params);
+    if(!parsedParams.success){
+        throw new Error(getFirstError(parsedParams.error));
+    }
+// ==================== 业务逻辑 ====================    
+
+    const { category,scenarioType, difficulty, page, pageSize } = parsedParams.data;
 
     const skip = (page - 1) * pageSize;
     const { rows, total } = await scenarioRepo.findScenarios({

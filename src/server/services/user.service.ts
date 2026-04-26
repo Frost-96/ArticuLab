@@ -1,6 +1,15 @@
 import * as userRepo from "@/server/repositories/user.repository";
 import { hashPassword, comparePassword } from "@/lib/bcrypt";
-import type { EnglishLevel } from "@/generated/prisma/enums";
+import { getFirstError } from "@/lib/error";
+import { 
+    type EnglishLevel, 
+    type UpdateProfileInput,
+    type UpdatePasswordInput,
+    updateProfileSchema,
+    changePasswordSchema,
+    idSchema,
+    
+} from "@/schema";
 
 type UserProfile = {
     id: string;
@@ -31,7 +40,14 @@ type ProfileUpdateInput = {
 // ==================== 获取用户信息 ====================
 
 export async function getUserProfile(userId: string): Promise<UserProfile> {
-    const user = await userRepo.findUserByIdFull(userId);
+// ==================== 校验输入 ====================
+    const parsedId=idSchema.safeParse(userId);
+    if(!parsedId.success){
+        throw new Error(getFirstError(parsedId.error));
+    }
+
+// ==================== 业务逻辑 ====================
+    const user = await userRepo.findUserByIdFull(parsedId.data);
 
     if (!user) {
         throw new Error("User not found");
@@ -55,43 +71,31 @@ export async function getUserProfile(userId: string): Promise<UserProfile> {
 
 export async function updateUserProfile(
     userId: string,
-    input: ProfileUpdateInput,
+    params: UpdateProfileInput,
 ): Promise<UserProfile> {
-    const user = await userRepo.findUserByIdFull(userId);
+// ==================== 校验输入 ====================
+    const parsedId=idSchema.safeParse(userId);
+    if(!parsedId.success){
+        throw new Error(getFirstError(parsedId.error));
+    }
+    const parsedParams=updateProfileSchema.safeParse(params);
+    if(!parsedParams.success){
+        throw new Error(getFirstError(parsedParams.error));
+    }
+
+// ==================== 业务逻辑 ====================
+    const user = await userRepo.findUserByIdFull(parsedId.data);
 
     if (!user) {
         throw new Error("User not found");
     }
 
-    const updateData: {
-        name?: string | null;
-        avatar?: string | null;
-        password?: string | null;
-        englishLevel?: EnglishLevel | null;
-        learningGoal?: string | null;
-    } = {};
-
-    if (input.name !== undefined) {
-        updateData.name = input.name.trim() || null;
-    }
-
-    if (input.avatar !== undefined) {
-        updateData.avatar = input.avatar.trim() || null;
-    }
-
-    if (input.englishLevel !== undefined) {
-        updateData.englishLevel = input.englishLevel;
-    }
-
-    if (input.learningGoal !== undefined) {
-        updateData.learningGoal = input.learningGoal.trim() || null;
-    }
-
-    if (Object.keys(updateData).length === 0) {
+    //如果什么都没改则报错，不调用repo层
+    if (Object.keys(parsedParams.data).length === 0) {
         throw new Error("No update fields provided");
     }
 
-    const updatedUser = await userRepo.updateUser(userId, updateData);
+    const updatedUser = await userRepo.updateUser(parsedId.data, parsedParams.data);
 
     return {
         id: updatedUser.id,
@@ -111,9 +115,20 @@ export async function updateUserProfile(
 
 export async function updatePassword(
     userId: string,
-    input: { currentPassword: string; newPassword: string },
+    params:  UpdatePasswordInput,
 ): Promise<void> {
-    const user = await userRepo.findUserPasswordById(userId);
+// ==================== 校验输入 ====================
+    const parsedId=idSchema.safeParse(userId);
+    if(!parsedId.success){
+        throw new Error(getFirstError(parsedId.error));
+    }
+    const parsedParams=changePasswordSchema.safeParse(params);
+    if(!parsedParams.success){
+        throw new Error(getFirstError(parsedParams.error));
+    }
+
+// ==================== 业务逻辑 ====================
+    const user = await userRepo.findUserPasswordById(parsedId.data);
 
     if (!user) {
         throw new Error("User not found");
@@ -123,11 +138,11 @@ export async function updatePassword(
         throw new Error("No password set for this account");
     }
 
-    const isValid = await comparePassword(input.currentPassword, user.password);
+    const isValid = await comparePassword(parsedParams.data.currentPassword, user.password);
     if (!isValid) {
         throw new Error("Current password is incorrect");
     }
 
-    const hashedPassword = await hashPassword(input.newPassword);
-    await userRepo.updateUser(userId, { password: hashedPassword });
+    const hashedPassword = await hashPassword(parsedParams.data.newPassword);
+    await userRepo.updateUser(parsedId.data, { password: hashedPassword });
 }

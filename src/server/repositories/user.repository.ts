@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "../../../generated/prisma";
-import type { EnglishLevel } from "../../../generated/prisma/enums";
+import type { EnglishLevel } from "@/schema";
 
 const userAuthSelect = {
     id: true,

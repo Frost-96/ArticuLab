@@ -3,9 +3,8 @@
 import * as scenarioService from "@/server/services/scenario.service";
 import { getScenarioListSchema, type GetScenarioListInput } from "@/schema/scenario.schema";
 import type { ActionResult } from "@/schema/shared.schema";
-import type { ScenarioListResult } from "@/server/services/scenario.service";
-//import type { ScenarioType } from "../../../generated/prisma/enums";
-import type { ScenarioCategory, ScenarioType, Difficulty } from "@/schema/enums";
+import type {  ScenarioListResult } from "@/types/scenario/scenarioTypes"
+import type { ScenarioType,  } from "@/schema/enums";
 import { getFirstError } from "@/lib/error";
 
 // ==================== 获取场景列表 ====================

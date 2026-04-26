@@ -21,13 +21,7 @@ import {
 import type { ActionResult } from "@/schema/shared.schema";
 import { getFirstError } from "@/lib/error";
 import { getCurrentUser } from "@/lib/auth";
-import type { 
-    WritingExerciseSummary,
-    WritingExerciseDetail,
-    DraftData,
-    WritingHistoryResult,
-    SubmitWritingResult,
- } from "@/server/services/writing.service";
+import type { WritingResult, WritingExerciseDetail, DraftData, WritingHistoryResult, SubmitWritingResult } from "@/types/writing/writingTypes"
 
 // ==================== 获取写作练习列表 ====================
 
@@ -56,12 +50,7 @@ export async function getWritingHistoryAction(
         }
 
         // 3. 使用从 Session 中获取的真实 userId
-        const result = await writingService.getWritingHistory(user.userId, {
-            scenarioType: parsed.data.scenarioType,
-            status: parsed.data.status,
-            page: parsed.data.page,
-            limit: parsed.data.pageSize,
-        });
+        const result = await writingService.getWritingHistory(user.userId, parsed.data);
 
         return { success: true, data: result };
     } catch (error) {
@@ -100,13 +89,8 @@ export async function createWritingExerciseAction(
             return { success: false, error: getFirstError(parsed.error) };
         }
 
-        // 3. 使用从 Session 中获取的真实 userId
-        const result = await writingService.createWritingExercise(user.userId, {
-            scenarioType: parsed.data.scenarioType,
-            prompt: parsed.data.prompt,
-            isCustomPrompt: parsed.data.isCustomPrompt,
-            scenarioId: parsed.data.scenarioId,
-        });
+        // 3.调用service层
+        const result = await writingService.createWritingExercise(user.userId,parsed.data);
 
         return { success: true, data: result };
     } catch (error) {
@@ -146,7 +130,7 @@ export async function getWritingExerciseAction(
         }
 
         // 3. 使用从 Session 中获取的真实 userId
-        const result = await writingService.getWritingExercise(user.userId, parsed.data.exerciseId);
+        const result = await writingService.getWritingExercise(user.userId, parsed.data);
         return { success: true, data: result };
     } catch (error) {
         return {
@@ -181,7 +165,7 @@ export async function deleteWritingExerciseAction(
         }
 
         // 3. 使用从 Session 中获取的真实 userId
-        const result = await writingService.deleteWritingExercise(user.userId, parsed.data.exerciseId);
+        const result = await writingService.deleteWritingExercise(user.userId, parsed.data);
         return { success: true, data: result };
     } catch (error) {
         return {
@@ -200,11 +184,7 @@ export async function deleteWritingExerciseAction(
  */
 export async function getDraftAction(
     input: GetDraftInput
-): Promise<
-    ActionResult<{
-        draft: DraftData
-    }>
-> {
+): Promise<ActionResult<{draft: DraftData}>> {
     try {
         // 1. 鉴权：获取当前登录用户
         const user = await getCurrentUser();
@@ -220,7 +200,7 @@ export async function getDraftAction(
         }
 
         // 3. 使用从 Session 中获取的真实 userId
-        const result = await writingService.getDraft(user.userId, parsed.data.exerciseId);
+        const result = await writingService.getDraft(user.userId, parsed.data);
         return { success: true, data: result };
     } catch (error) {
         return {
@@ -239,11 +219,7 @@ export async function getDraftAction(
  */
 export async function saveDraftAction(
     input: SaveDraftInput
-): Promise<
-    ActionResult<{
-        draft: DraftData
-    }>
-> {
+): Promise< ActionResult<{draft: DraftData}>> {
     try {
         // 1. 鉴权：获取当前登录用户
         const user = await getCurrentUser();
@@ -259,12 +235,7 @@ export async function saveDraftAction(
         }
 
         // 3. 使用从 Session 中获取的真实 userId
-        const result = await writingService.saveDraft(
-            user.userId,
-            parsed.data.exerciseId,
-            parsed.data.content,
-            parsed.data.wordCount
-        );
+        const result = await writingService.saveDraft(user.userId,parsed.data);
 
         return { success: true, data: result };
     } catch (error) {
@@ -286,11 +257,7 @@ export async function saveDraftAction(
  */
 export async function submitWritingAction(
     input: SubmitWritingInput
-): Promise<
-    ActionResult<{
-        result: SubmitWritingResult;
-    }>
-> {
+): Promise<ActionResult<{result: SubmitWritingResult;}>> {
     try {
         // 1. 鉴权：获取当前登录用户
         const user = await getCurrentUser();
@@ -329,7 +296,7 @@ export async function submitWritingAction(
 export async function getWritingResultAction(
     input: GetWritingExerciseInput
 ): Promise<
-    ActionResult<Awaited<ReturnType<typeof writingService.getWritingResult>>>
+    ActionResult<WritingResult>
 > {
     try {
         // 1. 鉴权：获取当前登录用户
@@ -346,7 +313,7 @@ export async function getWritingResultAction(
         }
 
         // 3. 使用从 Session 中获取的真实 userId
-        const result = await writingService.getWritingResult(user.userId, parsed.data.exerciseId);
+        const result = await writingService.getWritingResult(user.userId, parsed.data);
         return { success: true, data: result };
     } catch (error) {
         return {
@@ -363,7 +330,7 @@ export async function getWritingResultAction(
  * @param input - 练习 ID
  * @returns ActionResult<WritingSuggestions>
  */
-export async function getWritingSuggestionsAction(
+/* export async function getWritingSuggestionsAction(
     input: GetWritingExerciseInput
 ): Promise<
     ActionResult<Awaited<ReturnType<typeof writingService.getWritingSuggestions>>>
@@ -392,3 +359,4 @@ export async function getWritingSuggestionsAction(
         };
     }
 }
+ */
