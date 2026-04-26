@@ -1,5 +1,6 @@
 import * as userRepo from "@/server/repositories/user.repository";
 import { hashPassword, comparePassword } from "@/lib/bcrypt";
+import type { EnglishLevel, LearningGoal } from "@/schema";
 
 function isPrismaUniqueConstraintError(error: unknown): boolean {
     return (
@@ -15,6 +16,7 @@ type AuthUser = {
     email: string;
     name: string | null;
     englishLevel: string | null;
+    learningGoal: string | null;
     membershipTier: string;
 };
 
@@ -65,6 +67,25 @@ export async function loginUser(input: {
         email: user.email,
         name: user.name,
         englishLevel: user.englishLevel,
+        learningGoal: user.learningGoal,
         membershipTier: user.membershipTier,
     };
+}
+
+export async function completeOnboarding(input: {
+    userId: string;
+    englishLevel: EnglishLevel;
+    learningGoal: LearningGoal;
+}): Promise<AuthUser> {
+    const user = await userRepo.findUserById(input.userId);
+
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    return userRepo.updateUserOnboarding({
+        userId: input.userId,
+        englishLevel: input.englishLevel,
+        learningGoal: input.learningGoal,
+    });
 }

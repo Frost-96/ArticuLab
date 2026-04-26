@@ -1,5 +1,3 @@
-// src/validators/writing.ts
-
 import { z } from "zod";
 import { writingScenarioTypeEnum, writingExerciseStatusEnum } from "./enums";
 import { idSchema, paginationSchema } from "./shared.schema";

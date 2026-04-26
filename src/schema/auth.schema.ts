@@ -1,7 +1,5 @@
-// src/validators/auth.ts
-
 import { z } from "zod";
-import { englishLevelEnum } from "./enums";
+import { englishLevelEnum, learningGoalEnum } from "./enums";
 
 // ==================== 认证相关 ====================
 
@@ -20,6 +18,7 @@ export const signUpSchema = z
             .min(1, "Please enter your nickname")
             .max(50, "Nickname must not exceed 50 characters")
             .optional(),
+        redirectTo: z.string().optional(),
     })
     .refine((data) => data.password === data.confirmPassword, {
         message: "The passwords you entered do not match",
@@ -30,15 +29,13 @@ export const signUpSchema = z
 export const signInSchema = z.object({
     email: z.email().min(1, "Please enter your email"),
     password: z.string().min(1, "Please enter your password"),
+    redirectTo: z.string().optional(),
 });
 
 // F-003: 新用户引导 — 选择水平和目标
 export const onboardingSchema = z.object({
     englishLevel: englishLevelEnum,
-    learningGoal: z
-        .string()
-        .min(1, "Please enter your learning goal")
-        .max(200, "Learning goal must not exceed 200 characters"),
+    learningGoal: learningGoalEnum,
 });
 
 // F-003: 个人资料编辑
@@ -50,10 +47,7 @@ export const updateProfileSchema = z.object({
         .optional(),
     avatar: z.url("Avatar link format is incorrect").optional(),
     englishLevel: englishLevelEnum.optional(),
-    learningGoal: z
-        .string()
-        .max(200, "Learning goal must not exceed 200 characters")
-        .optional(),
+    learningGoal: learningGoalEnum.optional(),
 });
 
 // 修改密码

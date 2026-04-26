@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "../../../generated/prisma";
-import type { EnglishLevel } from "@/schema";
+import type { EnglishLevel, LearningGoal } from "@/schema";
+import { Prisma } from "../../../generated/prisma/client";
 
 const userAuthSelect = {
     id: true,
@@ -8,6 +8,7 @@ const userAuthSelect = {
     name: true,
     password: true,
     englishLevel: true,
+    learningGoal: true,
     membershipTier: true,
 } satisfies Prisma.UserSelect;
 
@@ -34,12 +35,15 @@ export async function createUser(data: {
             email: data.email.toLowerCase().trim(),
             password: data.hashedPassword,
             name: data.name?.trim() ?? null,
+            englishLevel: null,
+            learningGoal: null,
         },
         select: {
             id: true,
             email: true,
             name: true,
             englishLevel: true,
+            learningGoal: true,
             membershipTier: true,
         },
     });
@@ -111,3 +115,26 @@ export async function updateUser(
 }
 
 
+export async function updateUserOnboarding(data: {
+    userId: string;
+    englishLevel: EnglishLevel;
+    learningGoal: LearningGoal;
+}) {
+    return prisma.user.update({
+        where: {
+            id: data.userId,
+        },
+        data: {
+            englishLevel: data.englishLevel,
+            learningGoal: data.learningGoal.trim(),
+        },
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            englishLevel: true,
+            learningGoal: true,
+            membershipTier: true,
+        },
+    });
+}
