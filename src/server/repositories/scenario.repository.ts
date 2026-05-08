@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import type { ScenarioCategory, ScenarioType, Difficulty } from "@/schema/enums";
+import type { Difficulty, ScenarioCategory, ScenarioType } from "@/schema/enums";
 import { speakingScenarioTypeEnum, writingScenarioTypeEnum } from "@/schema";
+import { Prisma } from "../../../generated/prisma/client";
 
-// Select 模板定义 - 控制返回字段
 const scenarioSelect = {
     id: true,
     type: true,
@@ -10,17 +10,13 @@ const scenarioSelect = {
     title: true,
     description: true,
     prompt: true,
+    aiRole: true,
     difficulty: true,
+    isGenerated: true,
     createdAt: true,
-};
+    updatedAt: true,
+} as const;
 
-// ==================== 查询场景列表 ====================
-
-/**
- * 获取场景列表（带分页）
- * @param params 筛选条件和分页参数
- * @returns { rows: 场景列表，total: 总数 }
- */
 export async function findScenarios(params: {
     type?: ScenarioCategory;
     category?: ScenarioType;
@@ -30,13 +26,14 @@ export async function findScenarios(params: {
 }) {
     const { type, category, difficulty, skip = 0, take = 10 } = params;
 
-    const where: Record<string, unknown> = {
+    const where: Prisma.ScenarioWhereInput = {
+        isDeleted: false,
         ...(type ? { type } : {}),
         ...(category ? { category } : {}),
         ...(difficulty ? { difficulty } : {}),
     };
 
-    const [rows, total] = await Promise.all([
+    const [rows, total] = await prisma.$transaction([
         prisma.scenario.findMany({
             where,
             orderBy: { createdAt: "desc" },
@@ -50,18 +47,100 @@ export async function findScenarios(params: {
     return { rows, total };
 }
 
-// ==================== 查询场景类型 ====================
-
-/**
- * 获取所有 ScenarioType 列表（按类型分类）
- * 直接返回枚举定义值，不查库
- * @param category 类型分类 (writing | speaking)
- * @returns ScenarioType 数组
- */
-export async function findAllScenarioTypes(category: ScenarioCategory): Promise<readonly ScenarioType[]> {
-    // 直接返回枚举值，不查数据库
+export async function findAllScenarioTypes(
+    category: ScenarioCategory,
+): Promise<readonly ScenarioType[]> {
     if (category === "writing") {
         return writingScenarioTypeEnum.options as readonly ScenarioType[];
     }
+
     return speakingScenarioTypeEnum.options as readonly ScenarioType[];
+}
+
+export async function findScenarioById(id: string) {
+    return prisma.scenario.findFirst({
+        where: {
+            id,
+            isDeleted: false,
+        },
+        select: scenarioSelect,
+    });
+}
+
+export async function createScenario(data: {
+    type: ScenarioCategory;
+    category: ScenarioType;
+    title: string;
+    description: string;
+    prompt: string;
+    aiRole?: string | null;
+    difficulty: Difficulty;
+    isGenerated?: boolean;
+}) {
+    return prisma.scenario.create({
+        data: {
+            type: data.type,
+            category: data.category,
+            title: data.title.trim(),
+            description: data.description.trim(),
+            prompt: data.prompt.trim(),
+            aiRole: data.aiRole?.trim() || null,
+            difficulty: data.difficulty,
+            isGenerated: data.isGenerated ?? false,
+        },
+        select: scenarioSelect,
+    });
+}
+
+export async function updateScenario(
+    id: string,
+    data: Partial<{
+        type: ScenarioCategory;
+        category: ScenarioType;
+        title: string;
+        description: string;
+        prompt: string;
+        aiRole: string | null;
+        difficulty: Difficulty;
+        isGenerated: boolean;
+    }>,
+) {
+    return prisma.scenario.update({
+        where: {
+            id,
+        },
+        data: {
+            ...(data.type !== undefined && { type: data.type }),
+            ...(data.category !== undefined && { category: data.category }),
+            ...(data.title !== undefined && { title: data.title.trim() }),
+            ...(data.description !== undefined && {
+                description: data.description.trim(),
+            }),
+            ...(data.prompt !== undefined && { prompt: data.prompt.trim() }),
+            ...(data.aiRole !== undefined && {
+                aiRole: data.aiRole?.trim() || null,
+            }),
+            ...(data.difficulty !== undefined && {
+                difficulty: data.difficulty,
+            }),
+            ...(data.isGenerated !== undefined && {
+                isGenerated: data.isGenerated,
+            }),
+        },
+        select: scenarioSelect,
+    });
+}
+
+export async function deleteScenario(id: string) {
+    return prisma.scenario.update({
+        where: {
+            id,
+        },
+        data: {
+            isDeleted: true,
+        },
+        select: {
+            id: true,
+        },
+    });
 }

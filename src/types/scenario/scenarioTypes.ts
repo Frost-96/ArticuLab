@@ -1,14 +1,16 @@
-import type { ScenarioType } from "@/schema/enums";
+import type { Difficulty, ScenarioCategory, ScenarioType } from "@/schema/enums";
 
 // ==================== 类型定义 ====================
 
 
 export type ScenarioPrompt = {
     id: string;
+    type: ScenarioCategory;
     title: string;
     description: string;
     prompt: string;
-    difficulty: string;
+    aiRole: string | null;
+    difficulty: Difficulty;
     estimatedWords: number;
     estimatedMinutes: number;
     category: ScenarioType;

@@ -17,6 +17,7 @@ import {
 import type { EnglishLevel, LearningGoal, SettingsData } from "@/schema";
 import { getInitials } from "@/lib/user-display";
 import { saveSettingsProfile } from "@/server/actions/settings.action";
+import { deleteCurrentUserAction } from "@/server/actions/user.action";
 import { logOut } from "@/server/actions/auth.action";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +68,7 @@ export function SettingsView({ data }: SettingsViewProps) {
     const router = useRouter();
     const [isSaving, startSavingTransition] = useTransition();
     const [isLoggingOut, startLogoutTransition] = useTransition();
+    const [isDeletingAccount, startDeleteAccountTransition] = useTransition();
     const [form, setForm] = useState<SettingsFormState>({
         name: data.account.name ?? "",
         avatar: data.account.avatar ?? "",
@@ -134,10 +136,35 @@ export function SettingsView({ data }: SettingsViewProps) {
         });
     }
 
+    function handleDeleteAccount() {
+        const confirmed = window.confirm(
+            "Delete your account? This will hide your profile and sign you out.",
+        );
+        if (!confirmed) {
+            return;
+        }
+
+        startDeleteAccountTransition(() => {
+            void performDeleteAccount();
+        });
+    }
+
     async function performLogout() {
         await logOut();
         toast.success("Logged out");
         router.push("/login");
+        router.refresh();
+    }
+
+    async function performDeleteAccount() {
+        const result = await deleteCurrentUserAction();
+        if (!result.success) {
+            toast.error(result.error);
+            return;
+        }
+
+        toast.success("Account deleted");
+        router.push("/signup");
         router.refresh();
     }
 
@@ -514,17 +541,23 @@ export function SettingsView({ data }: SettingsViewProps) {
                                     Delete Account
                                 </p>
                                 <p className="text-xs text-slate-500">
-                                    Account deletion is not available yet.
+                                    Soft delete your account and log out of this device.
                                 </p>
                             </div>
                             <Button
                                 variant="outline"
                                 size="sm"
                                 className="border-red-200 text-red-600 hover:bg-red-50"
-                                disabled={!data.dangerZone.canDeleteAccount}
+                                disabled={
+                                    !data.dangerZone.canDeleteAccount ||
+                                    isDeletingAccount
+                                }
+                                onClick={handleDeleteAccount}
                             >
                                 <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                                Delete Account
+                                {isDeletingAccount
+                                    ? "Deleting..."
+                                    : "Delete Account"}
                             </Button>
                         </div>
                     </CardContent>

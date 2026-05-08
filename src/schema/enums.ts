@@ -26,6 +26,7 @@ export const membershipTierEnum = z.enum(["free", "pro"]);
 export const scenarioTypeEnum = z.enum([
   "ielts_task1",
   "ielts_task2",
+  "toefl",
   "cet4",
   "cet6",
   "daily",

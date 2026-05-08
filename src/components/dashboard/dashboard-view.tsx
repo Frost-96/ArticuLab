@@ -124,8 +124,8 @@ export function DashboardView({ data }: DashboardViewProps) {
                             </Badge>
                         </div>
                         <p className="mt-1 text-slate-500">
-                            Your dashboard now reflects real activity from the
-                            database.
+                            Track your practice loop across writing, speaking, and
+                            coach sessions.
                         </p>
                     </div>
 
@@ -187,7 +187,7 @@ export function DashboardView({ data }: DashboardViewProps) {
                         </CardHeader>
                         <CardContent>
                             {data.emptyStates.hasFullRadarData ? (
-                                <div className="h-[300px]">
+                                <div className="h-[300px] min-h-[300px] min-w-0">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <RadarChart data={data.radar}>
                                             <PolarGrid stroke="#e2e8f0" />
@@ -233,7 +233,7 @@ export function DashboardView({ data }: DashboardViewProps) {
                         </CardHeader>
                         <CardContent>
                             {data.emptyStates.hasTrendData ? (
-                                <div className="h-[300px]">
+                                <div className="h-[300px] min-h-[300px] min-w-0">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <LineChart data={data.trend}>
                                             <CartesianGrid
@@ -358,7 +358,7 @@ export function DashboardView({ data }: DashboardViewProps) {
                             </CardTitle>
                             <CardDescription>
                                 Writing, speaking, and coach activity merged from
-                                real records.
+                                your recent practice.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>

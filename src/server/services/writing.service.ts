@@ -1,5 +1,6 @@
 // src/server/services/writing.service.ts
 
+import { cache } from "react";
 import * as writingRepo from "@/server/repositories/writing.repository";
 import { prisma } from "@/lib/prisma";
 import { assessWriting } from "@/lib/writing/assessWriting";
@@ -7,7 +8,6 @@ import { countWords } from "@/lib/writing/words";
 import { getFirstError } from "@/lib/error";
 import {    
     type WritingExerciseStatus , 
-    type WritingReviewResult , 
     type WritingScenarioType , 
     type CreateWritingExerciseInput,
     type GetWritingHistoryInput,
@@ -31,6 +31,80 @@ import {
 import type { WritingResult, WritingExerciseSummary, WritingExerciseDetail, DraftData, WritingHistoryResult, SubmitWritingResult } from "@/types/writing/writingTypes"
 import { isGraded, inferExerciseStatus, getFeedback } from "@/lib/writing/exerciseHelpers";
 
+function normalizeUserId(userId: string) {
+    const parsedId = idSchema.safeParse(userId);
+
+    if (!parsedId.success) {
+        throw new Error(getFirstError(parsedId.error));
+    }
+
+    return parsedId.data;
+}
+
+const loadWritingHistory = cache(
+    async (
+        userId: string,
+        scenarioType: WritingScenarioType | undefined,
+        status: WritingExerciseStatus | undefined,
+        page: number,
+        limit: number,
+    ): Promise<WritingHistoryResult> => {
+        const skip = (page - 1) * limit;
+
+        const { rows, total } = await writingRepo.findWritingExercises({
+            userId,
+            scenarioType,
+            status,
+            skip,
+            take: limit,
+        });
+
+        const exercises: WritingExerciseSummary[] = rows.map((ex) => ({
+            id: ex.id,
+            scenarioType: ex.scenarioType as WritingScenarioType,
+            prompt: ex.prompt,
+            wordCount: ex.wordCount,
+            overallScore: ex.overallScore,
+            status: inferExerciseStatus(ex),
+            createdAt: ex.createdAt.toISOString(),
+            evaluatedAt: isGraded(ex) ? ex.updatedAt.toISOString() : null,
+        }));
+
+        const stats = await writingRepo.countCompletedExercises(userId);
+
+        const summary =
+            stats.count > 0
+                ? {
+                      totalExercises: total,
+                      completedExercises: stats.count,
+                      averageScore:
+                          stats.average != null
+                              ? Math.round(stats.average * 10) / 10
+                              : null,
+                      highestScore: stats.max ?? null,
+                      lowestScore: stats.min ?? null,
+                  }
+                : {
+                      totalExercises: total,
+                      completedExercises: 0,
+                      averageScore: null,
+                      highestScore: null,
+                      lowestScore: null,
+                  };
+
+        return {
+            exercises,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.max(1, Math.ceil(total / limit)),
+            },
+            summary,
+        };
+    },
+);
+
 // ==================== 获取写作练习列表 ====================
 
 /**
@@ -52,10 +126,7 @@ export async function getWritingHistory(
 ): Promise<WritingHistoryResult> {
 
 // ==================== 校验输入 ====================
-    const parsedId=idSchema.safeParse(userId);
-    if(!parsedId.success){
-        throw new Error(getFirstError(parsedId.error));
-    }
+    const userID = normalizeUserId(userId);
 
     const parsedParams=getWritingHistorySchema.safeParse(params);
     if(!parsedParams.success){
@@ -64,11 +135,13 @@ export async function getWritingHistory(
 
 // ==================== 业务逻辑 ====================
     const { scenarioType, status, page, pageSize: limit } = parsedParams.data;
+    return loadWritingHistory(userID, scenarioType, status, page, limit);
+    /*
     const skip = (page - 1) * limit;
 
     // 获取练习列表
     const { rows, total } = await writingRepo.findWritingExercises({
-        userId,
+        userId: userID,
         scenarioType,
         status,
         skip,
@@ -91,7 +164,7 @@ export async function getWritingHistory(
     });
 
     // 获取统计信息
-    const stats = await writingRepo.countCompletedExercises(userId);
+    const stats = await writingRepo.countCompletedExercises(userID);
 
     const summary =
         stats.count > 0
@@ -123,6 +196,7 @@ export async function getWritingHistory(
         },
         summary,
     };
+    */
 }
 
 // ==================== 创建写作练习 ====================
@@ -144,10 +218,7 @@ export async function createWritingExercise(
     params: CreateWritingExerciseInput
 ): Promise<{ exercise: WritingExerciseDetail }> {
 // ==================== 校验输入 ====================
-    const parsedId=idSchema.safeParse(userId);
-    if(!parsedId.success){
-        throw new Error(getFirstError(parsedId.error));
-    }
+    const userID = normalizeUserId(userId);
 
     const parsedParams=createWritingExerciseSchema.safeParse(params);
     if(!parsedParams.success){
@@ -159,7 +230,7 @@ export async function createWritingExercise(
 
     // 校验 scenarioId（如果提供）
     let resolvedPrompt = prompt.trim();
-    let resolvedScenarioId: string | null =
+    const resolvedScenarioId: string | null =
         typeof scenarioId === "string" && scenarioId ? scenarioId : null;
 
     if (resolvedScenarioId) {
@@ -174,12 +245,12 @@ export async function createWritingExercise(
                 `场景类型不匹配：请求类型 ${scenarioType}，实际场景类型 ${scenario.category}`
             );
         }
-        resolvedPrompt = scenario.title;
+        resolvedPrompt = scenario.prompt;
     }
 
     // 创建练习
     const created = await writingRepo.createWritingExercise({
-        userId,
+        userId: userID,
         scenarioType,
         prompt: resolvedPrompt,
         isCustomPrompt,
@@ -225,10 +296,7 @@ export async function getWritingExercise(
     params: GetWritingExerciseInput
 ): Promise<{ exercise: WritingExerciseDetail }> {
 // ==================== 校验输入 ====================
-    const parsedId=idSchema.safeParse(userId);
-    if(!parsedId.success){
-        throw new Error(getFirstError(parsedId.error));
-    }
+    const userID = normalizeUserId(userId);
 
     const parsedParams=getWritingExerciseSchema.safeParse(params);
     if(!parsedParams.success){
@@ -237,7 +305,6 @@ export async function getWritingExercise(
 
 // ==================== 业务逻辑 ====================
     const { exerciseId } = parsedParams.data;
-    const userID = parsedId.data;
     const ex = await writingRepo.findWritingExerciseById(exerciseId, userID);
     if (!ex) {
         throw new Error("写作练习记录不存在");
@@ -292,10 +359,7 @@ export async function deleteWritingExercise(
     params: DeleteWritingExerciseInput
 ): Promise<{ id: string }> {
 // ==================== 校验输入 ====================
-    const parsedId=idSchema.safeParse(userId);
-    if(!parsedId.success){
-        throw new Error(getFirstError(parsedId.error));
-    }
+    const userID = normalizeUserId(userId);
 
     const parsedParams=deleteWritingExerciseSchema.safeParse(params);
     if(!parsedParams.success){
@@ -304,8 +368,6 @@ export async function deleteWritingExercise(
 
 // ==================== 业务逻辑 ====================
     const { exerciseId } = parsedParams.data;
-    const userID = parsedId.data;
-
     const ex = await writingRepo.findWritingExerciseById(exerciseId, userID);
     if (!ex) {
         throw new Error("写作练习记录不存在");
@@ -328,10 +390,7 @@ export async function getDraft(
     params: GetDraftInput
 ): Promise<{ draft: DraftData }> {
 // ==================== 校验输入 ====================
-    const parsedId=idSchema.safeParse(userId);
-    if(!parsedId.success){
-        throw new Error(getFirstError(parsedId.error));
-    }
+    const userID = normalizeUserId(userId);
 
     const parsedParams=getDraftSchema.safeParse(params);
     if(!parsedParams.success){
@@ -340,8 +399,6 @@ export async function getDraft(
 
 // ==================== 业务逻辑 ====================
     const { exerciseId } = parsedParams.data;
-    const userID = parsedId.data;
-
     const ex = await writingRepo.findWritingExerciseById(exerciseId, userID);
     if (!ex) {
         throw new Error("写作练习记录不存在");
@@ -376,10 +433,7 @@ export async function saveDraft(
     params: SaveDraftInput
 ): Promise<{ draft: DraftData }> {
 // ==================== 校验输入 ====================
-    const parsedId=idSchema.safeParse(userId);
-    if(!parsedId.success){
-        throw new Error(getFirstError(parsedId.error));
-    }
+    const userID = normalizeUserId(userId);
 
     const parsedParams=saveDraftSchema.safeParse(params);
     if(!parsedParams.success){
@@ -387,7 +441,6 @@ export async function saveDraft(
     }
 
 // ==================== 业务逻辑 ====================
-    const userID = parsedId.data;
     const {exerciseId, content, wordCount} = parsedParams.data;
     const ex = await writingRepo.findWritingExerciseById(exerciseId, userID);
     if (!ex) {
@@ -446,15 +499,72 @@ export async function saveDraft(
  * @param id - 练习 ID
  * @returns 提交结果
  */
+export async function completeWritingExercise(
+    userId: string,
+    params: GetWritingExerciseInput,
+): Promise<{ exercise: WritingExerciseDetail }> {
+    const userID = normalizeUserId(userId);
+
+    const parsedParams = getWritingExerciseSchema.safeParse(params);
+    if (!parsedParams.success) {
+        throw new Error(getFirstError(parsedParams.error));
+    }
+
+    const { exerciseId } = parsedParams.data;
+    const exercise = await writingRepo.findWritingExerciseById(
+        exerciseId,
+        userID,
+    );
+
+    if (!exercise) {
+        throw new Error("鍐欎綔缁冧範璁板綍涓嶅瓨鍦?");
+    }
+
+    const updated = await writingRepo.updateWritingExercise(exerciseId, {
+        status: "completed",
+    });
+
+    return {
+        exercise: {
+            id: updated.id,
+            userId: updated.userId,
+            scenarioType: updated.scenarioType as WritingScenarioType,
+            prompt: updated.prompt,
+            isCustomPrompt: updated.isCustomPrompt,
+            content: updated.content,
+            wordCount: updated.wordCount,
+            status: inferExerciseStatus(updated),
+            scores: isGraded(updated)
+                ? {
+                      overall: updated.overallScore,
+                      grammar: updated.grammarScore,
+                      vocabulary: updated.vocabularyScore,
+                      coherence: updated.coherenceScore,
+                      taskCompletion: updated.taskScore,
+                  }
+                : {
+                      overall: null,
+                      grammar: null,
+                      vocabulary: null,
+                      coherence: null,
+                      taskCompletion: null,
+                  },
+            feedback: getFeedback(updated),
+            scenarioId: updated.scenarioId,
+            createdAt: updated.createdAt.toISOString(),
+            evaluatedAt: isGraded(updated)
+                ? updated.updatedAt.toISOString()
+                : null,
+        },
+    };
+}
+
 export async function submitWriting(
     userId: string,
     params: SubmitWritingInput
 ): Promise<{ result: SubmitWritingResult }> {
 // ==================== 校验输入 ====================
-    const parsedId=idSchema.safeParse(userId);
-    if(!parsedId.success){
-        throw new Error(getFirstError(parsedId.error));
-    }
+    const userID = normalizeUserId(userId);
 
     const parsedParams=submitWritingSchema.safeParse(params);
     if(!parsedParams.success){
@@ -462,7 +572,6 @@ export async function submitWriting(
     }
 
 // ==================== 业务逻辑 ====================
-    const userID = parsedId.data;
     const { exerciseId, scenarioType, isCustomPrompt, prompt, content } = parsedParams.data;
 
     const ex = await writingRepo.findWritingExerciseById(exerciseId, userID);
@@ -562,10 +671,7 @@ export async function getWritingResult(
     params: GetWritingExerciseInput
 ): Promise<WritingResult> {
 // ==================== 校验输入 ====================
-    const parsedId=idSchema.safeParse(userId);
-    if(!parsedId.success){
-        throw new Error(getFirstError(parsedId.error));
-    }
+    const userID = normalizeUserId(userId);
 
     const parsedParams=getDraftSchema.safeParse(params);
     if(!parsedParams.success){
@@ -574,8 +680,6 @@ export async function getWritingResult(
 
 // ==================== 业务逻辑 ====================
     const { exerciseId } = parsedParams.data;
-    const userID = parsedId.data;
-
     const ex = await writingRepo.findWritingExerciseById(exerciseId, userID);
     if (!ex) {
         throw new Error("写作练习记录不存在");

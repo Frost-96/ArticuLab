@@ -158,3 +158,17 @@ export async function updateUserProfile(data: {
         select: userProfileSelect,
     });
 }
+
+export async function deleteUser(id: string) {
+    return prisma.user.update({
+        where: {
+            id,
+        },
+        data: {
+            isDeleted: true,
+        },
+        select: {
+            id: true,
+        },
+    });
+}

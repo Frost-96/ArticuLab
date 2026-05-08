@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import {
     AUTH_COOKIE_NAME,
@@ -33,7 +34,7 @@ export async function clearAuthCookie(): Promise<void> {
     cookieStore.delete(AUTH_COOKIE_NAME);
 }
 
-export async function getCurrentUser(): Promise<JWTPayload | null> {
+const readCurrentUser = cache(async (): Promise<JWTPayload | null> => {
     const cookieStore = await cookies();
     const token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
 
@@ -42,4 +43,8 @@ export async function getCurrentUser(): Promise<JWTPayload | null> {
     }
 
     return verifyToken(token);
+});
+
+export async function getCurrentUser(): Promise<JWTPayload | null> {
+    return readCurrentUser();
 }

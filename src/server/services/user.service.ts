@@ -1,8 +1,7 @@
 import * as userRepo from "@/server/repositories/user.repository";
 import { hashPassword, comparePassword } from "@/lib/bcrypt";
 import { getFirstError } from "@/lib/error";
-import { 
-    type EnglishLevel, 
+import {
     type UpdateProfileInput,
     type UpdatePasswordInput,
     updateProfileSchema,
@@ -28,14 +27,6 @@ type UserProfile = {
     currentPassword: string;
     newPassword: string;
 }; */
-
-type ProfileUpdateInput = {
-    name?: string;
-    avatar?: string;
-    //password?: PasswordUpdateInput;
-    englishLevel?: EnglishLevel;
-    learningGoal?: string;
-};
 
 // ==================== 获取用户信息 ====================
 
@@ -145,4 +136,20 @@ export async function updatePassword(
 
     const hashedPassword = await hashPassword(parsedParams.data.newPassword);
     await userRepo.updateUser(parsedId.data, { password: hashedPassword });
+}
+
+export async function deleteCurrentUser(
+    userId: string,
+): Promise<{ id: string }> {
+    const parsedId = idSchema.safeParse(userId);
+    if (!parsedId.success) {
+        throw new Error(getFirstError(parsedId.error));
+    }
+
+    const user = await userRepo.findUserById(parsedId.data);
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    return userRepo.deleteUser(parsedId.data);
 }

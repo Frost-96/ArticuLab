@@ -1,189 +1,207 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useState, useTransition } from "react";
 import {
-    Plus,
-    MessageSquare,
-    PenLine,
-    Mic,
-    MoreHorizontal,
     ChevronLeft,
     ChevronRight,
+    MessageSquare,
+    Mic,
+    PenLine,
+    Plus,
     Trash2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useSpeakingStore } from "@/stores/speakingStore";
+import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/uiStore";
-import { useWritingStore } from "@/stores/writingStore";
-
-// ─── Mock coach history (no store model yet) ─────────────────────────────────
-
-const coachHistory = [
-    {
-        id: "c1",
-        title: "Grammar practice session",
-        date: new Date(Date.now() - 2 * 3600_000),
-    },
-    {
-        id: "c2",
-        title: "IELTS writing tips",
-        date: new Date(Date.now() - 26 * 3600_000),
-    },
-    {
-        id: "c3",
-        title: "Vocabulary building",
-        date: new Date(Date.now() - 50 * 3600_000),
-    },
-    {
-        id: "c4",
-        title: "Speaking fluency",
-        date: new Date(Date.now() - 74 * 3600_000),
-    },
-];
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function relativeDate(date: Date): string {
-    const diffMs = Date.now() - date.getTime();
-    const diffH = Math.floor(diffMs / 3_600_000);
-    if (diffH < 1) return "Just now";
-    if (diffH < 24) return `${diffH}h ago`;
-    const diffD = Math.floor(diffH / 24);
-    if (diffD === 1) return "Yesterday";
-    return `${diffD} days ago`;
-}
-
-function groupByDay<T extends { date: Date }>(
-    items: T[],
-): { label: string; items: T[] }[] {
-    const today: T[] = [];
-    const yesterday: T[] = [];
-    const older: T[] = [];
-    const now = Date.now();
-    for (const item of items) {
-        const diffH = (now - item.date.getTime()) / 3_600_000;
-        if (diffH < 24) today.push(item);
-        else if (diffH < 48) yesterday.push(item);
-        else older.push(item);
-    }
-    const groups: { label: string; items: T[] }[] = [];
-    if (today.length) groups.push({ label: "Today", items: today });
-    if (yesterday.length) groups.push({ label: "Yesterday", items: yesterday });
-    if (older.length) groups.push({ label: "Earlier", items: older });
-    return groups;
-}
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { deleteConversationAction } from "@/server/actions/conversation.action";
+import { deleteSpeakingExerciseAction } from "@/server/actions/speaking.action";
+import { deleteWritingExerciseAction } from "@/server/actions/writing.action";
+import type { SidebarHistoryItem } from "@/types/navigation/sidebarTypes";
 
 export type SidebarType = "coach" | "writing" | "speaking";
 
-interface LeftSidebarProps {
+type LeftSidebarProps = {
     type: SidebarType;
+    items: SidebarHistoryItem[];
+};
+
+function getRelativeDate(value: string) {
+    const date = new Date(value);
+    const diffMs = Date.now() - date.getTime();
+    const diffHours = Math.floor(diffMs / 3_600_000);
+
+    if (diffHours < 1) {
+        return "Just now";
+    }
+
+    if (diffHours < 24) {
+        return `${diffHours}h ago`;
+    }
+
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) {
+        return "Yesterday";
+    }
+
+    return `${diffDays} days ago`;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+function groupByDay(items: SidebarHistoryItem[]) {
+    const now = Date.now();
+    const today: SidebarHistoryItem[] = [];
+    const yesterday: SidebarHistoryItem[] = [];
+    const earlier: SidebarHistoryItem[] = [];
 
-export function LeftSidebar({ type }: LeftSidebarProps) {
+    for (const item of items) {
+        const diffHours = (now - new Date(item.date).getTime()) / 3_600_000;
+
+        if (diffHours < 24) {
+            today.push(item);
+            continue;
+        }
+
+        if (diffHours < 48) {
+            yesterday.push(item);
+            continue;
+        }
+
+        earlier.push(item);
+    }
+
+    return [
+        today.length > 0 ? { label: "Today", items: today } : null,
+        yesterday.length > 0 ? { label: "Yesterday", items: yesterday } : null,
+        earlier.length > 0 ? { label: "Earlier", items: earlier } : null,
+    ].filter(
+        (group): group is { label: string; items: SidebarHistoryItem[] } =>
+            group !== null,
+    );
+}
+
+function getSidebarTheme(type: SidebarType) {
+    switch (type) {
+        case "writing":
+            return {
+                accent: "from-indigo-500 via-blue-500 to-slate-900",
+                ring: "ring-indigo-100",
+                soft: "bg-indigo-50 text-indigo-700",
+                active:
+                    "border-indigo-200 bg-linear-to-r from-indigo-50 to-white text-indigo-900 shadow-sm",
+                hover: "hover:border-indigo-100 hover:bg-indigo-50/40",
+                badge: "border-indigo-200 bg-white text-indigo-700",
+                title: "Writing Studio",
+            };
+        case "speaking":
+            return {
+                accent: "from-violet-500 via-sky-500 to-cyan-500",
+                ring: "ring-violet-100",
+                soft: "bg-violet-50 text-violet-700",
+                active:
+                    "border-violet-200 bg-linear-to-r from-violet-50 to-white text-violet-900 shadow-sm",
+                hover: "hover:border-violet-100 hover:bg-violet-50/40",
+                badge: "border-violet-200 bg-white text-violet-700",
+                title: "Speaking Lab",
+            };
+        case "coach":
+            return {
+                accent: "from-teal-500 via-cyan-500 to-sky-500",
+                ring: "ring-teal-100",
+                soft: "bg-teal-50 text-teal-700",
+                active:
+                    "border-teal-200 bg-linear-to-r from-teal-50 to-white text-teal-900 shadow-sm",
+                hover: "hover:border-teal-100 hover:bg-teal-50/40",
+                badge: "border-teal-200 bg-white text-teal-700",
+                title: "Coach Archive",
+            };
+    }
+}
+
+export function LeftSidebar({ type, items }: LeftSidebarProps) {
     const router = useRouter();
     const pathname = usePathname();
-    const {
-        sidebarCollapsed,
-        toggleSidebarCollapse,
-        activeConversationId,
-        setActiveConversation,
-    } = useUIStore();
-    const { writingSessions, setCurrentWritingSession } = useWritingStore();
-    const { speakingSessions, setCurrentSpeakingSession } = useSpeakingStore();
+    const searchParams = useSearchParams();
+    const [isPending, startTransition] = useTransition();
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const { sidebarCollapsed, toggleSidebarCollapse } = useUIStore();
 
-    // ── Normalise data into a common shape ────────────────────────────────────
-    type Item = {
-        id: string;
-        title: string;
-        date: Date;
-        badge?: string;
-        href: string;
-    };
-
-    const items: Item[] = (() => {
-        switch (type) {
-            case "writing":
-                return writingSessions.map((s) => ({
-                    id: s.id,
-                    title: s.title,
-                    date: s.createdAt,
-                    badge: s.overallScore ? String(s.overallScore) : undefined,
-                    href: `/writing/${s.id}`,
-                }));
-            case "speaking":
-                return speakingSessions.map((s) => ({
-                    id: s.id,
-                    title: s.title,
-                    date: s.createdAt,
-                    badge: s.fluencyScore ? `${s.fluencyScore}%` : undefined,
-                    href: `/speaking/${s.id}`,
-                }));
-            default:
-                return coachHistory.map((c) => ({
-                    ...c,
-                    href: `/coach?id=${c.id}`,
-                }));
-        }
-    })();
-
+    const query = searchParams.toString();
+    const currentHref = query ? `${pathname}?${query}` : pathname;
     const groups = groupByDay(items);
+    const theme = getSidebarTheme(type);
 
-    // ── New button action ─────────────────────────────────────────────────────
-    const handleNew = () => {
-        if (type === "writing") {
-            setCurrentWritingSession(null);
-            router.push("/writing");
-        } else if (type === "speaking") {
-            setCurrentSpeakingSession(null);
-            router.push("/speaking");
-        } else {
-            router.push("/coach");
-        }
-    };
-
-    // ── Item click ────────────────────────────────────────────────────────────
-    const handleItemClick = (item: Item) => {
-        setActiveConversation(item.id);
-        if (type === "writing") {
-            const session = writingSessions.find((s) => s.id === item.id);
-            if (session) setCurrentWritingSession(session);
-        } else if (type === "speaking") {
-            const session = speakingSessions.find((s) => s.id === item.id);
-            if (session) setCurrentSpeakingSession(session);
-        }
-        router.push(item.href);
-    };
+    const newHref = {
+        coach: "/coach",
+        writing: "/writing",
+        speaking: "/speaking",
+    }[type];
 
     const newLabel = {
-        coach: "New Chat",
+        coach: "View History",
         writing: "New Essay",
         speaking: "New Practice",
     }[type];
-    const Icon = { coach: MessageSquare, writing: PenLine, speaking: Mic }[
-        type
-    ];
 
-    // ── Collapsed view ────────────────────────────────────────────────────────
+    const Icon = {
+        coach: MessageSquare,
+        writing: PenLine,
+        speaking: Mic,
+    }[type];
+
+    function deleteItem(item: SidebarHistoryItem) {
+        const confirmed = window.confirm(`Delete "${item.title}"?`);
+        if (!confirmed) {
+            return;
+        }
+
+        setDeletingId(item.id);
+        startTransition(() => {
+            void (async () => {
+                const result =
+                    type === "writing"
+                        ? await deleteWritingExerciseAction({
+                              exerciseId: item.id,
+                          })
+                        : type === "speaking"
+                          ? await deleteSpeakingExerciseAction({
+                                id: item.id,
+                            })
+                          : await deleteConversationAction({
+                                id: item.id,
+                            });
+
+                setDeletingId(null);
+
+                if (!result.success) {
+                    window.alert(result.error);
+                    return;
+                }
+
+                if (currentHref === item.href) {
+                    router.push(newHref);
+                }
+                router.refresh();
+            })();
+        });
+    }
+
     if (sidebarCollapsed) {
         return (
-            <aside className="hidden lg:flex w-14 flex-col items-center border-r border-slate-200 bg-white py-3 gap-2 shrink-0">
+            <aside className="hidden w-16 shrink-0 flex-col items-center gap-3 border-r border-slate-200/80 bg-white/95 px-2 py-3 backdrop-blur lg:flex">
+                <div
+                    className={cn(
+                        "flex h-10 w-10 items-center justify-center rounded-2xl bg-linear-to-br text-white shadow-sm",
+                        theme.accent,
+                    )}
+                >
+                    <Icon className="h-4 w-4" />
+                </div>
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-9 w-9 rounded-xl border border-slate-200 text-slate-500"
                     onClick={toggleSidebarCollapse}
                     title="Expand sidebar"
                 >
@@ -192,168 +210,188 @@ export function LeftSidebar({ type }: LeftSidebarProps) {
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
-                    onClick={handleNew}
+                    className={cn(
+                        "h-9 w-9 rounded-xl border border-slate-200 text-slate-600",
+                        theme.soft,
+                    )}
+                    onClick={() => router.push(newHref)}
                     title={newLabel}
                 >
                     <Plus className="h-4 w-4" />
                 </Button>
-                <div className="w-8 border-t border-slate-200" />
+                <div className="h-px w-8 bg-slate-200" />
                 {items.slice(0, 6).map((item) => (
-                    <Button
+                    <button
                         key={item.id}
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                            "h-8 w-8",
-                            activeConversationId === item.id &&
-                                "bg-indigo-50 text-indigo-700",
-                        )}
-                        onClick={() => handleItemClick(item)}
+                        type="button"
+                        onClick={() => router.push(item.href)}
                         title={item.title}
+                        className={cn(
+                            "flex h-10 w-10 items-center justify-center rounded-2xl border text-slate-500 transition-all",
+                            currentHref === item.href
+                                ? cn("border-transparent text-white", theme.accent)
+                                : "border-slate-200 bg-white hover:border-slate-300",
+                        )}
                     >
                         <Icon className="h-4 w-4" />
-                    </Button>
+                    </button>
                 ))}
             </aside>
         );
     }
 
-    // ── Expanded view ─────────────────────────────────────────────────────────
     return (
-        <aside className="hidden lg:flex w-64 flex-col border-r border-slate-200 bg-white shrink-0">
-            {/* Header */}
-            <div className="flex items-center gap-2 p-3 border-b border-slate-200">
-                <Button
-                    variant="outline"
-                    className="flex-1 justify-start gap-2 h-9 text-sm"
-                    onClick={handleNew}
-                >
-                    <Plus className="h-4 w-4" />
-                    {newLabel}
-                </Button>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 shrink-0"
-                    onClick={toggleSidebarCollapse}
-                    title="Collapse sidebar"
-                >
-                    <ChevronLeft className="h-4 w-4" />
-                </Button>
+        <aside className="hidden w-[320px] shrink-0 flex-col border-r border-slate-200/80 bg-linear-to-b from-white to-slate-50/80 lg:flex">
+            <div className="border-b border-slate-200/80 p-3">
+                <div className="relative overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
+                    <div
+                        className={cn(
+                            "absolute inset-x-0 top-0 h-1 bg-linear-to-r",
+                            theme.accent,
+                        )}
+                    />
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <div
+                                className={cn(
+                                    "mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-linear-to-br text-white shadow-sm",
+                                    theme.accent,
+                                )}
+                            >
+                                <Icon className="h-4 w-4" />
+                            </div>
+                            <p className="text-sm font-semibold text-slate-900">
+                                {theme.title}
+                            </p>
+                            <p className="mt-1 text-xs leading-5 text-slate-500">
+                                {items.length} saved {items.length === 1 ? "session" : "sessions"}
+                            </p>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 rounded-xl border border-slate-200 text-slate-500"
+                            onClick={toggleSidebarCollapse}
+                            title="Collapse sidebar"
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <Button
+                        variant="outline"
+                        className={cn(
+                            "mt-4 h-10 w-full justify-start gap-2 rounded-2xl border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 hover:bg-white",
+                            theme.ring,
+                        )}
+                        onClick={() => router.push(newHref)}
+                    >
+                        <Plus className="h-4 w-4" />
+                        {newLabel}
+                    </Button>
+                </div>
             </div>
 
-            {/* History list */}
-            <ScrollArea className="flex-1">
-                <div className="p-2 space-y-4">
-                    {groups.length === 0 && (
-                        <p className="text-xs text-slate-400 text-center py-8">
-                            No history yet
-                        </p>
-                    )}
+            <ScrollArea className="min-h-0 flex-1">
+                <div className="space-y-5 p-3">
+                    {groups.length === 0 ? (
+                        <div className="rounded-[24px] border border-dashed border-slate-200 bg-white/80 p-6 text-center shadow-sm">
+                            <p className="text-sm font-medium text-slate-700">
+                                No history yet
+                            </p>
+                            <p className="mt-1 text-xs leading-5 text-slate-400">
+                                New sessions will appear here automatically.
+                            </p>
+                        </div>
+                    ) : null}
+
                     {groups.map((group) => (
                         <div key={group.label}>
-                            <p className="text-xs font-medium text-slate-400 px-2 py-1 uppercase tracking-wider">
-                                {group.label}
-                            </p>
-                            <div className="space-y-0.5">
-                                {group.items.map((item) => (
-                                    <HistoryItem
-                                        key={item.id}
-                                        item={item}
-                                        isActive={
-                                            activeConversationId === item.id ||
-                                            pathname === item.href
-                                        }
-                                        onClick={() => handleItemClick(item)}
-                                    />
-                                ))}
+                            <div className="mb-2 flex items-center gap-2 px-2">
+                                <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                                    {group.label}
+                                </span>
+                                <div className="h-px flex-1 bg-slate-200" />
+                            </div>
+                            <div className="space-y-2">
+                                {group.items.map((item) => {
+                                    const active = currentHref === item.href;
+
+                                    return (
+                                        <div
+                                            key={item.id}
+                                            className={cn(
+                                                "group/item relative w-full rounded-2xl border px-3 py-3.5 pr-10 text-left transition-colors",
+                                                active
+                                                    ? theme.active
+                                                    : cn(
+                                                          "border-slate-200/80 bg-white shadow-sm",
+                                                          theme.hover,
+                                                      ),
+                                            )}
+                                        >
+                                            <button
+                                                type="button"
+                                                onClick={() => router.push(item.href)}
+                                                className="block w-full min-w-0 text-left"
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    <div className="min-w-0 flex-1">
+                                                        <p
+                                                            className={cn(
+                                                                "line-clamp-2 break-words text-sm font-medium leading-5",
+                                                                active
+                                                                    ? "text-slate-900"
+                                                                    : "text-slate-800",
+                                                            )}
+                                                        >
+                                                            {item.title}
+                                                        </p>
+                                                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                                                            <span className="text-xs text-slate-400">
+                                                                {getRelativeDate(item.date)}
+                                                            </span>
+                                                            {item.badge ? (
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className={cn(
+                                                                        "min-h-5 max-w-full rounded-full px-1.5 py-0.5 text-[11px] font-semibold leading-none",
+                                                                        theme.badge,
+                                                                    )}
+                                                                >
+                                                                    {item.badge}
+                                                                </Badge>
+                                                            ) : null}
+                                                        </div>
+                                                    </div>
+                                                    <div
+                                                        className={cn(
+                                                            "mt-1 h-2.5 w-2.5 shrink-0 rounded-full",
+                                                            active
+                                                                ? "bg-current opacity-80"
+                                                            : "bg-slate-200",
+                                                        )}
+                                                    />
+                                                </div>
+                                            </button>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                className="absolute right-2 top-3 shrink-0 text-slate-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover/item:opacity-100 focus-visible:opacity-100"
+                                                disabled={isPending && deletingId === item.id}
+                                                onClick={() => deleteItem(item)}
+                                                title="Delete"
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     ))}
                 </div>
             </ScrollArea>
-
-            {/* Footer */}
-            <div className="p-3 border-t border-slate-200">
-                <p className="text-xs text-slate-400 text-center">
-                    {items.length} {items.length === 1 ? "session" : "sessions"}
-                </p>
-            </div>
         </aside>
-    );
-}
-
-// ─── History Item ─────────────────────────────────────────────────────────────
-
-interface HistoryItemProps {
-    item: { id: string; title: string; date: Date; badge?: string };
-    isActive: boolean;
-    onClick: () => void;
-}
-
-function HistoryItem({ item, isActive, onClick }: HistoryItemProps) {
-    return (
-        <div
-            className={cn(
-                "group flex items-center gap-2 rounded-lg px-2 py-2 cursor-pointer transition-colors",
-                isActive ? "bg-indigo-50" : "hover:bg-slate-100",
-            )}
-            onClick={onClick}
-        >
-            <div className="flex-1 min-w-0">
-                <p
-                    className={cn(
-                        "text-sm truncate",
-                        isActive
-                            ? "text-indigo-700 font-medium"
-                            : "text-slate-800",
-                    )}
-                >
-                    {item.title}
-                </p>
-                <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-slate-400">
-                        {relativeDate(item.date)}
-                    </span>
-                    {item.badge && (
-                        <Badge
-                            variant="outline"
-                            className={cn(
-                                "text-xs h-4 px-1 py-0",
-                                parseFloat(item.badge) >= 7.5 ||
-                                    parseFloat(item.badge) >= 75
-                                    ? "text-emerald-600 border-emerald-200"
-                                    : "text-amber-600 border-amber-200",
-                            )}
-                        >
-                            {item.badge}
-                        </Badge>
-                    )}
-                </div>
-            </div>
-
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                            "h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0",
-                            isActive && "opacity-100",
-                        )}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <MoreHorizontal className="h-3.5 w-3.5" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-36">
-                    <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
     );
 }

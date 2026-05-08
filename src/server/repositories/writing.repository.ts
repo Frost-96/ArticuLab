@@ -59,7 +59,7 @@ export async function findWritingExercises(params: {
         where.overallScore = { not: null };
     }
 
-    const [rows, total] = await Promise.all([
+    const [rows, total] = await prisma.$transaction([
         prisma.writingExercise.findMany({
             where,
             orderBy: { createdAt: "desc" },
@@ -160,6 +160,7 @@ export async function updateWritingExercise(
         prompt: string;
         content: string;
         wordCount: number;
+        status: string;
         feedback: object;
         overallScore: number | null;
         grammarScore: number | null;

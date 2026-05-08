@@ -21,8 +21,14 @@ type SeedDb = Omit<
     "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends"
 >;
 
+type ScenarioKey =
+    | "writing-ielts-task2"
+    | "writing-daily"
+    | "speaking-interview"
+    | "speaking-travel";
+
 type ScenarioSeed = {
-    key: string;
+    key: ScenarioKey;
     type: "writing" | "speaking";
     category: string;
     title: string;
@@ -91,6 +97,50 @@ function daysAgo(days: number, hour: number, minute = 0): Date {
 
 function shiftMinutes(date: Date, minutes: number): Date {
     return new Date(date.getTime() + minutes * 60 * 1000);
+}
+
+function demoUuid(sequence: number): string {
+    return `00000000-0000-4000-8000-${sequence
+        .toString(16)
+        .padStart(12, "0")}`;
+}
+
+const DEMO_USER_ID = demoUuid(1);
+const DEMO_SUBSCRIPTION_ID = demoUuid(2);
+
+const SCENARIO_ID_BY_KEY = {
+    "writing-ielts-task2": demoUuid(101),
+    "writing-daily": demoUuid(102),
+    "speaking-interview": demoUuid(103),
+    "speaking-travel": demoUuid(104),
+} as const satisfies Record<string, string>;
+
+function legacyScenarioId(key: string) {
+    return `seed-${key}`;
+}
+
+function writingExerciseId(index: number) {
+    return demoUuid(200 + index);
+}
+
+function speakingConversationId(index: number) {
+    return demoUuid(300 + index);
+}
+
+function speakingMessageId(exerciseIndex: number, messageIndex: number) {
+    return demoUuid(400 + exerciseIndex * 20 + messageIndex);
+}
+
+function speakingExerciseId(index: number) {
+    return demoUuid(500 + index);
+}
+
+function coachConversationId(index: number) {
+    return demoUuid(600 + index);
+}
+
+function coachMessageId(conversationIndex: number, messageIndex: number) {
+    return demoUuid(700 + conversationIndex * 20 + messageIndex);
 }
 
 const scenarios: ScenarioSeed[] = [
@@ -853,25 +903,22 @@ const coachConversations: CoachConversationSeed[] = [
 ];
 
 async function ensureScenarioMap(db: SeedDb) {
+    await db.scenario.deleteMany({
+        where: {
+            id: {
+                in: [
+                    ...scenarios.map((scenario) => legacyScenarioId(scenario.key)),
+                    ...scenarios.map((scenario) => SCENARIO_ID_BY_KEY[scenario.key]),
+                ],
+            },
+        },
+    });
+
     const entries = await Promise.all(
         scenarios.map(async (scenario) => {
-            const record = await db.scenario.upsert({
-                where: {
-                    id: `seed-${scenario.key}`,
-                },
-                update: {
-                    type: scenario.type,
-                    category: scenario.category,
-                    title: scenario.title,
-                    description: scenario.description,
-                    prompt: scenario.prompt,
-                    aiRole: scenario.aiRole ?? null,
-                    difficulty: scenario.difficulty,
-                    isGenerated: false,
-                    isDeleted: false,
-                },
-                create: {
-                    id: `seed-${scenario.key}`,
+            const record = await db.scenario.create({
+                data: {
+                    id: SCENARIO_ID_BY_KEY[scenario.key],
                     type: scenario.type,
                     category: scenario.category,
                     title: scenario.title,
@@ -935,7 +982,7 @@ async function seedWritingExercises(
 
         await db.writingExercise.create({
             data: {
-                id: `seed-writing-${index + 1}`,
+                id: writingExerciseId(index + 1),
                 userId,
                 scenarioId,
                 scenarioType: item.scenarioType,
@@ -969,7 +1016,7 @@ async function seedSpeakingExercises(
             throw new Error(`Missing scenario for key ${item.scenarioKey}`);
         }
 
-        const conversationId = `seed-speaking-conversation-${index + 1}`;
+        const conversationId = speakingConversationId(index + 1);
 
         await db.conversation.create({
             data: {
@@ -982,7 +1029,7 @@ async function seedSpeakingExercises(
                 updatedAt: item.updatedAt,
                 messages: {
                     create: item.messages.map((message, messageIndex) => ({
-                        id: `seed-speaking-message-${index + 1}-${messageIndex + 1}`,
+                        id: speakingMessageId(index + 1, messageIndex + 1),
                         role: message.role,
                         content: message.content,
                         createdAt: message.createdAt,
@@ -994,7 +1041,7 @@ async function seedSpeakingExercises(
 
         await db.speakingExercise.create({
             data: {
-                id: `seed-speaking-${index + 1}`,
+                id: speakingExerciseId(index + 1),
                 userId,
                 scenarioId,
                 scenarioType: item.scenarioType,
@@ -1017,7 +1064,7 @@ async function seedCoachConversations(db: SeedDb, userId: string) {
     for (const [index, conversation] of coachConversations.entries()) {
         await db.conversation.create({
             data: {
-                id: `seed-coach-conversation-${index + 1}`,
+                id: coachConversationId(index + 1),
                 userId,
                 type: "coach",
                 title: conversation.title,
@@ -1026,7 +1073,7 @@ async function seedCoachConversations(db: SeedDb, userId: string) {
                 messages: {
                     create: conversation.messages.map(
                         (message, messageIndex) => ({
-                            id: `seed-coach-message-${index + 1}-${messageIndex + 1}`,
+                            id: coachMessageId(index + 1, messageIndex + 1),
                             role: message.role,
                             content: message.content,
                             createdAt: message.createdAt,
@@ -1042,6 +1089,21 @@ async function seedCoachConversations(db: SeedDb, userId: string) {
 async function main() {
     const hashedPassword = await hashPassword(DEMO_PASSWORD);
     const result = await prisma.$transaction(async (tx) => {
+        const existingDemoUser = await tx.user.findUnique({
+            where: { email: DEMO_EMAIL },
+            select: { id: true },
+        });
+
+        if (existingDemoUser) {
+            await clearExistingDemoData(tx, existingDemoUser.id);
+
+            if (existingDemoUser.id !== DEMO_USER_ID) {
+                await tx.user.delete({
+                    where: { id: existingDemoUser.id },
+                });
+            }
+        }
+
         const scenarioIds = await ensureScenarioMap(tx);
         const user = await tx.user.upsert({
             where: { email: DEMO_EMAIL },
@@ -1055,7 +1117,7 @@ async function main() {
                 isDeleted: false,
             },
             create: {
-                id: "seed-demo-user",
+                id: DEMO_USER_ID,
                 email: DEMO_EMAIL,
                 name: "Demo Learner",
                 password: hashedPassword,
@@ -1071,14 +1133,13 @@ async function main() {
             },
         });
 
-        await clearExistingDemoData(tx, user.id);
         await seedWritingExercises(tx, user.id, scenarioIds);
         await seedSpeakingExercises(tx, user.id, scenarioIds);
         await seedCoachConversations(tx, user.id);
 
         await tx.subscription.create({
             data: {
-                id: "seed-demo-subscription",
+                id: DEMO_SUBSCRIPTION_ID,
                 userId: user.id,
                 plan: "monthly",
                 status: "active",
