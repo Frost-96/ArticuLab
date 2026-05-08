@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { englishLevelEnum, learningGoalEnum } from "./enums";
 
-// ==================== 璁よ瘉鐩稿叧 ====================
+// ==================== 鐠併倛鐦夐惄绋垮彠 ====================
 
-// F-002: 閭瀵嗙爜娉ㄥ唽
+// F-002: 闁喚顔堢€靛棛鐖滃▔銊ュ斀
 export const signUpSchema = z
     .object({
         email: z.email().min(1, "Please enter your email"),
@@ -25,14 +25,14 @@ export const signUpSchema = z
         path: ["confirmPassword"],
     });
 
-// F-002: 閭瀵嗙爜鐧诲綍
+// F-002: 闁喚顔堢€靛棛鐖滈惂璇茬秿
 export const signInSchema = z.object({
     email: z.email().min(1, "Please enter your email"),
     password: z.string().min(1, "Please enter your password"),
     redirectTo: z.string().optional(),
 });
 
-// F-003: 鏂扮敤鎴峰紩瀵?鈥?閫夋嫨姘村钩鍜岀洰鏍?
+// F-003: 閺傛壆鏁ら幋宄扮穿鐎?閳?闁瀚ㄥ鏉戦挬閸滃瞼娲伴弽?
 export const onboardingSchema = z.object({
     englishLevel: englishLevelEnum,
     learningGoal: learningGoalEnum,
@@ -50,7 +50,7 @@ const optionalNullableTrimmedString = (
         return trimmed === "" ? null : trimmed;
     }, schema.optional());
 
-// F-003: 涓汉璧勬枡缂栬緫
+// F-003: 娑擃亙姹夌挧鍕灐缂傛牞绶?
 export const updateProfileSchema = z.object({
     name: optionalNullableTrimmedString(
         z
@@ -72,9 +72,26 @@ export const updateProfileSchema = z.object({
     ),
 });
 
+// 淇敼瀵嗙爜
+export const changePasswordSchema = z
+    .object({
+        currentPassword: z.string().min(1, "Please enter your current password"),
+        newPassword: z
+            .string()
+            .min(8, "Password must be at least 8 characters")
+            .regex(/[a-zA-Z]/, "Password must contain letters")
+            .regex(/[0-9]/, "Password must contain numbers"),
+        confirmNewPassword: z.string().min(1, "Please confirm your new password"),
+    })
+    .refine((data) => data.newPassword === data.confirmNewPassword, {
+        message: "The new passwords you entered do not match",
+        path: ["confirmNewPassword"],
+    });
+
 // ==================== 绫诲瀷瀵煎嚭 ====================
 
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type SignInInput = z.infer<typeof signInSchema>;
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type UpdatePasswordInput = z.infer<typeof changePasswordSchema>;

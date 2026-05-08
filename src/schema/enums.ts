@@ -68,6 +68,12 @@ export const messageRoleEnum = z.enum(["user", "assistant"]);
 
 export const scenarioCategoryEnum = z.enum(["writing", "speaking"]);
 
+// 写作练习状态
+export const writingExerciseStatusEnum = z.enum(["draft", "completed"]);
+
+// 口语练习状态
+export const speakingExerciseStatusEnum = z.enum(["in_progress", "completed", "reviewed", "failed"]);
+
 // 批改反馈严重程度
 export const feedbackSeverityEnum = z.enum(["error", "warning", "suggestion"]);
 
@@ -85,4 +91,6 @@ export type SubscriptionStatus = z.infer<typeof subscriptionStatusEnum>;
 export type SubscriptionPlan = z.infer<typeof subscriptionPlanEnum>;
 export type MessageRole = z.infer<typeof messageRoleEnum>;
 export type ScenarioCategory = z.infer<typeof scenarioCategoryEnum>;
+export type WritingExerciseStatus = z.infer<typeof writingExerciseStatusEnum>;
+export type SpeakingExerciseStatus = z.infer<typeof speakingExerciseStatusEnum>;
 export type FeedbackSeverity = z.infer<typeof feedbackSeverityEnum>;

@@ -1,12 +1,14 @@
 import { z } from "zod";
-import { writingScenarioTypeEnum } from "./enums";
+import { writingScenarioTypeEnum, writingExerciseStatusEnum } from "./enums";
 import { idSchema, paginationSchema } from "./shared.schema";
+import { use } from "react";
 
 // ==================== 写作练习 ====================
 
 // F-020 + F-021 + F-022: 提交写作练习
 export const submitWritingSchema = z
     .object({
+        exerciseId: idSchema,
         scenarioType: writingScenarioTypeEnum,
         prompt: z
             .string()
@@ -43,22 +45,62 @@ export const submitWritingSchema = z
 
 // F-021: 保存草稿
 export const saveDraftSchema = z.object({
-    exerciseId: idSchema.optional(), // 首次保存时无 ID
-    scenarioType: writingScenarioTypeEnum,
-    prompt: z.string().max(2000).default(""),
-    isCustomPrompt: z.boolean().default(false),
-    content: z.string().max(50000).default(""),
+    exerciseId: idSchema,
+    content: z.string().max(50000),
+    wordCount: z.number().int().min(0),
 });
 
 // 获取写作练习详情（批改结果页）
 export const getWritingExerciseSchema = z.object({
-    id: idSchema,
+    exerciseId: idSchema,
 });
 
 // 获取写作练习历史
 export const getWritingHistorySchema = z.object({
     scenarioType: writingScenarioTypeEnum.optional(),
+    status: writingExerciseStatusEnum.optional(),
     ...paginationSchema.shape,
+});
+
+// 创建写作练习
+export const createWritingExerciseSchema = z.object({
+    scenarioType: writingScenarioTypeEnum,
+    prompt: z
+        .string()
+        .min(1, "Prompt cannot be empty")
+        .max(1000, "Prompt must not exceed 1000 characters"),
+    isCustomPrompt: z.boolean(),
+    scenarioId: idSchema.optional().nullable(),
+})
+.refine(
+    (data) => {
+        // 逻辑：非自定义 && 没传ID -> 失败
+        if (!data.isCustomPrompt && !data.scenarioId) {
+            return false; 
+        }
+        // 逻辑：自定义 && 传了ID -> 失败
+        if (data.isCustomPrompt && data.scenarioId) {
+            return false;
+        }
+        
+        // 其他情况都通过
+        return true;
+    },
+    {
+        // 这里的 message 就是报错信息
+        message: "scenarioId is required for non-custom prompts and cannot be included with custom prompts.",
+        path: ["isCustomPrompt","scenarioId"], 
+    }
+);
+
+// 获取草稿
+export const getDraftSchema = z.object({
+    exerciseId: idSchema,
+});
+
+// 删除写作练习
+export const deleteWritingExerciseSchema = z.object({
+    exerciseId: idSchema,
 });
 
 // ==================== AI 批改反馈结构 ====================
@@ -101,5 +143,8 @@ export type SubmitWritingInput = z.infer<typeof submitWritingSchema>;
 export type SaveDraftInput = z.infer<typeof saveDraftSchema>;
 export type GetWritingExerciseInput = z.infer<typeof getWritingExerciseSchema>;
 export type GetWritingHistoryInput = z.infer<typeof getWritingHistorySchema>;
+export type CreateWritingExerciseInput = z.infer<typeof createWritingExerciseSchema>;
+export type GetDraftInput = z.infer<typeof getDraftSchema>;
+export type DeleteWritingExerciseInput = z.infer<typeof deleteWritingExerciseSchema>;
 export type SentenceFeedback = z.infer<typeof sentenceFeedbackSchema>;
 export type WritingReviewResult = z.infer<typeof writingReviewResultSchema>;

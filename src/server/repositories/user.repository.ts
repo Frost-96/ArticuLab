@@ -20,6 +20,9 @@ const userProfileSelect = {
     englishLevel: true,
     learningGoal: true,
     membershipTier: true,
+    membershipExpiry: true,
+    createdAt: true,
+    updatedAt: true,
 } satisfies Prisma.UserSelect;
 
 export async function createUser(data: {
@@ -63,6 +66,51 @@ export async function findUserById(id: string) {
             isDeleted: false,
         },
         select: userAuthSelect,
+    });
+}
+
+export async function findUserPasswordById(id: string) {
+    return prisma.user.findFirst({
+        where: {
+            id,
+            isDeleted: false,
+        },
+        select: {
+            password: true,
+        },
+    });
+}
+
+export async function findUserByIdFull(id: string) {
+    return prisma.user.findFirst({
+        where: {
+            id,
+            isDeleted: false,
+        },
+        select: userProfileSelect,
+    });
+}
+
+export async function updateUser(
+    id: string,
+    data: {
+        name?: string | null;
+        avatar?: string | null;
+        password?: string | null;
+        englishLevel?: EnglishLevel | null;
+        learningGoal?: string | null;
+    },
+) {
+    return prisma.user.update({
+        where: { id },
+        data: {
+            ...(data.name !== undefined && { name: data.name }),
+            ...(data.avatar !== undefined && { avatar: data.avatar }),
+            ...(data.password !== undefined && { password: data.password }),
+            ...(data.englishLevel !== undefined && { englishLevel: data.englishLevel }),
+            ...(data.learningGoal !== undefined && { learningGoal: data.learningGoal }),
+        },
+        select: userProfileSelect,
     });
 }
 
