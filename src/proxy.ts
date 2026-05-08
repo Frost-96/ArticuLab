@@ -39,7 +39,10 @@ export async function proxy(request: NextRequest) {
     const user = token ? await verifyToken(token) : null;
     const hasInvalidToken = Boolean(token) && !user;
     const isOnboardingRoute = pathname === "/onboarding";
-    const isAuthRoute = pathname === "/login" || pathname === "/signup";
+    const isAuthRoute =
+        pathname === "/login" ||
+        pathname === "/signup" ||
+        pathname === "/forgot-password";
 
     if (isAuthRoute || isOnboardingRoute) {
         if (user) {
@@ -78,6 +81,7 @@ export const config = {
         "/",
         "/login",
         "/signup",
+        "/forgot-password",
         "/onboarding",
         "/dashboard/:path*",
         "/coach/:path*",

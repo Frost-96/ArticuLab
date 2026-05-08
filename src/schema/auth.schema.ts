@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { englishLevelEnum, learningGoalEnum } from "./enums";
 
-// ==================== 认证相关 ====================
+// ==================== 璁よ瘉鐩稿叧 ====================
 
-// F-002: 邮箱密码注册
+// F-002: 閭瀵嗙爜娉ㄥ唽
 export const signUpSchema = z
     .object({
         email: z.email().min(1, "Please enter your email"),
@@ -25,29 +25,51 @@ export const signUpSchema = z
         path: ["confirmPassword"],
     });
 
-// F-002: 邮箱密码登录
+// F-002: 閭瀵嗙爜鐧诲綍
 export const signInSchema = z.object({
     email: z.email().min(1, "Please enter your email"),
     password: z.string().min(1, "Please enter your password"),
     redirectTo: z.string().optional(),
 });
 
-// F-003: 新用户引导 — 选择水平和目标
+// F-003: 鏂扮敤鎴峰紩�??�??閫夋嫨姘村钩鍜岀洰鏍?
 export const onboardingSchema = z.object({
     englishLevel: englishLevelEnum,
     learningGoal: learningGoalEnum,
 });
 
-// F-003: 个人资料编辑
+const optionalNullableTrimmedString = (
+    schema: z.ZodType<string | null>,
+) =>
+    z.preprocess((value) => {
+        if (typeof value !== "string") {
+            return value;
+        }
+
+        const trimmed = value.trim();
+        return trimmed === "" ? null : trimmed;
+    }, schema.optional());
+
+// F-003: 涓汉璧勬枡缂栬�?
 export const updateProfileSchema = z.object({
-    name: z
-        .string()
-        .min(1, "Please enter your nickname")
-        .max(50, "Nickname must not exceed 50 characters")
-        .optional(),
-    avatar: z.url("Avatar link format is incorrect").optional(),
-    englishLevel: englishLevelEnum.optional(),
-    learningGoal: learningGoalEnum.optional(),
+    name: optionalNullableTrimmedString(
+        z
+            .string()
+            .min(1, "Please enter your nickname")
+            .max(50, "Nickname must not exceed 50 characters")
+            .nullable(),
+    ),
+    avatar: optionalNullableTrimmedString(
+        z.url("Avatar link format is incorrect").nullable(),
+    ),
+    englishLevel: z.preprocess(
+        (value) => (value === "" ? null : value),
+        englishLevelEnum.nullable().optional(),
+    ),
+    learningGoal: z.preprocess(
+        (value) => (value === "" ? null : value),
+        learningGoalEnum.nullable().optional(),
+    ),
 });
 
 // 修改密码

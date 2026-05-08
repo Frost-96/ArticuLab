@@ -138,3 +138,24 @@ export async function updateUserOnboarding(data: {
         },
     });
 }
+
+export async function updateUserProfile(data: {
+    userId: string;
+    name: string | null;
+    avatar: string | null;
+    englishLevel: EnglishLevel | null;
+    learningGoal: LearningGoal | null;
+}) {
+    return prisma.user.update({
+        where: {
+            id: data.userId,
+        },
+        data: {
+            name: data.name,
+            avatar: data.avatar,
+            englishLevel: data.englishLevel,
+            learningGoal: data.learningGoal,
+        },
+        select: userProfileSelect,
+    });
+}

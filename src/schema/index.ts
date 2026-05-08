@@ -1,28 +1,30 @@
-// ==================== 统一导出 ====================
+// ==================== 缁熶竴瀵煎嚭 ====================
 
-// 枚举
+// 鏋氫妇
 export * from "./enums";
 
-// 共享
+// 鍏变韩
 export * from "./shared.schema";
 
-// 认证
+// 璁よ瘉
 export * from "./auth.schema";
 
-// 会话 & 消息
+// 浼氳瘽 & 娑堟伅
 export * from "./conversation.schema";
 
-// AI 教练
+// AI 鏁欑粌
 export * from "./coach.schema";
 
-// 写作练习
+// 鍐欎綔缁冧範
 export * from "./writing.schema";
 
-// 口语练习
+// 鍙ｈ缁冧範
 export * from "./speaking.schema";
 
-// 场景
+// 鍦烘櫙
 export * from "./scenario.schema";
 
-// 学习中心
+// 瀛︿範涓績
 export * from "./dashboard.schema";
+export * from "./profile.schema";
+export * from "./settings.schema";
