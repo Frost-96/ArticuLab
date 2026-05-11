@@ -28,3 +28,6 @@ export type ConversationListItem = Prisma.ConversationGetPayload<{
 }>;
 
 export * from "./onboarding";
+export * from "./speaking/speakingTypes";
+export * from "./conversation/conversationTypes";
+export * from "./message/messageTypes";
