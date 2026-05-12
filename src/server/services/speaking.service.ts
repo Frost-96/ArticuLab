@@ -122,11 +122,11 @@ export async function startSpeakingExercise(
         });
 
         if (!scenario) {
-            throw new Error("场景不存在");
+            throw new Error("Scenario not found");
         }
 
         if (scenario.type !== "speaking") {
-            throw new Error("该场景不是口语场景");
+            throw new Error("This scenario is not a speaking scenario");
         }
 
         scenarioId = scenario.id;
@@ -214,11 +214,11 @@ export async function processSpeakingChat(
     // 验证练习所有权
     const exercise = await speakingRepo.findSpeakingExerciseById(exerciseId, userId);
     if (!exercise) {
-        throw new Error("练习不存在或无权访问");
+        throw new Error("Exercise not found or access denied");
     }
 
     if (exercise.status !== "in_progress") {
-        throw new Error("练习已结束，无法继续对话");
+        throw new Error("Exercise has ended, cannot continue conversation");
     }
 
     // 1. STT: 音频转文本
@@ -259,7 +259,7 @@ export async function processSpeakingChat(
     });
 
     if (!messages.messages[0] || !messages.messages[1]) {
-        throw new Error("消息保存失败");
+        throw new Error("Failed to save messages");
     }
 
     return {
@@ -305,11 +305,11 @@ export async function endSpeakingExercise(
     // 验证练习所有权
     const exercise = await speakingRepo.findSpeakingExerciseById(exerciseId, userId);
     if (!exercise) {
-        throw new Error("练习不存在或无权访问");
+        throw new Error("Exercise not found or access denied");
     }
 
     if (isCompleted(exercise)) {
-        throw new Error("练习已完成，无法重复提交");
+        throw new Error("Exercise already completed, cannot submit again");
     }
 
     // 1. 获取会话消息历史
@@ -377,7 +377,7 @@ export async function getSpeakingExerciseDetail(
 
     const ex = await speakingRepo.findSpeakingExerciseById(exerciseId, userId);
     if (!ex) {
-        throw new Error("练习不存在或无权访问");
+        throw new Error("Exercise not found or access denied");
     }
 
     const fb = parseFeedback(ex.feedback);
@@ -521,7 +521,7 @@ export async function deleteSpeakingExercise(
 
     const ex = await speakingRepo.findSpeakingExerciseById(exerciseId, userId);
     if (!ex) {
-        throw new Error("练习不存在或无权访问");
+        throw new Error("Exercise not found or access denied");
     }
 
     // 删除关联的会话（会级联删除消息）

@@ -183,10 +183,10 @@ export async function getConversationDetail(
     // 验证会话所有权
     const conv = await conversationRepo.findConversationById(conversationId, userId);
     if (!conv) {
-        throw new Error("会话不存在或无权访问");
+        throw new Error("Conversation not found or access denied");
     }
 
-    // 获取会话的消息（支持分页）
+    // 获取会话的消息(支持分页)
     const { messages, hasMore, nextCursor } = await messageService.getConversationMessages({
         conversationId,
         cursor,
@@ -241,7 +241,7 @@ export async function updateConversationTitle(
     // 验证会话所有权
     const conv = await conversationRepo.findConversationById(conversationId, userId);
     if (!conv) {
-        throw new Error("会话不存在或无权访问");
+        throw new Error("Conversation not found or access denied");
     }
 
     const updated = await conversationRepo.updateConversationTitle(conversationId, title);
@@ -281,7 +281,7 @@ export async function deleteConversation(
     // 验证会话所有权
     const conv = await conversationRepo.findConversationById(conversationId, userId);
     if (!conv) {
-        throw new Error("会话不存在或无权访问");
+        throw new Error("Conversation not found or access denied");
     }
 
     // 先删除所有消息
