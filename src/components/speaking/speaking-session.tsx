@@ -93,7 +93,7 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
 
     return (
         <div className="flex min-h-full flex-col bg-slate-50">
-            <header className="border-b border-slate-200 bg-white px-6 py-3">
+            <header className="border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
                 <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" size="sm" asChild>
@@ -126,9 +126,9 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                 </div>
             </header>
 
-            <main className="flex-1 overflow-auto p-6">
+            <main className="flex-1 overflow-auto p-4 sm:p-6">
                 <div className="mx-auto max-w-5xl space-y-4">
-                    <Card className="border-violet-100 bg-white">
+                    <Card className="border-blue-100 bg-white shadow-sm">
                         <CardContent className="grid gap-4 p-5 lg:grid-cols-[1fr_auto] lg:items-center">
                             <div className="space-y-2">
                                 <p className="text-sm font-medium text-slate-900">
@@ -169,7 +169,7 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                                         className={cn(
                                             "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium",
                                             message.role === "assistant"
-                                                ? "bg-violet-100 text-violet-700"
+                                                ? "bg-blue-100 text-blue-700"
                                                 : "bg-emerald-100 text-emerald-700",
                                         )}
                                     >
@@ -177,10 +177,10 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                                     </div>
                                     <div
                                         className={cn(
-                                            "max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm",
+                                            "max-w-[78%] rounded-lg px-4 py-3 text-sm leading-6 shadow-sm",
                                             message.role === "assistant"
                                                 ? "border border-slate-200 bg-white text-slate-700"
-                                                : "bg-indigo-600 text-white",
+                                                : "bg-sky-600 text-white",
                                         )}
                                     >
                                         <p>{message.content}</p>
@@ -189,7 +189,7 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="h-7 gap-1 px-2 text-xs text-violet-700"
+                                                    className="h-7 gap-1 px-2 text-xs text-blue-700"
                                                     disabled={!message.audioUrl}
                                                 >
                                                     <Volume2 className="h-3.5 w-3.5" />
@@ -204,7 +204,7 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                                 </div>
                             ))
                         ) : (
-                            <Card>
+                            <Card className="bg-white shadow-sm">
                                 <CardContent className="p-6 text-sm text-slate-500">
                                     No transcript yet. Start recording or type a response to
                                     begin the conversation.
@@ -215,9 +215,9 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                 </div>
             </main>
 
-            <footer className="border-t border-slate-200 bg-white p-4">
+            <footer className="border-t border-slate-200 bg-white p-3 sm:p-4">
                 <div className="mx-auto grid max-w-5xl gap-4 lg:grid-cols-[220px_1fr_auto] lg:items-end">
-                    <div className="flex flex-col items-center rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex flex-col items-center rounded-lg border border-slate-200 bg-slate-50 p-4">
                         <button
                             type="button"
                             disabled={readOnly || isSending || isFinishing}
@@ -226,7 +226,7 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                                 "relative flex h-20 w-20 items-center justify-center rounded-full border text-white shadow-sm transition-all",
                                 isRecording
                                     ? "border-red-300 bg-red-500"
-                                    : "border-violet-300 bg-violet-600 hover:bg-violet-700",
+                                    : "border-blue-300 bg-blue-600 hover:bg-blue-700",
                                 (readOnly || isSending || isFinishing) &&
                                     "cursor-not-allowed opacity-60",
                             )}
@@ -248,7 +248,7 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                                 <span
                                     key={`${height}-${index}`}
                                     className={cn(
-                                        "w-1.5 rounded-full bg-violet-300",
+                                        "w-1.5 rounded-full bg-blue-300",
                                         isRecording && "animate-pulse bg-red-300",
                                     )}
                                     style={{ height }}
@@ -283,7 +283,7 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                                       ? "Speak now. Your transcript appears here..."
                                       : "Type or record your response..."
                             }
-                            className="min-h-[96px] w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                            className="min-h-[96px] w-full resize-none rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm leading-6 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
 
@@ -302,7 +302,7 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                             {isRecording ? "Pause" : "Record"}
                         </Button>
                         <Button
-                            className="flex-1 gap-2 bg-indigo-600 hover:bg-indigo-700 lg:w-32"
+                            className="flex-1 gap-2 bg-sky-600 hover:bg-sky-700 lg:w-32"
                             disabled={!input.trim() || readOnly || isSending || isFinishing}
                             onClick={() => void handleSend()}
                         >

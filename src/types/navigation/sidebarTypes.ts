@@ -4,4 +4,5 @@ export type SidebarHistoryItem = {
     href: string;
     date: string;
     badge?: string;
+    meta?: string[];
 };

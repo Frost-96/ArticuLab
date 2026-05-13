@@ -1,16 +1,12 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Clock, FileText, PenLine, Plus } from "lucide-react";
+import { ArrowRight, FileText, PenLine, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     Card,
     CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,20 +30,15 @@ const scenarioTypeLabelMap: Record<WritingScenarioType, string> = {
     cet6: "CET-6",
 };
 
+const customScenarioTypes = Object.keys(
+    scenarioTypeLabelMap,
+) as WritingScenarioType[];
+
 const writingSectionIconClass =
-    "flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700 shadow-sm";
+    "flex h-10 w-10 items-center justify-center rounded-lg bg-sky-100 text-sky-700 shadow-sm";
 
 const writingPaperClass =
     "relative overflow-hidden before:pointer-events-none before:absolute before:inset-0 before:bg-[linear-gradient(to_bottom,transparent_0,transparent_31px,rgba(99,102,241,0.06)_32px)] before:bg-[length:100%_32px]";
-
-function formatDate(value: string) {
-    return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    }).format(new Date(value));
-}
 
 function SectionHeader({
     icon,
@@ -79,14 +70,6 @@ export function WritingPracticePage({
         useState<WritingScenarioType>("daily");
     const [error, setError] = useState<string | null>(null);
     const [pendingKey, setPendingKey] = useState<string | null>(null);
-
-    const examScenarioTypes = Array.from(
-        new Set(
-            scenarios
-                .map((scenario) => scenario.category)
-                .filter((value): value is WritingScenarioType => value !== "daily"),
-        ),
-    );
 
     const dailyScenarios = scenarios.filter(
         (scenario) => scenario.category === "daily",
@@ -128,12 +111,12 @@ export function WritingPracticePage({
     return (
         <div className="min-h-full bg-slate-50">
             <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
-                <section className="rounded-2xl border border-slate-200 bg-white px-6 py-6 shadow-sm sm:px-8">
+                <section className="rounded-lg border border-slate-200 bg-white px-6 py-6 shadow-sm sm:px-8">
                     <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
                         <div className="max-w-2xl">
                             <Badge
                                 variant="outline"
-                                className="rounded-full border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold uppercase text-indigo-700"
+                                className="rounded-full border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold uppercase text-sky-700"
                             >
                                 Writing workspace
                             </Badge>
@@ -157,7 +140,7 @@ export function WritingPracticePage({
                                 {
                                     label: "Reviewed",
                                     value: String(history.summary.completedExercises),
-                                    tone: "text-indigo-700",
+                                    tone: "text-sky-700",
                                     note: "Ready for analysis",
                                 },
                                 {
@@ -170,7 +153,7 @@ export function WritingPracticePage({
                             ].map((item) => (
                                 <div
                                     key={item.label}
-                                    className="rounded-xl border border-slate-200 bg-slate-50/80 p-4"
+                                    className="rounded-lg border border-slate-200 bg-slate-50/80 p-4"
                                 >
                                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
                                         {item.label}
@@ -198,9 +181,9 @@ export function WritingPracticePage({
                     </Card>
                 ) : null}
 
-                <div className="grid gap-6 xl:grid-cols-[1.25fr_0.95fr]">
+                <div className="grid gap-6 xl:grid-cols-[1.3fr_0.8fr]">
                     <div className="space-y-6">
-                        <Card className="rounded-2xl border-slate-200 bg-white shadow-sm">
+                        <Card className="border-slate-200 bg-white shadow-sm">
                             <CardContent className="p-6">
                                 <SectionHeader
                                     icon={<PenLine className="h-4 w-4" />}
@@ -224,12 +207,12 @@ export function WritingPracticePage({
                                                         scenarioId: scenario.id,
                                                     })
                                                 }
-                                                className={`group w-full rounded-2xl border border-slate-200 bg-white p-5 text-left transition-colors hover:border-indigo-200 hover:bg-slate-50 ${writingPaperClass}`}
+                                                className={`group w-full rounded-lg border border-slate-200 bg-white p-5 text-left transition-colors hover:border-sky-200 hover:bg-slate-50 ${writingPaperClass}`}
                                             >
                                                 <div className="relative flex items-start justify-between gap-4">
                                                     <div className="space-y-3">
                                                         <div className="flex flex-wrap items-center gap-2">
-                                                            <Badge className="rounded-full bg-indigo-600 px-2.5 text-white">
+                                                            <Badge className="rounded-full bg-sky-600 px-2.5 text-white">
                                                                 Daily
                                                             </Badge>
                                                             <Badge
@@ -239,7 +222,7 @@ export function WritingPracticePage({
                                                                 {scenario.difficulty}
                                                             </Badge>
                                                         </div>
-                                                        <div className="rounded-2xl bg-white/70 p-1">
+                                                        <div className="rounded-lg bg-white/70 p-1">
                                                             <p className="text-base font-semibold text-slate-900">
                                                                 {scenario.title}
                                                             </p>
@@ -248,14 +231,14 @@ export function WritingPracticePage({
                                                             </p>
                                                         </div>
                                                     </div>
-                                                    <div className="mt-1 rounded-full border border-slate-200 p-2 text-slate-400 transition-colors group-hover:border-indigo-200 group-hover:text-indigo-600">
+                                                    <div className="mt-1 rounded-md border border-slate-200 p-2 text-slate-400 transition-colors group-hover:border-sky-200 group-hover:text-sky-600">
                                                         <ArrowRight className="h-4 w-4" />
                                                     </div>
                                                 </div>
                                             </button>
                                         ))
                                     ) : (
-                                        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm leading-6 text-slate-500">
+                                        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-sm leading-6 text-slate-500">
                                             No daily prompts are available right now.
                                         </div>
                                     )}
@@ -263,7 +246,7 @@ export function WritingPracticePage({
                             </CardContent>
                         </Card>
 
-                        <Card className="rounded-2xl border-slate-200 bg-white shadow-sm">
+                        <Card className="border-slate-200 bg-white shadow-sm">
                             <CardContent className="p-6">
                                 <SectionHeader
                                     icon={<FileText className="h-4 w-4" />}
@@ -287,14 +270,14 @@ export function WritingPracticePage({
                                                         scenarioId: scenario.id,
                                                     })
                                                 }
-                                                className="group w-full rounded-2xl border border-slate-200 bg-white p-5 text-left transition-colors hover:border-indigo-200 hover:bg-slate-50"
+                                                className="group w-full rounded-lg border border-slate-200 bg-white p-5 text-left transition-colors hover:border-sky-200 hover:bg-slate-50"
                                             >
                                                 <div className="flex items-start justify-between gap-4">
                                                     <div className="space-y-3">
                                                         <div className="flex flex-wrap items-center gap-2">
                                                             <Badge
                                                                 variant="outline"
-                                                                className="rounded-full border-indigo-200 bg-indigo-50 px-2.5 text-indigo-700"
+                                                                className="rounded-full border-sky-200 bg-sky-50 px-2.5 text-sky-700"
                                                             >
                                                                 {
                                                                     scenarioTypeLabelMap[
@@ -315,14 +298,14 @@ export function WritingPracticePage({
                                                             </p>
                                                         </div>
                                                     </div>
-                                                    <div className="mt-1 rounded-full border border-slate-200 p-2 text-slate-400 transition-colors group-hover:border-indigo-200 group-hover:text-indigo-600">
+                                                    <div className="mt-1 rounded-md border border-slate-200 p-2 text-slate-400 transition-colors group-hover:border-sky-200 group-hover:text-sky-600">
                                                         <ArrowRight className="h-4 w-4" />
                                                     </div>
                                                 </div>
                                             </button>
                                         ))
                                     ) : (
-                                        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm leading-6 text-slate-500">
+                                        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-sm leading-6 text-slate-500">
                                             No exam scenarios are available right now.
                                         </div>
                                     )}
@@ -332,7 +315,7 @@ export function WritingPracticePage({
                     </div>
 
                     <div className="space-y-6">
-                        <Card className="rounded-2xl border-indigo-100 bg-indigo-50/40 shadow-sm">
+                        <Card className="border-sky-100 bg-sky-50/40 shadow-sm">
                             <CardContent className="p-6">
                                 <SectionHeader
                                     icon={<Plus className="h-4 w-4" />}
@@ -342,9 +325,7 @@ export function WritingPracticePage({
 
                                 <div className="space-y-4">
                                     <div className="flex flex-wrap gap-2">
-                                        {(
-                                            ["daily", ...examScenarioTypes] as WritingScenarioType[]
-                                        ).map((type) => (
+                                        {customScenarioTypes.map((type) => (
                                             <button
                                                 key={type}
                                                 type="button"
@@ -352,8 +333,8 @@ export function WritingPracticePage({
                                                 className={cn(
                                                     "rounded-full border px-3 py-1.5 text-sm font-medium transition-all",
                                                     customScenarioType === type
-                                                        ? "border-indigo-600 bg-indigo-600 text-white shadow-sm"
-                                                        : "border-white/60 bg-white/80 text-slate-600 hover:border-indigo-200 hover:text-indigo-700",
+                                                        ? "border-sky-600 bg-sky-600 text-white shadow-sm"
+                                                        : "border-white/60 bg-white/80 text-slate-600 hover:border-sky-200 hover:text-sky-700",
                                                 )}
                                             >
                                                 {scenarioTypeLabelMap[type]}
@@ -368,11 +349,11 @@ export function WritingPracticePage({
                                             setCustomPrompt(event.target.value)
                                         }
                                         placeholder="Paste or write your own prompt here."
-                                        className="rounded-[22px] border-white/60 bg-white/90 px-4 py-3 font-mono text-sm leading-7 shadow-sm focus-visible:ring-indigo-500"
+                                        className="rounded-lg border-white/60 bg-white/90 px-4 py-3 font-mono text-sm leading-7 shadow-sm focus-visible:ring-sky-500"
                                     />
 
                                     <Button
-                                        className="h-10 w-full rounded-2xl bg-indigo-600 text-sm font-semibold shadow-sm hover:bg-indigo-700"
+                                        className="h-10 w-full rounded-md bg-sky-600 text-sm font-semibold shadow-sm hover:bg-sky-700"
                                         disabled={
                                             !customPrompt.trim() ||
                                             pendingKey === "custom"
@@ -390,71 +371,6 @@ export function WritingPracticePage({
                                         <ArrowRight className="ml-2 h-4 w-4" />
                                     </Button>
                                 </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="rounded-2xl border-slate-200 bg-white shadow-sm">
-                            <CardHeader className="px-6 pt-6">
-                                <CardTitle className="flex items-center gap-2 text-base">
-                                    <Clock className="h-4 w-4 text-slate-500" />
-                                    Recent writing history
-                                </CardTitle>
-                                <CardDescription>
-                                    Browse saved drafts and reviewed essays with clearer
-                                    metadata and denser scanning.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-3 px-6 pb-6">
-                                {history.exercises.length > 0 ? (
-                                    history.exercises.map((exercise) => (
-                                        <Link
-                                            key={exercise.id}
-                                            href={`/writing/${exercise.id}`}
-                                            className={`group block rounded-2xl border border-slate-200 bg-slate-50/70 p-4 transition-colors hover:border-indigo-200 hover:bg-white ${writingPaperClass}`}
-                                        >
-                                            <div className="relative flex items-start justify-between gap-4">
-                                                <div className="min-w-0">
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        <Badge
-                                                            variant="outline"
-                                                            className="rounded-full border-indigo-200 bg-white px-2.5 text-indigo-700"
-                                                        >
-                                                            {
-                                                                scenarioTypeLabelMap[
-                                                                    exercise.scenarioType
-                                                                ]
-                                                            }
-                                                        </Badge>
-                                                        <span className="text-xs text-slate-400">
-                                                            {formatDate(exercise.createdAt)}
-                                                        </span>
-                                                    </div>
-                                                    <p className="mt-3 line-clamp-2 font-mono text-sm leading-7 text-slate-700">
-                                                        {exercise.prompt}
-                                                    </p>
-                                                </div>
-                                                <div className="shrink-0 text-right">
-                                                    <p className="text-sm font-semibold text-slate-900">
-                                                        {exercise.wordCount} words
-                                                    </p>
-                                                    <p className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-400">
-                                                        {exercise.status}
-                                                    </p>
-                                                    {exercise.overallScore !== null ? (
-                                                        <p className="mt-3 text-lg font-semibold text-indigo-700">
-                                                            {exercise.overallScore.toFixed(1)}
-                                                        </p>
-                                                    ) : null}
-                                                </div>
-                                            </div>
-                                        </Link>
-                                    ))
-                                ) : (
-                                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm leading-6 text-slate-500">
-                                        No writing records yet. Finished drafts and reviews
-                                        will appear here.
-                                    </div>
-                                )}
                             </CardContent>
                         </Card>
                     </div>

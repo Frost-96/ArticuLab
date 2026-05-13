@@ -98,8 +98,8 @@ export function WritingReview({ exercise }: WritingReviewProps) {
     const feedback = exercise.feedback;
 
     return (
-        <div className="mx-auto max-w-6xl space-y-6 p-6">
-            <div className="flex items-center justify-between gap-4">
+        <div className="page-container space-y-6">
+            <div className="soft-panel flex items-center justify-between gap-4 p-4 sm:p-5">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" asChild>
                         <Link href={`/writing/${exercise.id}`}>
@@ -108,7 +108,7 @@ export function WritingReview({ exercise }: WritingReviewProps) {
                         </Link>
                     </Button>
                     <div>
-                        <h1 className="text-2xl font-semibold text-slate-900">
+                        <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
                             Writing Review
                         </h1>
                         <p className="mt-1 text-slate-500">
@@ -124,10 +124,10 @@ export function WritingReview({ exercise }: WritingReviewProps) {
             {feedback ? (
                 <>
                     <div className="grid gap-4 md:grid-cols-5">
-                        <Card className="md:col-span-2">
+                        <Card className="bg-white shadow-sm md:col-span-2">
                             <CardContent className="p-6">
                                 <p className="text-sm text-slate-500">Overall Score</p>
-                                <p className="mt-2 text-5xl font-semibold text-emerald-600">
+                                <p className="mt-2 text-5xl font-semibold tracking-tight text-sky-700">
                                     {feedback.overallScore.toFixed(1)}
                                 </p>
                                 <p className="mt-3 text-sm leading-6 text-slate-600">
@@ -136,7 +136,7 @@ export function WritingReview({ exercise }: WritingReviewProps) {
                             </CardContent>
                         </Card>
 
-                        <Card className="md:col-span-3">
+                        <Card className="bg-white shadow-sm md:col-span-3">
                             <CardContent className="grid gap-4 p-6 sm:grid-cols-2 lg:grid-cols-4">
                                 {[
                                     ["Grammar", feedback.grammarScore],
@@ -146,7 +146,7 @@ export function WritingReview({ exercise }: WritingReviewProps) {
                                 ].map(([label, score]) => (
                                     <div
                                         key={label as string}
-                                        className="rounded-xl bg-slate-50 p-4"
+                                        className="rounded-md bg-slate-50 p-4"
                                     >
                                         <p className="text-sm text-slate-500">{label}</p>
                                         <p className="mt-2 text-2xl font-semibold text-slate-900">
@@ -159,7 +159,7 @@ export function WritingReview({ exercise }: WritingReviewProps) {
                     </div>
 
                     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-                        <Card>
+                        <Card className="bg-white shadow-sm">
                             <CardHeader>
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                     <CardTitle>Your Essay</CardTitle>
@@ -189,7 +189,7 @@ export function WritingReview({ exercise }: WritingReviewProps) {
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="rounded-xl border border-slate-200 bg-white p-5">
+                                <div className="rounded-lg border border-slate-200 bg-white p-5">
                                     <AnnotatedEssay
                                         content={exercise.content}
                                         feedback={feedback.sentenceFeedback}
@@ -197,7 +197,7 @@ export function WritingReview({ exercise }: WritingReviewProps) {
                                 </div>
 
                                 <div className="grid gap-3 md:grid-cols-2">
-                                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
                                         <p className="flex items-center gap-2 text-sm font-medium text-emerald-700">
                                             <Sparkles className="h-4 w-4" />
                                             Strengths
@@ -208,7 +208,7 @@ export function WritingReview({ exercise }: WritingReviewProps) {
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
                                         <p className="flex items-center gap-2 text-sm font-medium text-amber-700">
                                             <MessageSquare className="h-4 w-4" />
                                             Improvements
@@ -224,7 +224,7 @@ export function WritingReview({ exercise }: WritingReviewProps) {
                         </Card>
 
                         <div className="space-y-4">
-                            <Card>
+                            <Card className="bg-white shadow-sm">
                                 <CardHeader>
                                     <CardTitle>Improvement Plan</CardTitle>
                                 </CardHeader>
@@ -232,7 +232,7 @@ export function WritingReview({ exercise }: WritingReviewProps) {
                                     {feedback.improvements.map((item) => (
                                         <div
                                             key={item}
-                                            className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"
+                                            className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"
                                         >
                                             {item}
                                         </div>
@@ -246,7 +246,7 @@ export function WritingReview({ exercise }: WritingReviewProps) {
                                             {feedback.sampleExpressions.map((item) => (
                                                 <div
                                                     key={`${item.original}-${item.improved}`}
-                                                    className="rounded-xl border border-slate-200 p-4"
+                                                    className="rounded-lg border border-slate-200 p-4"
                                                 >
                                                     <p className="text-xs uppercase tracking-wide text-slate-400">
                                                         Instead of
@@ -270,7 +270,7 @@ export function WritingReview({ exercise }: WritingReviewProps) {
                                 </CardContent>
                             </Card>
 
-                            <Card>
+                            <Card className="bg-white shadow-sm">
                                 <CardHeader>
                                     <CardTitle>Inline Notes</CardTitle>
                                 </CardHeader>
@@ -279,7 +279,7 @@ export function WritingReview({ exercise }: WritingReviewProps) {
                                         feedback.sentenceFeedback.map((item, index) => (
                                             <div
                                                 key={`${item.original}-${index}`}
-                                                className="rounded-xl border border-slate-200 p-4"
+                                                className="rounded-lg border border-slate-200 p-4"
                                             >
                                                 <div className="flex items-center justify-between gap-2">
                                                     <Badge
@@ -312,7 +312,7 @@ export function WritingReview({ exercise }: WritingReviewProps) {
                                             </div>
                                         ))
                                     ) : (
-                                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
+                                        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
                                             No sentence-level notes are available yet.
                                         </div>
                                     )}
@@ -323,9 +323,9 @@ export function WritingReview({ exercise }: WritingReviewProps) {
                 </>
             ) : (
                 <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-                    <Card className="border-dashed">
+                    <Card className="border-dashed bg-white shadow-sm">
                         <CardContent className="space-y-4 p-6">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-100">
                                 <FileText className="h-6 w-6 text-slate-500" />
                             </div>
                             <div>
@@ -350,15 +350,15 @@ export function WritingReview({ exercise }: WritingReviewProps) {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="bg-white shadow-sm">
                         <CardHeader>
                             <CardTitle>Essay Content</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-700">
+                            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-700">
                                 {exercise.content || "No content saved yet."}
                             </div>
-                            <div className="rounded-xl border border-slate-200 p-4">
+                            <div className="rounded-lg border border-slate-200 p-4">
                                 <p className="text-xs uppercase tracking-wide text-slate-400">
                                     Prompt
                                 </p>

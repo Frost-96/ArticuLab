@@ -41,8 +41,8 @@ export function ProfileView({ data }: ProfileViewProps) {
             label: "Words Written",
             value: data.stats.totalWords.toLocaleString(),
             icon: PenLine,
-            iconBg: "bg-indigo-100",
-            iconColor: "text-indigo-600",
+            iconBg: "bg-sky-100",
+            iconColor: "text-sky-600",
         },
         {
             label: "Essays Reviewed",
@@ -55,8 +55,8 @@ export function ProfileView({ data }: ProfileViewProps) {
             label: "Speaking Sessions",
             value: String(data.stats.completedSpeakingCount),
             icon: Mic,
-            iconBg: "bg-violet-100",
-            iconColor: "text-violet-600",
+            iconBg: "bg-blue-100",
+            iconColor: "text-blue-600",
         },
         {
             label: "Avg Fluency / Accuracy",
@@ -71,9 +71,9 @@ export function ProfileView({ data }: ProfileViewProps) {
     ];
 
     return (
-        <div className="min-h-[calc(100vh-56px)] bg-slate-50 p-6">
-            <div className="mx-auto max-w-5xl space-y-6">
-                <Card>
+        <div className="app-shell-page">
+            <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
+                <Card className="bg-white shadow-sm">
                     <CardContent className="p-6">
                         <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
                             <div className="flex items-start gap-4">
@@ -82,7 +82,7 @@ export function ProfileView({ data }: ProfileViewProps) {
                                         src={data.header.avatar ?? undefined}
                                         alt={data.header.displayName}
                                     />
-                                    <AvatarFallback className="bg-indigo-100 text-2xl font-semibold text-indigo-700">
+                                    <AvatarFallback className="bg-sky-100 text-2xl font-semibold text-sky-700">
                                         {initials}
                                     </AvatarFallback>
                                 </Avatar>
@@ -99,7 +99,7 @@ export function ProfileView({ data }: ProfileViewProps) {
                                             }
                                             className={
                                                 data.header.membershipTier === "pro"
-                                                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white"
+                                                    ? "bg-amber-500 text-white"
                                                     : ""
                                             }
                                         >
@@ -128,14 +128,14 @@ export function ProfileView({ data }: ProfileViewProps) {
                             </div>
 
                             <div className="flex flex-1 flex-wrap items-center gap-4 lg:justify-end">
-                                <div className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                                <div className="flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
                                     <Flame className="h-4 w-4 text-amber-500" />
                                     {data.stats.streak} day streak
                                 </div>
-                                <div className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
+                                <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
                                     {data.stats.totalSessions} sessions
                                 </div>
-                                <div className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
+                                <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
                                     {studyHours}h {studyMinutes}m recorded
                                 </div>
                                 <Button variant="outline" asChild>
@@ -148,7 +148,7 @@ export function ProfileView({ data }: ProfileViewProps) {
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     {statsCards.map((stat) => (
-                        <Card key={stat.label}>
+                        <Card key={stat.label} className="bg-white shadow-sm">
                             <CardContent className="p-4">
                                 <div
                                     className={`mb-3 flex h-9 w-9 items-center justify-center rounded-lg ${stat.iconBg}`}
@@ -167,7 +167,7 @@ export function ProfileView({ data }: ProfileViewProps) {
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-                    <Card>
+                    <Card className="bg-white shadow-sm">
                         <CardHeader className="pb-3">
                             <CardTitle className="text-base">
                                 Skill Progress
@@ -207,32 +207,32 @@ export function ProfileView({ data }: ProfileViewProps) {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="bg-white shadow-sm">
                         <CardHeader className="pb-3">
                             <CardTitle className="text-base">
                                 Learning Snapshot
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm">
-                            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+                            <div className="flex items-center justify-between rounded-md bg-slate-50 p-3">
                                 <div className="flex items-center gap-2 text-slate-600">
-                                    <BookOpen className="h-4 w-4 text-indigo-500" />
+                                    <BookOpen className="h-4 w-4 text-sky-500" />
                                     Total sessions
                                 </div>
                                 <span className="font-medium text-slate-900">
                                     {data.stats.totalSessions}
                                 </span>
                             </div>
-                            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+                            <div className="flex items-center justify-between rounded-md bg-slate-50 p-3">
                                 <div className="flex items-center gap-2 text-slate-600">
-                                    <Clock className="h-4 w-4 text-violet-500" />
+                                    <Clock className="h-4 w-4 text-blue-500" />
                                     Recorded practice
                                 </div>
                                 <span className="font-medium text-slate-900">
                                     {studyHours}h {studyMinutes}m
                                 </span>
                             </div>
-                            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+                            <div className="flex items-center justify-between rounded-md bg-slate-50 p-3">
                                 <div className="flex items-center gap-2 text-slate-600">
                                     <Flame className="h-4 w-4 text-amber-500" />
                                     Current streak
@@ -241,7 +241,7 @@ export function ProfileView({ data }: ProfileViewProps) {
                                     {data.stats.streak} days
                                 </span>
                             </div>
-                            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+                            <div className="flex items-center justify-between rounded-md bg-slate-50 p-3">
                                 <div className="flex items-center gap-2 text-slate-600">
                                     <Sparkles className="h-4 w-4 text-emerald-500" />
                                     Profile state
@@ -256,7 +256,7 @@ export function ProfileView({ data }: ProfileViewProps) {
                     </Card>
                 </div>
 
-                <Card>
+                <Card className="bg-white shadow-sm">
                     <CardHeader className="pb-3">
                         <CardTitle className="text-base">Achievements</CardTitle>
                     </CardHeader>
@@ -270,7 +270,7 @@ export function ProfileView({ data }: ProfileViewProps) {
                                 return (
                                     <div
                                         key={achievement.id}
-                                        className={`rounded-xl border p-4 transition-opacity ${
+                                        className={`rounded-lg border p-4 transition-opacity ${
                                             achievement.earned
                                                 ? "border-slate-200 bg-white opacity-100"
                                                 : "border-slate-100 bg-slate-50 opacity-60"
@@ -280,7 +280,7 @@ export function ProfileView({ data }: ProfileViewProps) {
                                             <div
                                                 className={`flex h-10 w-10 items-center justify-center rounded-full ${
                                                     achievement.earned
-                                                        ? "bg-indigo-100 text-indigo-700"
+                                                        ? "bg-sky-100 text-sky-700"
                                                         : "bg-slate-200 text-slate-500"
                                                 }`}
                                             >
@@ -321,8 +321,8 @@ function ProfileEmptyState({
     actions: Array<{ href: string; label: string }>;
 }) {
     return (
-        <div className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-indigo-600 shadow-sm">
+        <div className="flex min-h-[220px] flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-md bg-white text-sky-600 shadow-sm">
                 <Icon className="h-5 w-5" />
             </div>
             <p className="text-base font-medium text-slate-900">{title}</p>

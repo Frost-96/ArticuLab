@@ -53,7 +53,7 @@ export function FAQSection() {
         <section id="faq" className="py-20 sm:py-28">
             <div className="mx-auto max-w-3xl px-4 sm:px-6">
                 <div className="mb-12 text-center">
-                    <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">
+                    <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-sky-600">
                         FAQ
                     </p>
                     <h2 className="mb-4 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
@@ -68,7 +68,7 @@ export function FAQSection() {
                 <Accordion type="single" collapsible className="w-full">
                     {faqs.map((faq, index) => (
                         <AccordionItem key={faq.question} value={`item-${index}`}>
-                            <AccordionTrigger className="text-base font-medium text-slate-900 hover:no-underline hover:text-indigo-600">
+                            <AccordionTrigger className="text-base font-medium text-slate-900 hover:no-underline hover:text-sky-600">
                                 {faq.question}
                             </AccordionTrigger>
                             <AccordionContent className="leading-7 text-slate-600">

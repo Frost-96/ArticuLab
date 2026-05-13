@@ -30,8 +30,8 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
     const feedback = exercise.feedback;
 
     return (
-        <div className="mx-auto max-w-6xl space-y-6 p-6">
-            <div className="flex items-center justify-between gap-4">
+        <div className="page-container space-y-6">
+            <div className="soft-panel flex items-center justify-between gap-4 p-4 sm:p-5">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" asChild>
                         <Link href={`/speaking/${exercise.id}`}>
@@ -40,7 +40,7 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
                         </Link>
                     </Button>
                     <div>
-                        <h1 className="text-2xl font-semibold text-slate-900">
+                        <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
                             Speaking Review
                         </h1>
                         <p className="mt-1 text-slate-500">
@@ -78,10 +78,10 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
             {feedback ? (
                 <>
                     <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-                        <Card>
+                        <Card className="bg-white shadow-sm">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                    <TrendingUp className="h-5 w-5 text-indigo-600" />
+                                    <TrendingUp className="h-5 w-5 text-sky-600" />
                                     Score Summary
                                 </CardTitle>
                             </CardHeader>
@@ -92,7 +92,7 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
                                 ].map(([label, value]) => (
                                     <div
                                         key={label as string}
-                                        className="rounded-xl bg-slate-50 p-4"
+                                    className="rounded-md bg-slate-50 p-4"
                                     >
                                         <div className="flex items-center justify-between">
                                             <p className="text-sm text-slate-500">
@@ -114,12 +114,12 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
                             </CardContent>
                         </Card>
 
-                        <Card>
+                        <Card className="bg-white shadow-sm">
                             <CardHeader>
                                 <CardTitle>Strengths and Improvements</CardTitle>
                             </CardHeader>
                             <CardContent className="grid gap-4 md:grid-cols-2">
-                                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
                                     <p className="font-medium text-emerald-700">
                                         Strengths
                                     </p>
@@ -129,7 +129,7 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
                                         ))}
                                     </div>
                                 </div>
-                                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
                                     <p className="font-medium text-amber-700">
                                         Improvements
                                     </p>
@@ -143,12 +143,12 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
                         </Card>
                     </div>
 
-                    <Card>
+                    <Card className="bg-white shadow-sm">
                         <CardHeader>
                             <CardTitle>Vocabulary Snapshot</CardTitle>
                         </CardHeader>
                         <CardContent className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                                 <p className="text-sm text-slate-500">Unique words</p>
                                 <p className="mt-2 text-3xl font-semibold text-slate-900">
                                     {feedback.vocabularyAnalysis.totalUniqueWords}
@@ -168,7 +168,7 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
                                     (item) => (
                                         <div
                                             key={item.word}
-                                            className="rounded-xl border border-blue-200 bg-blue-50 p-4"
+                                            className="rounded-lg border border-blue-200 bg-blue-50 p-4"
                                         >
                                             <p className="font-medium text-blue-800">
                                                 {item.word}
@@ -187,7 +187,7 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
                     </Card>
 
                     <div className="grid gap-6 lg:grid-cols-2">
-                        <Card>
+                        <Card className="bg-white shadow-sm">
                             <CardHeader>
                                 <CardTitle>Common Mistakes</CardTitle>
                             </CardHeader>
@@ -196,7 +196,7 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
                                     feedback.grammarErrors.map((item, index) => (
                                         <div
                                             key={`${item.original}-${index}`}
-                                            className="rounded-xl border border-red-100 bg-red-50 p-4"
+                                            className="rounded-lg border border-red-100 bg-red-50 p-4"
                                         >
                                             <p className="text-sm text-red-700">
                                                 {item.original}
@@ -215,7 +215,7 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
                             </CardContent>
                         </Card>
 
-                        <Card>
+                        <Card className="bg-white shadow-sm">
                             <CardHeader>
                                 <CardTitle>Better Expressions</CardTitle>
                             </CardHeader>
@@ -224,7 +224,7 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
                                     feedback.expressionSuggestions.map((item, index) => (
                                         <div
                                             key={`${item.original}-${index}`}
-                                            className="rounded-xl border border-slate-200 p-4"
+                                            className="rounded-lg border border-slate-200 p-4"
                                         >
                                             <p className="text-sm text-slate-500">
                                                 Instead of
@@ -251,9 +251,9 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
                     </div>
                 </>
             ) : (
-                <Card className="border-dashed">
+                <Card className="border-dashed bg-white shadow-sm">
                     <CardContent className="space-y-3 p-6">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-100">
                             <Mic className="h-6 w-6 text-slate-500" />
                         </div>
                         <h2 className="text-lg font-semibold text-slate-900">
@@ -268,7 +268,7 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
                 </Card>
             )}
 
-            <Card>
+            <Card className="bg-white shadow-sm">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <MessageSquare className="h-5 w-5 text-slate-500" />
@@ -280,10 +280,10 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
                         exercise.messages.map((message) => (
                             <div
                                 key={message.id}
-                                className={`rounded-xl px-4 py-3 text-sm leading-6 ${
+                                className={`rounded-lg px-4 py-3 text-sm leading-6 ${
                                     message.role === "assistant"
                                         ? "border border-slate-200 bg-white text-slate-700"
-                                        : "bg-indigo-600 text-white"
+                                        : "bg-sky-600 text-white"
                                 }`}
                             >
                                 <p className="mb-1 text-xs uppercase opacity-70">
@@ -311,7 +311,7 @@ function MetricCard({
     tone: string;
 }) {
     return (
-        <Card>
+        <Card className="bg-white shadow-sm">
             <CardContent className="p-5">
                 <p className="text-sm text-slate-500">{label}</p>
                 <p className={`mt-2 text-2xl font-semibold ${tone}`}>{value}</p>
@@ -322,7 +322,7 @@ function MetricCard({
 
 function EmptyPanel({ message }: { message: string }) {
     return (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
+        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
             {message}
         </div>
     );

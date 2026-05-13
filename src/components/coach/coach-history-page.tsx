@@ -256,11 +256,11 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
 
     if (data.conversations.length === 0) {
         return (
-            <div className="flex h-full items-center justify-center bg-slate-50 p-6">
-                <Card className="w-full max-w-2xl border-slate-200 shadow-sm">
+            <div className="flex h-full items-center justify-center bg-slate-50 p-4 sm:p-6">
+                <Card className="w-full max-w-2xl border-slate-200 bg-white shadow-sm">
                     <CardContent className="space-y-6 p-8">
-                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-100">
-                            <Sparkles className="h-6 w-6 text-indigo-700" />
+                        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg bg-sky-100">
+                            <Sparkles className="h-6 w-6 text-sky-700" />
                         </div>
                         <div className="text-center">
                             <h1 className="text-xl font-semibold text-slate-900">
@@ -281,21 +281,21 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                                     key={item}
                                     type="button"
                                     onClick={() => setDraft(item)}
-                                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 hover:border-indigo-200 hover:text-indigo-700"
+                                    className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 hover:border-sky-200 hover:text-sky-700"
                                 >
                                     {item}
                                 </button>
                             ))}
                         </div>
                         {localMessages.length > 0 ? (
-                            <div className="max-h-64 space-y-3 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
+                            <div className="max-h-64 space-y-3 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3">
                                 {localMessages.map((message) => (
                                     <div
                                         key={message.id}
-                                        className={`rounded-xl px-3 py-2 text-sm leading-6 ${
+                                    className={`rounded-lg px-3 py-2 text-sm leading-6 ${
                                             message.role === "assistant"
                                                 ? "border border-slate-200 bg-white text-slate-700"
-                                                : "ml-auto bg-indigo-600 text-white"
+                                                : "ml-auto bg-sky-600 text-white"
                                         }`}
                                     >
                                         {message.role === "assistant" ? (
@@ -307,7 +307,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                                 ))}
                             </div>
                         ) : null}
-                        <div className="flex items-end gap-2 rounded-xl border border-slate-200 bg-white p-2">
+                        <div className="flex items-end gap-2 rounded-lg border border-slate-200 bg-white p-2">
                             <Textarea
                                 value={draft}
                                 onChange={(event) => setDraft(event.target.value)}
@@ -320,7 +320,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                             </Button>
                             <Button
                                 size="icon"
-                                className="bg-indigo-600 hover:bg-indigo-700"
+                                className="bg-sky-600 hover:bg-sky-700"
                                 onClick={() => void handleSend()}
                                 disabled={!draft.trim() || isComposing}
                             >
@@ -335,13 +335,13 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
 
     return (
         <div className="flex h-full flex-col bg-slate-50">
-                <div className="border-b border-slate-200 bg-white px-6 py-4">
+                <div className="border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
                     <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900 text-white">
                             <MessageSquare className="h-5 w-5" />
                         </div>
                         <div>
-                            <h2 className="font-medium text-slate-900">
+                            <h2 className="font-semibold text-slate-950">
                                 {data.activeConversation?.title ?? "Conversation"}
                             </h2>
                             <p className="text-sm text-slate-500">
@@ -386,7 +386,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-auto p-6">
+                <div className="flex-1 overflow-auto p-4 sm:p-6">
                     <div className="mx-auto max-w-4xl space-y-4">
                         {messages.length ? (
                             messages.map((message) => (
@@ -406,10 +406,10 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                                         {message.role === "assistant" ? "AI" : "You"}
                                     </div>
                                     <div
-                                        className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${
+                                    className={`max-w-[82%] rounded-lg px-4 py-3 text-sm leading-6 shadow-sm ${
                                             message.role === "assistant"
-                                                ? "border border-slate-200 bg-white/95 text-slate-700"
-                                                : "bg-emerald-600 text-white"
+                                                ? "border border-slate-200 bg-white text-slate-700"
+                                                : "bg-sky-600 text-white"
                                         }`}
                                     >
                                         {message.role === "assistant" ? (
@@ -436,7 +436,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                                 </div>
                             ))
                         ) : (
-                            <Card className="border-dashed shadow-sm">
+                            <Card className="border-dashed bg-white shadow-sm">
                                 <CardContent className="p-6 text-sm text-slate-500">
                                     This conversation is ready for your first question.
                                 </CardContent>
@@ -445,7 +445,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                     </div>
                 </div>
 
-                <div className="border-t border-slate-200 bg-white p-4">
+                <div className="border-t border-slate-200 bg-white p-3 sm:p-4">
                     <div className="mx-auto max-w-4xl space-y-2">
                         <div className="flex flex-wrap gap-2">
                             {[
@@ -457,13 +457,13 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                                     key={suggestion}
                                     type="button"
                                     onClick={() => setDraft(suggestion)}
-                                    className="rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:border-indigo-200 hover:text-indigo-700"
+                                    className="rounded-md border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:border-sky-200 hover:text-sky-700"
                                 >
                                     {suggestion}
                                 </button>
                             ))}
                         </div>
-                        <div className="flex items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
+                        <div className="flex items-end gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
                             <Textarea
                                 value={draft}
                                 onChange={(event) => setDraft(event.target.value)}
@@ -482,7 +482,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                             </Button>
                             <Button
                                 size="icon"
-                                className="bg-indigo-600 hover:bg-indigo-700"
+                                className="bg-sky-600 hover:bg-sky-700"
                                 onClick={() => void handleSend()}
                                 disabled={!draft.trim() || isComposing}
                             >

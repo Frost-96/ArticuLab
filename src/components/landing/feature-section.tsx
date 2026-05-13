@@ -15,7 +15,7 @@ const mainFeatures = [
         title: "AI Writing Review",
         description:
             "Submit essays and get IELTS- and TOEFL-style scoring with inline grammar corrections, vocabulary suggestions, and structure improvements.",
-        color: "bg-indigo-100 text-indigo-600",
+        color: "bg-sky-100 text-sky-600",
         highlights: [
             "Band score estimation",
             "Inline annotations",
@@ -27,7 +27,7 @@ const mainFeatures = [
         title: "Speaking Practice",
         description:
             "Practice real conversation scenarios with AI that listens and responds naturally, from interviews to exam-style speaking prompts.",
-        color: "bg-violet-100 text-violet-600",
+        color: "bg-blue-100 text-blue-600",
         highlights: ["Voice recognition", "Fluency analysis", "Pronunciation tips"],
     },
     {
@@ -73,13 +73,11 @@ const supportingFeatures = [
 
 export function FeatureSection() {
     return (
-        <section id="features" className="bg-slate-50 py-20 sm:py-28">
-            <div className="mx-auto max-w-6xl px-4 sm:px-6">
-                <div className="mx-auto mb-16 max-w-2xl text-center">
-                    <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">
-                        Features
-                    </p>
-                    <h2 className="mb-4 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+        <section id="features" className="bg-slate-50 px-4 py-20 sm:px-6 sm:py-24">
+            <div className="mx-auto max-w-6xl">
+                <div className="mx-auto mb-12 max-w-2xl text-center">
+                    <p className="section-eyebrow">Features</p>
+                    <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
                         Everything you need to master English
                     </h2>
                     <p className="text-lg leading-8 text-slate-600">
@@ -88,14 +86,14 @@ export function FeatureSection() {
                     </p>
                 </div>
 
-                <div className="mb-16 grid gap-6 md:grid-cols-2">
+                <div className="mb-14 grid gap-5 md:grid-cols-2">
                     {mainFeatures.map((feature) => (
                         <div
                             key={feature.title}
-                            className="group rounded-3xl border border-slate-200 bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl sm:p-8"
+                            className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm transition-colors hover:border-slate-300 sm:p-7"
                         >
                             <div
-                                className={`mb-5 flex size-12 items-center justify-center rounded-2xl ${feature.color} transition-transform group-hover:scale-110`}
+                                className={`mb-5 flex size-11 items-center justify-center rounded-md ${feature.color}`}
                             >
                                 <feature.icon className="size-6" />
                             </div>
@@ -126,7 +124,7 @@ export function FeatureSection() {
                             className="text-center sm:text-left"
                         >
                             <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm sm:mx-0">
-                                <feature.icon className="size-5 text-indigo-600" />
+                                <feature.icon className="size-5 text-sky-600" />
                             </div>
                             <h4 className="mb-1 font-semibold text-slate-900">
                                 {feature.title}

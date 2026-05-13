@@ -3,12 +3,12 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
-    ChevronLeft,
-    ChevronRight,
     MessageSquare,
     Mic,
+    PanelLeft,
     PenLine,
     Plus,
+    SquarePen,
     Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -85,39 +85,50 @@ function getSidebarTheme(type: SidebarType) {
     switch (type) {
         case "writing":
             return {
-                accent: "from-indigo-500 via-blue-500 to-slate-900",
-                ring: "ring-indigo-100",
-                soft: "bg-indigo-50 text-indigo-700",
-                active:
-                    "border-indigo-200 bg-linear-to-r from-indigo-50 to-white text-indigo-900 shadow-sm",
-                hover: "hover:border-indigo-100 hover:bg-indigo-50/40",
-                badge: "border-indigo-200 bg-white text-indigo-700",
+                accent: "bg-sky-600",
+                accentText: "text-sky-700",
+                activeRail: "bg-sky-500",
+                ring: "ring-sky-100",
+                soft: "bg-sky-50 text-sky-700",
+                active: "bg-white text-slate-950 shadow-sm ring-1 ring-slate-200/80",
+                hover: "hover:bg-slate-200/70",
+                badge: "border-sky-200 bg-white text-sky-700",
                 title: "Writing Studio",
             };
         case "speaking":
             return {
-                accent: "from-violet-500 via-sky-500 to-cyan-500",
-                ring: "ring-violet-100",
-                soft: "bg-violet-50 text-violet-700",
-                active:
-                    "border-violet-200 bg-linear-to-r from-violet-50 to-white text-violet-900 shadow-sm",
-                hover: "hover:border-violet-100 hover:bg-violet-50/40",
-                badge: "border-violet-200 bg-white text-violet-700",
+                accent: "bg-blue-600",
+                accentText: "text-blue-700",
+                activeRail: "bg-blue-500",
+                ring: "ring-blue-100",
+                soft: "bg-blue-50 text-blue-700",
+                active: "bg-white text-slate-950 shadow-sm ring-1 ring-slate-200/80",
+                hover: "hover:bg-slate-200/70",
+                badge: "border-blue-200 bg-white text-blue-700",
                 title: "Speaking Lab",
             };
         case "coach":
             return {
-                accent: "from-teal-500 via-cyan-500 to-sky-500",
+                accent: "bg-slate-900",
+                accentText: "text-slate-700",
+                activeRail: "bg-slate-700",
                 ring: "ring-teal-100",
                 soft: "bg-teal-50 text-teal-700",
-                active:
-                    "border-teal-200 bg-linear-to-r from-teal-50 to-white text-teal-900 shadow-sm",
-                hover: "hover:border-teal-100 hover:bg-teal-50/40",
+                active: "bg-white text-slate-950 shadow-sm ring-1 ring-slate-200/80",
+                hover: "hover:bg-slate-200/70",
                 badge: "border-teal-200 bg-white text-teal-700",
                 title: "Coach Archive",
             };
     }
 }
+
+const META_BADGE_STYLES = [
+    "bg-sky-50 text-sky-700 ring-1 ring-sky-100",
+    "bg-blue-50 text-blue-700 ring-1 ring-blue-100",
+    "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100",
+    "bg-amber-50 text-amber-700 ring-1 ring-amber-100",
+    "bg-slate-100 text-slate-600 ring-1 ring-slate-200/70",
+];
 
 export function LeftSidebar({ type, items }: LeftSidebarProps) {
     const router = useRouter();
@@ -149,6 +160,9 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
         writing: PenLine,
         speaking: Mic,
     }[type];
+    const recentItems = items.slice(0, 6);
+    const hasActiveRecentItem = recentItems.some((item) => currentHref === item.href);
+    const collapsedRecentLabel = "\u6700\u8fd1\u804a\u5929";
 
     function deleteItem(item: SidebarHistoryItem) {
         const confirmed = window.confirm(`Delete "${item.title}"?`);
@@ -189,112 +203,133 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
 
     if (sidebarCollapsed) {
         return (
-            <aside className="hidden w-16 shrink-0 flex-col items-center gap-3 border-r border-slate-200/80 bg-white/95 px-2 py-3 backdrop-blur lg:flex">
-                <div
-                    className={cn(
-                        "flex h-10 w-10 items-center justify-center rounded-2xl bg-linear-to-br text-white shadow-sm",
-                        theme.accent,
-                    )}
-                >
-                    <Icon className="h-4 w-4" />
-                </div>
+            <aside className="relative hidden w-14 shrink-0 flex-col items-center gap-2 border-r border-slate-200/70 bg-slate-100/90 px-1.5 py-2 transition-[width] duration-200 ease-out lg:flex">
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 rounded-xl border border-slate-200 text-slate-500"
+                    className="group h-9 w-9 rounded-xl text-slate-600 transition-colors hover:bg-slate-200 hover:text-slate-950"
                     onClick={toggleSidebarCollapse}
-                    title="Expand sidebar"
+                    title="\u6253\u5f00\u8fb9\u680f"
                 >
-                    <ChevronRight className="h-4 w-4" />
+                    <Icon
+                        className={cn(
+                            "h-4 w-4 group-hover:hidden",
+                            theme.accentText,
+                        )}
+                    />
+                    <PanelLeft className="hidden h-4 w-4 group-hover:block" />
                 </Button>
                 <Button
                     variant="ghost"
                     size="icon"
                     className={cn(
-                        "h-9 w-9 rounded-xl border border-slate-200 text-slate-600",
-                        theme.soft,
+                        "h-9 w-9 rounded-xl text-slate-600 transition-colors hover:bg-slate-200 hover:text-slate-950",
                     )}
                     onClick={() => router.push(newHref)}
                     title={newLabel}
                 >
-                    <Plus className="h-4 w-4" />
+                    <SquarePen className="h-4 w-4" />
                 </Button>
-                <div className="h-px w-8 bg-slate-200" />
-                {items.slice(0, 6).map((item) => (
+                <div className="my-1 h-px w-8 bg-slate-200" />
+                <div className="group/recent">
                     <button
-                        key={item.id}
                         type="button"
-                        onClick={() => router.push(item.href)}
-                        title={item.title}
+                        title={collapsedRecentLabel}
                         className={cn(
-                            "flex h-10 w-10 items-center justify-center rounded-2xl border text-slate-500 transition-all",
-                            currentHref === item.href
-                                ? cn("border-transparent text-white", theme.accent)
-                                : "border-slate-200 bg-white hover:border-slate-300",
+                            "flex h-9 w-9 items-center justify-center rounded-xl text-slate-600 transition-colors",
+                            hasActiveRecentItem
+                                ? "bg-sky-100 text-sky-700"
+                                : "hover:bg-slate-200 hover:text-slate-950",
                         )}
                     >
-                        <Icon className="h-4 w-4" />
+                        <MessageSquare className="h-4 w-4" />
                     </button>
-                ))}
+                    <div className="pointer-events-none absolute left-full top-0 z-50 w-80 translate-x-1 pl-2 opacity-0 transition-all duration-150 ease-out group-hover/recent:pointer-events-auto group-hover/recent:translate-x-0 group-hover/recent:opacity-100 group-focus-within/recent:pointer-events-auto group-focus-within/recent:translate-x-0 group-focus-within/recent:opacity-100">
+                        <div className="rounded-xl border border-slate-200 bg-white p-2 text-slate-900 shadow-xl ring-1 ring-slate-200/70">
+                            <div className="px-2 py-2 text-sm font-semibold text-slate-900">
+                                {collapsedRecentLabel}
+                            </div>
+                            {recentItems.length > 0 ? (
+                                <div className="space-y-0.5">
+                                    {recentItems.map((item) => {
+                                        const active = currentHref === item.href;
+
+                                        return (
+                                            <button
+                                                key={item.id}
+                                                type="button"
+                                                onClick={() => router.push(item.href)}
+                                                title={item.title}
+                                                className={cn(
+                                                    "block w-full truncate rounded-lg px-2 py-2 text-left text-sm leading-5 transition-colors",
+                                                    active
+                                                        ? "bg-sky-50 text-sky-800"
+                                                        : "text-slate-700 hover:bg-slate-100 hover:text-slate-950",
+                                                )}
+                                            >
+                                                {item.title}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="rounded-lg px-2 py-3 text-sm text-slate-500">
+                                    No history yet
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </aside>
         );
     }
 
     return (
-        <aside className="hidden w-[320px] shrink-0 flex-col border-r border-slate-200/80 bg-linear-to-b from-white to-slate-50/80 lg:flex">
-            <div className="border-b border-slate-200/80 p-3">
-                <div className="relative overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
-                    <div
-                        className={cn(
-                            "absolute inset-x-0 top-0 h-1 bg-linear-to-r",
-                            theme.accent,
-                        )}
-                    />
-                    <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                            <div
-                                className={cn(
-                                    "mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-linear-to-br text-white shadow-sm",
-                                    theme.accent,
-                                )}
-                            >
-                                <Icon className="h-4 w-4" />
+        <aside className="hidden h-full w-[304px] shrink-0 border-r border-slate-200/70 bg-slate-100/90 transition-[width] duration-200 ease-out lg:block">
+            <ScrollArea className="h-full">
+                <div className="p-2">
+                    <div className="sidebar-content-enter">
+                        <div className="mb-1 flex items-center justify-between gap-2 px-2 py-1.5">
+                            <div className="flex min-w-0 items-center gap-2.5">
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200/80">
+                                    <Icon className={cn("h-4 w-4", theme.accentText)} />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="truncate text-sm font-semibold text-slate-900">
+                                        {theme.title}
+                                    </p>
+                                    <p className="text-xs text-slate-500">
+                                        {items.length} saved {items.length === 1 ? "session" : "sessions"}
+                                    </p>
+                                </div>
                             </div>
-                            <p className="text-sm font-semibold text-slate-900">
-                                {theme.title}
-                            </p>
-                            <p className="mt-1 text-xs leading-5 text-slate-500">
-                                {items.length} saved {items.length === 1 ? "session" : "sessions"}
-                            </p>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-xl text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900"
+                                onClick={toggleSidebarCollapse}
+                                title="Collapse sidebar"
+                            >
+                                <PanelLeft className="h-4 w-4" />
+                            </Button>
                         </div>
                         <Button
                             variant="ghost"
-                            size="icon"
-                            className="h-9 w-9 rounded-xl border border-slate-200 text-slate-500"
-                            onClick={toggleSidebarCollapse}
-                            title="Collapse sidebar"
+                            className={cn(
+                                "h-9 w-full justify-start gap-2 rounded-xl px-3 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-200 hover:text-slate-950",
+                                theme.ring,
+                            )}
+                            onClick={() => router.push(newHref)}
                         >
-                            <ChevronLeft className="h-4 w-4" />
+                            <Plus className="h-4 w-4" />
+                            {newLabel}
                         </Button>
                     </div>
-                    <Button
-                        variant="outline"
-                        className={cn(
-                            "mt-4 h-10 w-full justify-start gap-2 rounded-2xl border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 hover:bg-white",
-                            theme.ring,
-                        )}
-                        onClick={() => router.push(newHref)}
-                    >
-                        <Plus className="h-4 w-4" />
-                        {newLabel}
-                    </Button>
                 </div>
-            </div>
 
-            <ScrollArea className="min-h-0 flex-1">
-                <div className="space-y-5 p-3">
+                <div className="sidebar-content-enter space-y-4 px-2 pb-3">
                     {groups.length === 0 ? (
-                        <div className="rounded-[24px] border border-dashed border-slate-200 bg-white/80 p-6 text-center shadow-sm">
+                        <div className="rounded-xl border border-dashed border-slate-200 bg-white/60 p-5 text-center">
                             <p className="text-sm font-medium text-slate-700">
                                 No history yet
                             </p>
@@ -306,13 +341,12 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
 
                     {groups.map((group) => (
                         <div key={group.label}>
-                            <div className="mb-2 flex items-center gap-2 px-2">
-                                <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                            <div className="mb-1.5 px-2">
+                                <span className="text-xs font-medium text-slate-500">
                                     {group.label}
                                 </span>
-                                <div className="h-px flex-1 bg-slate-200" />
                             </div>
-                            <div className="space-y-2">
+                            <div className="space-y-0.5">
                                 {group.items.map((item) => {
                                     const active = currentHref === item.href;
 
@@ -320,15 +354,20 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
                                         <div
                                             key={item.id}
                                             className={cn(
-                                                "group/item relative w-full rounded-2xl border px-3 py-3.5 pr-10 text-left transition-colors",
+                                                "group/item relative w-full rounded-xl px-2.5 py-2.5 pr-9 text-left transition-colors",
                                                 active
                                                     ? theme.active
-                                                    : cn(
-                                                          "border-slate-200/80 bg-white shadow-sm",
-                                                          theme.hover,
-                                                      ),
+                                                    : cn("text-slate-700", theme.hover),
                                             )}
                                         >
+                                            {active ? (
+                                                <div
+                                                    className={cn(
+                                                        "absolute left-0 top-2.5 h-[calc(100%-20px)] w-0.5 rounded-full",
+                                                        theme.activeRail,
+                                                    )}
+                                                />
+                                            ) : null}
                                             <button
                                                 type="button"
                                                 onClick={() => router.push(item.href)}
@@ -340,8 +379,8 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
                                                             className={cn(
                                                                 "line-clamp-2 break-words text-sm font-medium leading-5",
                                                                 active
-                                                                    ? "text-slate-900"
-                                                                    : "text-slate-800",
+                                                                    ? "text-slate-950"
+                                                                    : "text-slate-700",
                                                             )}
                                                         >
                                                             {item.title}
@@ -354,7 +393,7 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
                                                                 <Badge
                                                                     variant="outline"
                                                                     className={cn(
-                                                                        "min-h-5 max-w-full rounded-full px-1.5 py-0.5 text-[11px] font-semibold leading-none",
+                                                                        "min-h-5 max-w-full rounded-md border bg-white/70 px-1.5 py-0.5 text-[11px] font-semibold leading-none",
                                                                         theme.badge,
                                                                     )}
                                                                 >
@@ -362,13 +401,31 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
                                                                 </Badge>
                                                             ) : null}
                                                         </div>
+                                                        {item.meta?.length ? (
+                                                            <div className="mt-2 flex flex-wrap gap-1.5">
+                                                                {item.meta.map((meta) => (
+                                                                    <span
+                                                                        key={`${item.id}-${meta}`}
+                                                                        className={cn(
+                                                                            "rounded-md px-1.5 py-0.5 text-[11px] font-medium leading-4",
+                                                                            META_BADGE_STYLES[
+                                                                                item.meta!.indexOf(meta) %
+                                                                                    META_BADGE_STYLES.length
+                                                                            ],
+                                                                        )}
+                                                                    >
+                                                                        {meta}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        ) : null}
                                                     </div>
                                                     <div
                                                         className={cn(
-                                                            "mt-1 h-2.5 w-2.5 shrink-0 rounded-full",
+                                                            "mt-1 h-2 w-2 shrink-0 rounded-full",
                                                             active
                                                                 ? "bg-current opacity-80"
-                                                            : "bg-slate-200",
+                                                            : "bg-slate-300",
                                                         )}
                                                     />
                                                 </div>
@@ -377,7 +434,7 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
                                                 type="button"
                                                 variant="ghost"
                                                 size="icon-sm"
-                                                className="absolute right-2 top-3 shrink-0 text-slate-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover/item:opacity-100 focus-visible:opacity-100"
+                                                className="absolute right-1.5 top-2.5 shrink-0 rounded-lg text-slate-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover/item:opacity-100 focus-visible:opacity-100"
                                                 disabled={isPending && deletingId === item.id}
                                                 onClick={() => deleteItem(item)}
                                                 title="Delete"

@@ -7,7 +7,7 @@ const steps = [
         title: "Practice",
         description:
             "Choose a writing prompt or speaking scenario and start a session that feels close to the real thing.",
-        color: "from-indigo-500 to-indigo-600",
+        color: "bg-sky-600",
     },
     {
         number: "02",
@@ -15,7 +15,7 @@ const steps = [
         title: "Get Feedback",
         description:
             "Receive instant AI-powered corrections on grammar, vocabulary, structure, and pronunciation with explanations.",
-        color: "from-violet-500 to-violet-600",
+        color: "bg-blue-600",
     },
     {
         number: "03",
@@ -23,7 +23,7 @@ const steps = [
         title: "Review & Analyze",
         description:
             "See scores, inline annotations, and concrete suggestions that show what to fix next.",
-        color: "from-emerald-500 to-emerald-600",
+        color: "bg-emerald-600",
     },
     {
         number: "04",
@@ -31,19 +31,17 @@ const steps = [
         title: "Improve",
         description:
             "Track progress over time and focus on the practice that moves your scores and confidence forward.",
-        color: "from-amber-500 to-amber-600",
+        color: "bg-amber-500",
     },
 ];
 
 export function HowItWorks() {
     return (
-        <section id="how-it-works" className="py-20 sm:py-28">
-            <div className="mx-auto max-w-6xl px-4 sm:px-6">
-                <div className="mx-auto mb-16 max-w-2xl text-center">
-                    <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">
-                        How It Works
-                    </p>
-                    <h2 className="mb-4 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+        <section id="how-it-works" className="bg-white px-4 py-20 sm:px-6 sm:py-24">
+            <div className="mx-auto max-w-6xl">
+                <div className="mx-auto mb-14 max-w-2xl text-center">
+                    <p className="section-eyebrow">How It Works</p>
+                    <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
                         From practice to progress in four steps
                     </h2>
                     <p className="text-lg leading-8 text-slate-600">
@@ -65,7 +63,7 @@ export function HowItWorks() {
 
                             <div className="relative mb-5 inline-flex">
                                 <div
-                                    className={`flex size-16 items-center justify-center rounded-3xl bg-gradient-to-br ${step.color} shadow-lg`}
+                                    className={`flex size-14 items-center justify-center rounded-lg ${step.color} shadow-sm`}
                                 >
                                     <step.icon className="size-7 text-white" />
                                 </div>

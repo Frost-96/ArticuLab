@@ -169,11 +169,11 @@ export function SettingsView({ data }: SettingsViewProps) {
     }
 
     return (
-        <div className="min-h-[calc(100vh-56px)] bg-slate-50 p-6">
-            <div className="mx-auto max-w-5xl space-y-6">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="app-shell-page">
+            <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
+                <div className="soft-panel flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold text-slate-900">
+                        <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
                             Settings
                         </h1>
                         <p className="mt-1 text-slate-500">
@@ -190,7 +190,7 @@ export function SettingsView({ data }: SettingsViewProps) {
                             }
                             className={
                                 data.membership.membershipTier === "pro"
-                                    ? "bg-indigo-600 text-white"
+                                    ? "bg-sky-600 text-white"
                                     : ""
                             }
                         >
@@ -204,7 +204,7 @@ export function SettingsView({ data }: SettingsViewProps) {
                     </div>
                 </div>
 
-                <Card>
+                <Card className="bg-white shadow-sm">
                     <CardContent className="p-6">
                         <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
                             <div className="flex items-center gap-4">
@@ -213,7 +213,7 @@ export function SettingsView({ data }: SettingsViewProps) {
                                         src={data.account.avatar ?? undefined}
                                         alt={data.account.displayName}
                                     />
-                                    <AvatarFallback className="bg-indigo-100 text-2xl font-semibold text-indigo-700">
+                                    <AvatarFallback className="bg-sky-100 text-2xl font-semibold text-sky-700">
                                         {initials}
                                     </AvatarFallback>
                                 </Avatar>
@@ -236,7 +236,7 @@ export function SettingsView({ data }: SettingsViewProps) {
                             </div>
 
                             <div className="lg:ml-auto">
-                                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
                                     Your navigation, dashboard, and profile now read from
                                     the same account source.
                                 </div>
@@ -245,7 +245,7 @@ export function SettingsView({ data }: SettingsViewProps) {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="bg-white shadow-sm">
                     <CardHeader className="pb-3">
                         <CardTitle className="flex items-center gap-2 text-base">
                             <User className="h-4 w-4 text-slate-500" />
@@ -392,7 +392,7 @@ export function SettingsView({ data }: SettingsViewProps) {
                                 </Button>
                                 <Button
                                     type="submit"
-                                    className="bg-indigo-600 hover:bg-indigo-700"
+                                    className="bg-sky-600 hover:bg-sky-700"
                                     disabled={isSaving}
                                 >
                                     {isSaving ? "Saving..." : "Save Changes"}
@@ -402,7 +402,7 @@ export function SettingsView({ data }: SettingsViewProps) {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="bg-white shadow-sm">
                     <CardHeader className="pb-3">
                         <CardTitle className="flex items-center gap-2 text-base">
                             <CreditCard className="h-4 w-4 text-slate-500" />
@@ -410,9 +410,9 @@ export function SettingsView({ data }: SettingsViewProps) {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 md:flex-row md:items-center md:justify-between">
+                        <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 md:flex-row md:items-center md:justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white">
+                                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-amber-500 text-white">
                                     <Crown className="h-5 w-5" />
                                 </div>
                                 <div>
@@ -436,7 +436,7 @@ export function SettingsView({ data }: SettingsViewProps) {
                                     }
                                     className={
                                         data.membership.hasActiveSubscription
-                                            ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white"
+                                            ? "bg-amber-500 text-white"
                                             : ""
                                     }
                                 >
@@ -482,7 +482,7 @@ export function SettingsView({ data }: SettingsViewProps) {
 
                 <div className="grid gap-4 lg:grid-cols-3">
                     {readonlyCards.map((item) => (
-                        <Card key={item.key}>
+                        <Card key={item.key} className="bg-white shadow-sm">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between gap-3">
                                     <CardTitle className="flex items-center gap-2 text-base">
@@ -506,7 +506,7 @@ export function SettingsView({ data }: SettingsViewProps) {
                     ))}
                 </div>
 
-                <Card className="border-red-100">
+                <Card className="border-red-100 bg-white shadow-sm">
                     <CardHeader className="pb-3">
                         <CardTitle className="flex items-center gap-2 text-base text-red-600">
                             <Shield className="h-4 w-4" />
@@ -570,7 +570,7 @@ export function SettingsView({ data }: SettingsViewProps) {
 
 function InfoTile({ label, value }: { label: string; value: string }) {
     return (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
             <p className="text-xs uppercase tracking-wide text-slate-500">
                 {label}
             </p>

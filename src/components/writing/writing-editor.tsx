@@ -150,7 +150,7 @@ export function WritingEditor({ exercise }: WritingEditorProps) {
 
     return (
         <div className="flex min-h-full flex-col bg-slate-50">
-            <header className="border-b border-slate-200 bg-white px-6 py-3">
+            <header className="border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
                 <div className="mx-auto flex max-w-4xl items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         <Button variant="ghost" size="sm" asChild>
@@ -169,13 +169,13 @@ export function WritingEditor({ exercise }: WritingEditorProps) {
                 </div>
             </header>
 
-            <main className="flex-1 p-6">
+            <main className="flex-1 p-4 sm:p-6">
                 <div className="mx-auto max-w-4xl space-y-4">
-                    <Card className="border-indigo-100 bg-gradient-to-br from-indigo-50 to-white">
+                    <Card className="border-sky-100 bg-sky-50/50 shadow-sm">
                         <CardContent className="space-y-4 p-5">
                             <div className="flex items-start gap-3">
-                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100">
-                                    <FileText className="h-4 w-4 text-indigo-600" />
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-sky-100">
+                                    <FileText className="h-4 w-4 text-sky-600" />
                                 </div>
                                 <div className="space-y-2">
                                     <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -209,21 +209,21 @@ export function WritingEditor({ exercise }: WritingEditorProps) {
                         </Card>
                     ) : null}
 
-                    <Card>
+                    <Card className="bg-white shadow-sm">
                         <CardContent className="p-0">
                             <Textarea
                                 value={content}
                                 onChange={(event) => setContent(event.target.value)}
                                 readOnly={readOnly}
                                 placeholder="Start writing here..."
-                                className="min-h-[500px] resize-none border-0 p-6 text-base leading-8 focus-visible:ring-0"
+                                className="min-h-[520px] resize-none border-0 bg-white p-5 text-base leading-8 focus-visible:ring-0 sm:p-6"
                             />
                         </CardContent>
                     </Card>
                 </div>
             </main>
 
-            <footer className="border-t border-slate-200 bg-white px-6 py-4">
+            <footer className="border-t border-slate-200 bg-white px-4 py-4 sm:px-6">
                 <div className="mx-auto flex max-w-4xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex items-center gap-4">
                         <div>
@@ -247,7 +247,7 @@ export function WritingEditor({ exercise }: WritingEditorProps) {
                         </Button>
                         <Button
                             variant={readOnly ? "outline" : "default"}
-                            className="bg-indigo-600 hover:bg-indigo-700"
+                            className="bg-sky-600 hover:bg-sky-700"
                             onClick={() =>
                                 readOnly
                                     ? router.push(`/writing/${exercise.id}/review`)

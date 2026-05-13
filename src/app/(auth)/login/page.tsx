@@ -41,8 +41,8 @@ export default function Page() {
 
     return (
         <div className="w-full max-w-md">
-            <div className="mb-8 text-center">
-                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600">
+            <div className="mb-7 text-center">
+                <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-sky-600">
                     <Sparkles className="h-6 w-6 text-white" />
                 </div>
                 <h1 className="text-2xl font-bold text-slate-900">ArticuLab</h1>
@@ -51,7 +51,7 @@ export default function Page() {
                 </p>
             </div>
 
-            <Card className="border-slate-200 shadow-lg">
+            <Card className="border-slate-200 bg-white shadow-sm">
                 <CardHeader className="px-6 pb-0 pt-6">
                     <h2 className="text-xl font-semibold text-slate-900">
                         Welcome back
@@ -115,7 +115,7 @@ export default function Page() {
                             </Label>
                             <Link
                                 href="/forgot-password"
-                                className="text-xs text-indigo-600 hover:underline"
+                                className="text-xs text-sky-600 hover:underline"
                             >
                                 Forgot password?
                             </Link>
@@ -147,7 +147,7 @@ export default function Page() {
                     </div>
 
                     <Button
-                        className="w-full bg-indigo-600 hover:bg-indigo-700"
+                        className="h-10 w-full bg-sky-600 hover:bg-sky-700"
                         onClick={onClick}
                     >
                         Sign In
@@ -157,7 +157,7 @@ export default function Page() {
                         Don&apos;t have an account?{" "}
                         <Link
                             href={signUpHref}
-                            className="font-medium text-indigo-600 hover:underline"
+                            className="font-medium text-sky-600 hover:underline"
                         >
                             Sign up free
                         </Link>

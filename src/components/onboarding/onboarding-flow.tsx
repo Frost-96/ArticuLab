@@ -105,7 +105,7 @@ export function OnboardingFlow({
                         <Button
                             onClick={handleNext}
                             disabled={!canProceed() || isSubmitting}
-                            className="min-w-[140px] bg-indigo-600 hover:bg-indigo-700"
+                            className="min-w-[140px] bg-sky-600 hover:bg-sky-700"
                         >
                             {isSubmitting ? (
                                 <>

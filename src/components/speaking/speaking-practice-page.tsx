@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Clock, MessageSquare, Mic } from "lucide-react";
+import { ArrowRight, Mic } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,10 +14,7 @@ import {
 } from "@/components/ui/card";
 import { startSpeakingAction } from "@/server/actions/speaking.action";
 import type { ScenarioPrompt } from "@/types/scenario/scenarioTypes";
-import type {
-    SpeakingHistoryItem,
-    SpeakingHistoryResult,
-} from "@/types/speaking/speakingTypes";
+import type { SpeakingHistoryResult } from "@/types/speaking/speakingTypes";
 
 type SpeakingPracticePageProps = {
     scenarios: ScenarioPrompt[];
@@ -33,39 +29,12 @@ const speakingScenarioLabelMap = {
     free: "Free Talk",
 } as const;
 
-function formatDate(value: string) {
-    return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    }).format(new Date(value));
-}
-
-function formatDuration(seconds: number) {
-    const minutes = Math.floor(seconds / 60);
-    const rest = seconds % 60;
-    return `${minutes}:${String(rest).padStart(2, "0")}`;
-}
-
 function getScenarioLabel(category: string) {
     return (
         speakingScenarioLabelMap[
             category as keyof typeof speakingScenarioLabelMap
         ] ?? category
     );
-}
-
-function getHistoryScoreLabel(exercise: SpeakingHistoryItem) {
-    if (exercise.fluencyScore === null) {
-        return "Awaiting review";
-    }
-
-    if (exercise.accuracyScore === null) {
-        return `${exercise.fluencyScore.toFixed(1)} fluency`;
-    }
-
-    return `${exercise.fluencyScore.toFixed(1)} / ${exercise.accuracyScore.toFixed(1)}`;
 }
 
 export function SpeakingPracticePage({
@@ -101,15 +70,15 @@ export function SpeakingPracticePage({
 
     return (
         <div className="min-h-full bg-slate-50">
-            <div className="mx-auto max-w-5xl space-y-6 p-6">
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
+                <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div>
                         <div className="flex items-center gap-3">
                             <h1 className="text-2xl font-semibold text-slate-900">
                                 Speaking Practice
                             </h1>
-                            <Badge className="bg-violet-100 text-violet-700 hover:bg-violet-100">
+                            <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
                                 Live scenarios
                             </Badge>
                         </div>
@@ -128,7 +97,7 @@ export function SpeakingPracticePage({
                         <SpeakingSummaryCard
                             label="Reviewed"
                             value={String(reviewedCount)}
-                            tone="text-violet-700"
+                            tone="text-blue-700"
                         />
                         <SpeakingSummaryCard
                             label="Scenarios"
@@ -147,11 +116,11 @@ export function SpeakingPracticePage({
                     </Card>
                 ) : null}
 
-                <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-                    <Card className="border-slate-200 shadow-sm">
-                        <CardHeader className="border-b border-slate-200 bg-linear-to-r from-violet-50 via-white to-white">
+                <div className="grid gap-6">
+                    <Card className="border-slate-200 bg-white shadow-sm">
+                        <CardHeader className="border-b border-slate-200 bg-blue-50/40">
                             <CardTitle className="flex items-center gap-2 text-base">
-                                <Mic className="size-4 text-violet-600" />
+                                <Mic className="size-4 text-blue-600" />
                                 Available Scenarios
                             </CardTitle>
                             <CardDescription>
@@ -164,15 +133,15 @@ export function SpeakingPracticePage({
                                 scenarios.map((scenario) => (
                                     <div
                                         key={scenario.id}
-                                        className="relative rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-violet-200 hover:bg-slate-50"
+                                    className="relative rounded-lg border border-slate-200 bg-white p-5 transition-colors hover:border-blue-200 hover:bg-slate-50"
                                     >
-                                        <div className="absolute inset-y-4 left-0 w-1 rounded-r-full bg-violet-200" />
+                                        <div className="absolute inset-y-4 left-0 w-1 rounded-r-full bg-blue-200" />
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="space-y-2 pl-2">
                                                 <div className="flex flex-wrap items-center gap-2">
                                                     <Badge
                                                         variant="outline"
-                                                        className="border-violet-200 bg-violet-50 text-violet-700"
+                                                        className="border-blue-200 bg-blue-50 text-blue-700"
                                                     >
                                                         {getScenarioLabel(scenario.category)}
                                                     </Badge>
@@ -196,7 +165,7 @@ export function SpeakingPracticePage({
 
                                             <Button
                                                 variant="outline"
-                                                className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800"
+                                                className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
                                                 disabled={pendingId === scenario.id}
                                                 onClick={() => void handleStart(scenario.id)}
                                             >
@@ -209,74 +178,13 @@ export function SpeakingPracticePage({
                             ) : (
                                 <PageEmptyState
                                     icon={<Mic className="size-5" />}
-                                    iconClassName="text-violet-600"
+                                    iconClassName="text-blue-600"
                                     title="No speaking scenarios found"
                                     description="No speaking scenarios are available right now."
                                 />
                             )}
                         </CardContent>
                     </Card>
-
-                    <div className="space-y-6">
-                        <Card className="border-slate-200 shadow-sm">
-                            <CardHeader className="border-b border-slate-200">
-                                <CardTitle className="flex items-center gap-2 text-base">
-                                    <Clock className="size-4 text-slate-500" />
-                                    Speaking History
-                                </CardTitle>
-                                <CardDescription>
-                                    Reopen saved attempts and scan turn count,
-                                    duration, and review status quickly.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-3 p-4">
-                                {history.exercises.length > 0 ? (
-                                    history.exercises.map((exercise) => (
-                                        <Link
-                                            key={exercise.id}
-                                            href={`/speaking/${exercise.id}`}
-                                            className="block rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-violet-200 hover:bg-slate-50"
-                                        >
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <Badge variant="outline">
-                                                            {getScenarioLabel(
-                                                                exercise.scenarioType,
-                                                            )}
-                                                        </Badge>
-                                                        <span className="text-xs text-slate-400">
-                                                            {formatDate(exercise.createdAt)}
-                                                        </span>
-                                                    </div>
-                                                    <p className="mt-2 font-medium text-slate-900">
-                                                        {exercise.title}
-                                                    </p>
-                                                    <p className="mt-1 text-sm text-slate-500">
-                                                        {exercise.scenarioRole}
-                                                    </p>
-                                                </div>
-                                                <div className="shrink-0 text-right text-sm text-slate-500">
-                                                    <p>{exercise.totalTurns} turns</p>
-                                                    <p>{formatDuration(exercise.durationSeconds)}</p>
-                                                    <p className="mt-2 font-semibold text-violet-700">
-                                                        {getHistoryScoreLabel(exercise)}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </Link>
-                                    ))
-                                ) : (
-                                    <PageEmptyState
-                                        icon={<MessageSquare className="size-5" />}
-                                        iconClassName="text-violet-600"
-                                        title="No speaking records yet"
-                                        description="Completed speaking sessions will appear here automatically."
-                                    />
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
                 </div>
             </div>
         </div>
@@ -314,9 +222,9 @@ function PageEmptyState({
     description: string;
 }) {
     return (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
             <div
-                className={`mx-auto flex size-11 items-center justify-center rounded-2xl bg-white shadow-sm ${iconClassName}`}
+                className={`mx-auto flex size-11 items-center justify-center rounded-lg bg-white shadow-sm ${iconClassName}`}
             >
                 {icon}
             </div>
@@ -325,3 +233,4 @@ function PageEmptyState({
         </div>
     );
 }
+

@@ -24,7 +24,7 @@ export function StepIndicator({ currentStep }: StepIndicatorProps) {
                     <span className="text-slate-500">
                         Step {completedSteps} of {displaySteps.length}
                     </span>
-                    <span className="font-medium text-indigo-600">
+                    <span className="font-medium text-sky-600">
                         {Math.round(progressValue)}%
                     </span>
                 </div>
@@ -44,9 +44,9 @@ export function StepIndicator({ currentStep }: StepIndicatorProps) {
                                     <div
                                         className={cn(
                                             "flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-all duration-300",
-                                            isCompleted && "bg-indigo-600 text-white",
+                                            isCompleted && "bg-sky-600 text-white",
                                             isCurrent &&
-                                                "bg-indigo-600 text-white ring-4 ring-indigo-100",
+                                                "bg-sky-600 text-white ring-4 ring-sky-100",
                                             isUpcoming && "bg-slate-200 text-slate-500",
                                         )}
                                     >
@@ -60,7 +60,7 @@ export function StepIndicator({ currentStep }: StepIndicatorProps) {
                                         className={cn(
                                             "absolute -bottom-6 whitespace-nowrap text-xs transition-colors",
                                             isCurrent
-                                                ? "font-medium text-indigo-600"
+                                                ? "font-medium text-sky-600"
                                                 : "text-slate-400",
                                         )}
                                     >
@@ -74,9 +74,9 @@ export function StepIndicator({ currentStep }: StepIndicatorProps) {
                                             className={cn(
                                                 "h-full rounded-full transition-all duration-500",
                                                 currentStep > step.id + 1
-                                                    ? "bg-indigo-600"
+                                                    ? "bg-sky-600"
                                                     : currentStep > step.id
-                                                      ? "bg-indigo-300"
+                                                      ? "bg-sky-300"
                                                       : "bg-slate-200",
                                             )}
                                         />
