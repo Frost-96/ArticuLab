@@ -9,7 +9,7 @@ const testimonials = [
         score: "Band 7.5",
         content:
             "ArticuLab helped me improve my writing score from 6.0 to 7.5 in two months. The inline annotations feel like having a tutor right beside me.",
-        color: "bg-indigo-100 text-indigo-700",
+        color: "bg-sky-100 text-sky-700",
     },
     {
         name: "Ahmed Hassan",
@@ -18,7 +18,7 @@ const testimonials = [
         score: "TOEFL 105",
         content:
             "The speaking practice made me far more comfortable under pressure. I walked into my exam feeling rehearsed instead of nervous.",
-        color: "bg-violet-100 text-violet-700",
+        color: "bg-blue-100 text-blue-700",
     },
     {
         name: "Yuki Tanaka",
@@ -60,13 +60,11 @@ const testimonials = [
 
 export function Testimonials() {
     return (
-        <section className="py-20 sm:py-28">
-            <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <section className="bg-white px-4 py-20 sm:px-6 sm:py-24">
+            <div className="mx-auto max-w-6xl">
                 <div className="mx-auto mb-14 max-w-2xl text-center">
-                    <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">
-                        Testimonials
-                    </p>
-                    <h2 className="mb-4 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+                    <p className="section-eyebrow">Testimonials</p>
+                    <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
                         Loved by learners worldwide
                     </h2>
                     <p className="text-lg leading-8 text-slate-600">
@@ -79,7 +77,7 @@ export function Testimonials() {
                     {testimonials.map((testimonial) => (
                         <div
                             key={testimonial.name}
-                            className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 transition-shadow duration-300 hover:shadow-lg"
+                            className="flex flex-col rounded-lg border border-slate-200 bg-white p-6 shadow-sm transition-colors hover:border-slate-300"
                         >
                             <div className="mb-4 flex gap-0.5">
                                 {Array.from({ length: 5 }).map((_, index) => (
@@ -112,7 +110,7 @@ export function Testimonials() {
                                         </p>
                                     </div>
                                 </div>
-                                <span className="rounded-md bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-600">
+                                <span className="rounded-md bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-600">
                                     {testimonial.score}
                                 </span>
                             </div>

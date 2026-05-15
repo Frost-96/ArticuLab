@@ -1,425 +1,131 @@
-// src/server/services/speaking.service.ts
-
-import * as speakingRepo from "@/server/repositories/speaking.repository";
-import * as conversationService from "./conversation.service";
-import * as messageService from "./message.service";
-import { prisma } from "@/lib/prisma";
-import { speechToText } from "@/lib/speaking/stt";
-import { textToSpeech } from "@/lib/speaking/tts";
-import { generateSpeakingResponse } from "@/lib/speaking/aiChat";
-import { generateSpeakingReview } from "@/lib/speaking/aiReview";
+import { cache } from "react";
 import { getFirstError } from "@/lib/error";
-import { idSchema } from "@/schema/shared.schema";
 import {
-    startSpeakingSchema,
-    speakingChatSchema,
     endSpeakingSchema,
+    deleteSpeakingExerciseSchema,
     getSpeakingExerciseSchema,
     getSpeakingHistorySchema,
-    deleteSpeakingExerciseSchema,
+    speakingChatSchema,
     speakingReviewResultSchema,
-    type StartSpeakingInput,
-    type SpeakingChatInput,
+    startSpeakingSchema,
+    updateSpeakingExerciseSchema,
+    type DeleteSpeakingExerciseInput,
     type EndSpeakingInput,
     type GetSpeakingExerciseInput,
     type GetSpeakingHistoryInput,
-    type DeleteSpeakingExerciseInput,
+    type SpeakingExerciseStatus,
+    type SpeakingChatInput,
+    type StartSpeakingInput,
     type SpeakingReviewResult,
-} from "@/schema/speaking.schema";
-import type { SpeakingScenarioType, SpeakingExerciseStatus } from "@/schema/enums";
+    type SpeakingScenarioType,
+    type UpdateSpeakingExerciseInput,
+    idSchema,
+} from "@/schema";
+import { prisma } from "@/lib/prisma";
+import * as speakingRepo from "@/server/repositories/speaking.repository";
+import { Prisma } from "../../../generated/prisma/client";
 import type {
-    SpeakingExerciseSummary,
+    SaveSpeakingMessageResult,
     SpeakingExerciseDetail,
+    SpeakingHistoryItem,
     SpeakingHistoryResult,
     StartSpeakingResult,
-    SpeakingChatResult,
-    EndSpeakingResult,
 } from "@/types/speaking/speakingTypes";
 
-// ==================== 辅助函数 ====================
-
-/**
- * 判断练习是否已完成
- * @param ex - 练习对象
- * @returns 是否完成
- */
-function isCompleted(ex: { status: string }): boolean {
-    return ex.status === "completed";
+function parseSpeakingFeedback(raw: unknown): SpeakingReviewResult | null {
+    const parsed = speakingReviewResultSchema.safeParse(raw);
+    return parsed.success ? parsed.data : null;
 }
 
-/**
- * 解析反馈数据
- * @param feedback - 原始反馈数据
- * @returns 解析后的反馈或 null
- */
-function parseFeedback(feedback: unknown): SpeakingReviewResult | null {
-    if (!feedback) return null;
-    
-    const result = speakingReviewResultSchema.safeParse(feedback);
-    return result.success ? result.data : null;
-}
+function mapSpeakingDetail(
+    record: Awaited<ReturnType<typeof speakingRepo.findSpeakingExerciseById>>,
+): SpeakingExerciseDetail {
+    if (!record) {
+        throw new Error("Speaking exercise not found");
+    }
 
-/**
- * 格式化练习摘要（需要关联 Conversation 获取 title）
- * @param ex - Repository 返回的练习对象
- * @param conversationTitle - 会话标题
- * @returns 格式化后的练习摘要
- */
-function formatExerciseSummary(
-    ex: NonNullable<Awaited<ReturnType<typeof speakingRepo.findSpeakingExerciseById>>>,
-    conversationTitle: string | null
-): SpeakingExerciseSummary {
     return {
-        id: ex.id,
-        conversationId: ex.conversationId,
-        title: conversationTitle,
-        scenarioType: ex.scenarioType as SpeakingScenarioType,
-        scenarioRole: ex.scenarioRole,
-        status: ex.status as SpeakingExerciseStatus,
-        totalTurns: ex.totalTurns,
-        durationSeconds: ex.durationSeconds,
-        fluencyScore: ex.fluencyScore,
-        accuracyScore: ex.accuracyScore,
-        createdAt: ex.createdAt.toISOString(),
-        completedAt: isCompleted(ex) ? (ex.updatedAt as Date).toISOString() : null,
+        id: record.id,
+        conversationId: record.conversationId,
+        scenarioId: record.scenarioId,
+        title:
+            record.conversation.title?.trim() ||
+            record.scenario?.title ||
+            record.scenarioRole,
+        prompt: record.scenario?.prompt ?? "",
+        description: record.scenario?.description ?? "",
+        aiRole: record.scenario?.aiRole?.trim() || record.scenarioRole,
+        scenarioType: record.scenarioType as SpeakingScenarioType,
+        status: record.status as SpeakingExerciseStatus,
+        totalTurns: record.totalTurns ?? record.conversation.messages.length,
+        durationSeconds: record.durationSeconds ?? 0,
+        fluencyScore: record.fluencyScore,
+        accuracyScore: record.accuracyScore,
+        feedback: parseSpeakingFeedback(record.feedback),
+        createdAt: record.createdAt.toISOString(),
+        updatedAt: record.updatedAt.toISOString(),
+        messages: record.conversation.messages.map((message) => ({
+            id: message.id,
+            role: message.role as "user" | "assistant",
+            content: message.content,
+            audioUrl: message.audioUrl,
+            createdAt: message.createdAt.toISOString(),
+        })),
     };
 }
 
-// ==================== 开始口语练习 ====================
+function mapSpeakingHistoryItem(
+    record: Awaited<ReturnType<typeof speakingRepo.findSpeakingExercises>>["rows"][number],
+): SpeakingHistoryItem {
+    return {
+        id: record.id,
+        conversationId: record.conversationId,
+        title:
+            record.conversation?.title?.trim() ||
+            record.scenario?.title ||
+            record.scenarioRole,
+        scenarioType: record.scenarioType as SpeakingScenarioType,
+        scenarioRole: record.scenarioRole,
+        status: record.status as SpeakingExerciseStatus,
+        totalTurns: record.totalTurns ?? 0,
+        durationSeconds: record.durationSeconds ?? 0,
+        fluencyScore: record.fluencyScore,
+        accuracyScore: record.accuracyScore,
+        createdAt: record.createdAt.toISOString(),
+        updatedAt: record.updatedAt.toISOString(),
+    };
+}
 
-/**
- * 开始口语练习
- * - 创建会话记录
- * - 创建口语练习记录（status: 'in_progress'）
- * @param userId - 用户 ID
- * @param params - 输入参数（scenarioId 或 scenarioCategory + title + aiRole）
- * @returns 创建的练习和会话信息
- */
-export async function startSpeakingExercise(
-    userId: string,
-    params: StartSpeakingInput
-): Promise<{ exercise: StartSpeakingResult }> {
-    const parsedId = idSchema.safeParse(userId);
-    if (!parsedId.success) {
-        throw new Error(getFirstError(parsedId.error));
-    }
-
-    const parsedParams = startSpeakingSchema.safeParse(params);
-    if (!parsedParams.success) {
-        throw new Error(getFirstError(parsedParams.error));
-    }
-
-    let scenarioType: SpeakingScenarioType;
-    let scenarioRole: string;
-    let conversationTitle: string;
-    let scenarioId: string | null = null;
-
-    // 根据输入模式确定参数
-    if (parsedParams.data.scenarioId) {
-        // 模式1：基于场景ID，从数据库加载配置
-        const scenario = await prisma.scenario.findUnique({
-            where: { id: parsedParams.data.scenarioId },
+const loadSpeakingHistory = cache(
+    async (
+        userId: string,
+        scenarioType: SpeakingScenarioType | undefined,
+        page: number,
+        pageSize: number,
+    ): Promise<SpeakingHistoryResult> => {
+        const skip = (page - 1) * pageSize;
+        const { rows, total } = await speakingRepo.findSpeakingExercises({
+            userId,
+            scenarioType,
+            skip,
+            take: pageSize,
         });
 
-        if (!scenario) {
-            throw new Error("Scenario not found");
-        }
-
-        if (scenario.type !== "speaking") {
-            throw new Error("This scenario is not a speaking scenario");
-        }
-
-        scenarioId = scenario.id;
-        scenarioType = scenario.category as SpeakingScenarioType;
-        scenarioRole = scenario.aiRole ?? "English Tutor";
-        conversationTitle = scenario.title;
-    } else if (parsedParams.data.scenarioCategory && parsedParams.data.title && parsedParams.data.aiRole) {
-        // 模式2：使用自定义参数
-        scenarioType = parsedParams.data.scenarioCategory;
-        scenarioRole = parsedParams.data.aiRole;
-        conversationTitle = parsedParams.data.title;
-        scenarioId = null;
-    } else {
-        throw new Error("Invalid input: either provide scenarioId or provide scenarioCategory, title, and aiRole together");
-    }
-
-    // 使用事务创建会话和练习
-    const result = await prisma.$transaction(async (tx) => {
-        // 1. 创建会话
-        const conversation = await tx.conversation.create({
-            data: {
-                userId,
-                type: "speaking",
-                title: conversationTitle,
-                scenarioId,
+        return {
+            exercises: rows.map(mapSpeakingHistoryItem),
+            pagination: {
+                page,
+                limit: pageSize,
+                total,
+                totalPages: Math.max(1, Math.ceil(total / pageSize)),
             },
-        });
+        };
+    },
+);
 
-        // 2. 创建口语练习
-        const exercise = await tx.speakingExercise.create({
-            data: {
-                userId,
-                scenarioId,
-                scenarioType,
-                scenarioRole,
-                conversationId: conversation.id,
-                status: "in_progress",
-            },
-        });
-
-        return { conversation, exercise };
-    });
-
-    return {
-        exercise: {
-            exerciseId: result.exercise.id,
-            conversationId: result.conversation.id,
-            scenarioType: result.exercise.scenarioType as SpeakingScenarioType,
-            scenarioRole: result.exercise.scenarioRole,
-            status: "in_progress",
-            createdAt: result.exercise.createdAt.toISOString(),
-        },
-    };
-}
-
-// ==================== 口语对话交互 ====================
-
-/**
- * 处理口语对话中的一轮交互
- * - STT: 将用户音频转为文本
- * - AI: 生成口语对话回复
- * - TTS: 将 AI 回复转为语音
- * - 保存用户消息和 AI 回复
- * - 更新练习的总轮次
- * @param userId - 用户 ID
- * @param params - 对话参数（exerciseId, conversationId, audioUrl）
- * @returns STT 识别文本、AI 回复、TTS 音频 URL 和消息 ID
- */
-export async function processSpeakingChat(
-    userId: string,
-    params: SpeakingChatInput
-): Promise<{ chat: SpeakingChatResult }> {
-    const parsedId = idSchema.safeParse(userId);
-    if (!parsedId.success) {
-        throw new Error(getFirstError(parsedId.error));
-    }
-
-    const parsedParams = speakingChatSchema.safeParse(params);
-    if (!parsedParams.success) {
-        throw new Error(getFirstError(parsedParams.error));
-    }
-
-    const { exerciseId, conversationId, audioUrl } = parsedParams.data;
-
-    // 验证练习所有权
-    const exercise = await speakingRepo.findSpeakingExerciseById(exerciseId, userId);
-    if (!exercise) {
-        throw new Error("Exercise not found or access denied");
-    }
-
-    if (exercise.status !== "in_progress") {
-        throw new Error("Exercise has ended, cannot continue conversation");
-    }
-
-    // 1. STT: 音频转文本
-    const userMessage = await speechToText(audioUrl);
-
-    // 2. AI: 生成对话回复
-    const history = await messageService.getConversationMessages({ conversationId, limit: 1000 });
-    const assistantResponse = await generateSpeakingResponse(
-        userMessage,
-        history.messages,
-        exercise.scenarioType,
-        exercise.scenarioRole
-    );
-
-    // 3. TTS: 文本转语音
-    const assistantAudioUrl = await textToSpeech(assistantResponse);
-
-    // 4. 保存用户消息和 AI 回复
-    const messages = await messageService.saveManyMessages([
-        {
-            conversationId,
-            role: "user",
-            content: userMessage,
-            audioUrl,
-        },
-        {
-            conversationId,
-            role: "assistant",
-            content: assistantResponse,
-            audioUrl: assistantAudioUrl,
-        },
-    ]);
-
-    // 5. 更新练习的总轮次
-    const newTurns = (exercise.totalTurns ?? 0) + 1;
-    await speakingRepo.updateSpeakingExercise(exerciseId, {
-        totalTurns: newTurns,
-    });
-
-    if (!messages.messages[0] || !messages.messages[1]) {
-        throw new Error("Failed to save messages");
-    }
-
-    return {
-        chat: {
-            userMessageId: messages.messages[0].id,
-            userMessage,
-            assistantMessageId: messages.messages[1].id,
-            assistantResponse,
-            assistantAudioUrl,
-            turnNumber: newTurns,
-        },
-    };
-}
-
-// ==================== 结束口语练习 ====================
-
-/**
- * 结束口语练习并生成 AI 反馈
- * - 获取会话消息历史
- * - 调用 AI 评估服务生成反馈
- * - 更新练习状态为 'completed'
- * - 保存分数和反馈
- * @param userId - 用户 ID
- * @param params - 结束参数（exerciseId）
- * @returns 完整的评估结果
- */
-export async function endSpeakingExercise(
-    userId: string,
-    params: EndSpeakingInput
-): Promise<{ result: EndSpeakingResult }> {
-    const parsedId = idSchema.safeParse(userId);
-    if (!parsedId.success) {
-        throw new Error(getFirstError(parsedId.error));
-    }
-
-    const parsedParams = endSpeakingSchema.safeParse(params);
-    if (!parsedParams.success) {
-        throw new Error(getFirstError(parsedParams.error));
-    }
-
-    const { exerciseId } = parsedParams.data;
-
-    // 验证练习所有权
-    const exercise = await speakingRepo.findSpeakingExerciseById(exerciseId, userId);
-    if (!exercise) {
-        throw new Error("Exercise not found or access denied");
-    }
-
-    if (isCompleted(exercise)) {
-        throw new Error("Exercise already completed, cannot submit again");
-    }
-
-    // 1. 获取会话消息历史
-    const history = await messageService.getConversationMessages({ conversationId: exercise.conversationId, limit: 1000 });
-
-    // 2. AI: 生成评估反馈
-    const feedback = await generateSpeakingReview(
-        history.messages,
-        exercise.scenarioType,
-        exercise.scenarioRole
-    );
-
-    // 3. 计算持续时间（从创建到现在）
-    const durationSeconds = Math.floor(
-        (Date.now() - exercise.createdAt.getTime()) / 1000
-    );
-
-    // 4. 更新练习记录
-    const updated = await speakingRepo.updateSpeakingExercise(exerciseId, {
-        status: "completed",
-        totalTurns: exercise.totalTurns ?? 0,
-        durationSeconds,
-        fluencyScore: feedback.fluencyScore,
-        accuracyScore: feedback.accuracyScore,
-        feedback: feedback as object,
-    });
-
-    return {
-        result: {
-            exerciseId: updated.id,
-            status: "completed",
-            totalTurns: updated.totalTurns ?? 0,
-            durationSeconds: updated.durationSeconds ?? 0,
-            fluencyScore: updated.fluencyScore ?? 0,
-            accuracyScore: updated.accuracyScore ?? 0,
-            feedback,
-            completedAt: (updated.updatedAt as Date).toISOString(),
-        },
-    };
-}
-
-// ==================== 获取口语练习详情 ====================
-
-/**
- * 获取口语练习详情（用于复盘页）
- * @param userId - 用户 ID
- * @param params - 查询参数（id）
- * @returns 练习详情（包含反馈）
- */
-export async function getSpeakingExerciseDetail(
-    userId: string,
-    params: GetSpeakingExerciseInput
-): Promise<{ exercise: SpeakingExerciseDetail }> {
-    const parsedId = idSchema.safeParse(userId);
-    if (!parsedId.success) {
-        throw new Error(getFirstError(parsedId.error));
-    }
-
-    const parsedParams = getSpeakingExerciseSchema.safeParse(params);
-    if (!parsedParams.success) {
-        throw new Error(getFirstError(parsedParams.error));
-    }
-
-    const exerciseId = parsedParams.data.id;
-
-    const ex = await speakingRepo.findSpeakingExerciseById(exerciseId, userId);
-    if (!ex) {
-        throw new Error("Exercise not found or access denied");
-    }
-
-    const fb = parseFeedback(ex.feedback);
-
-    return {
-        exercise: {
-            id: ex.id,
-            userId: ex.userId,
-            scenarioType: ex.scenarioType as SpeakingScenarioType,
-            scenarioRole: ex.scenarioRole,
-            conversationId: ex.conversationId,
-            status: ex.status as SpeakingExerciseStatus,
-            totalTurns: ex.totalTurns,
-            durationSeconds: ex.durationSeconds,
-            scores: isCompleted(ex)
-                ? {
-                      fluency: ex.fluencyScore,
-                      accuracy: ex.accuracyScore,
-                  }
-                : {
-                      fluency: null,
-                      accuracy: null,
-                  },
-            feedback: fb ?? null,
-            scenarioId: ex.scenarioId,
-            createdAt: ex.createdAt.toISOString(),
-            completedAt: isCompleted(ex) ? (ex.updatedAt as Date).toISOString() : null,
-        },
-    };
-}
-
-// ==================== 获取口语练习历史 ====================
-
-/**
- * 获取口语练习历史（带分页和统计）
- * @param userId - 用户 ID
- * @param params - 筛选和分页参数（scenarioType?, page, pageSize）
- * @returns 练习列表、分页信息和统计摘要
- */
 export async function getSpeakingHistory(
     userId: string,
-    params: GetSpeakingHistoryInput
+    params: GetSpeakingHistoryInput,
 ): Promise<SpeakingHistoryResult> {
     const parsedId = idSchema.safeParse(userId);
     if (!parsedId.success) {
@@ -431,104 +137,269 @@ export async function getSpeakingHistory(
         throw new Error(getFirstError(parsedParams.error));
     }
 
-    const { scenarioType, page, pageSize: limit } = parsedParams.data;
-    const skip = (page - 1) * limit;
+    const { page, pageSize, scenarioType } = parsedParams.data;
+    return loadSpeakingHistory(parsedId.data, scenarioType, page, pageSize);
+}
 
-    // 获取练习列表
-    const { rows, total } = await speakingRepo.findSpeakingExercises({
-        userId,
-        scenarioType,
-        skip,
-        take: limit,
+export async function startSpeakingExercise(
+    userId: string,
+    input: StartSpeakingInput,
+): Promise<StartSpeakingResult> {
+    const parsedId = idSchema.safeParse(userId);
+    if (!parsedId.success) {
+        throw new Error(getFirstError(parsedId.error));
+    }
+
+    const parsedInput = startSpeakingSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
+    }
+
+    const scenario = await prisma.scenario.findFirst({
+        where: {
+            id: parsedInput.data.scenarioId,
+            type: "speaking",
+            isDeleted: false,
+        },
+        select: {
+            id: true,
+            title: true,
+            description: true,
+            prompt: true,
+            aiRole: true,
+            category: true,
+        },
     });
 
-    // 获取所有会话标题（批量查询优化）
-    const conversationIds = rows.map((ex) => ex.conversationId);
-    const conversations = await prisma.conversation.findMany({
-        where: { id: { in: conversationIds } },
-        select: { id: true, title: true },
+    if (!scenario) {
+        throw new Error("Speaking scenario not found");
+    }
+
+    const exercise = await speakingRepo.createSpeakingExercise({
+        userId: parsedId.data,
+        scenarioId: scenario.id,
+        scenarioType: scenario.category as SpeakingScenarioType,
+        scenarioRole: scenario.aiRole?.trim() || scenario.title,
+        conversationTitle: scenario.title,
     });
-    const conversationMap = new Map(conversations.map((c) => [c.id, c.title]));
-
-    // 格式化列表
-    const exercises: SpeakingExerciseSummary[] = rows.map((ex) =>
-        formatExerciseSummary(ex, conversationMap.get(ex.conversationId) ?? null)
-    );
-
-    // 获取统计信息
-    const stats = await speakingRepo.countCompletedSpeakingExercises(userId);
-
-    const summary =
-        stats.count > 0
-            ? {
-                  totalExercises: total,
-                  completedExercises: stats.count,
-                  averageFluency:
-                      stats.averageFluency != null
-                          ? Math.round(stats.averageFluency * 10) / 10
-                          : null,
-                  averageAccuracy:
-                      stats.averageAccuracy != null
-                          ? Math.round(stats.averageAccuracy * 10) / 10
-                          : null,
-                  highestFluency: stats.maxFluency ?? null,
-                  lowestFluency: stats.minFluency ?? null,
-              }
-            : {
-                  totalExercises: total,
-                  completedExercises: 0,
-                  averageFluency: null,
-                  averageAccuracy: null,
-                  highestFluency: null,
-                  lowestFluency: null,
-              };
 
     return {
-        exercises,
-        pagination: {
-            page,
-            limit,
-            total,
-            totalPages: Math.max(1, Math.ceil(total / limit)),
-        },
-        summary,
+        exercise: mapSpeakingDetail(exercise),
     };
 }
 
-// ==================== 删除口语练习 ====================
+export async function getSpeakingExercise(
+    userId: string,
+    input: GetSpeakingExerciseInput,
+): Promise<{ exercise: SpeakingExerciseDetail }> {
+    const parsedId = idSchema.safeParse(userId);
+    if (!parsedId.success) {
+        throw new Error(getFirstError(parsedId.error));
+    }
 
-/**
- * 删除口语练习（软删除，级联删除会话和消息）
- * @param userId - 用户 ID
- * @param params - 删除参数（exerciseId）
- * @returns 已删除的练习 ID
- */
+    const parsedInput = getSpeakingExerciseSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
+    }
+
+    const exercise = await speakingRepo.findSpeakingExerciseById(
+        parsedInput.data.id,
+        parsedId.data,
+    );
+
+    return {
+        exercise: mapSpeakingDetail(exercise),
+    };
+}
+
+export async function sendSpeakingMessage(
+    userId: string,
+    input: SpeakingChatInput,
+): Promise<SaveSpeakingMessageResult> {
+    const parsedId = idSchema.safeParse(userId);
+    if (!parsedId.success) {
+        throw new Error(getFirstError(parsedId.error));
+    }
+
+    const parsedInput = speakingChatSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
+    }
+
+    const exercise = await speakingRepo.findSpeakingExerciseById(
+        parsedInput.data.exerciseId,
+        parsedId.data,
+    );
+
+    if (!exercise) {
+        throw new Error("Speaking exercise not found");
+    }
+
+    if (exercise.conversationId !== parsedInput.data.conversationId) {
+        throw new Error("Conversation does not match the exercise");
+    }
+
+    const { message, totalTurns } = await speakingRepo.saveSpeakingMessage({
+        exerciseId: exercise.id,
+        conversationId: exercise.conversationId,
+        role: "user",
+        content: parsedInput.data.message.trim(),
+    });
+
+    return {
+        message: {
+            id: message.id,
+            role: message.role as "user" | "assistant",
+            content: message.content,
+            audioUrl: message.audioUrl,
+            createdAt: message.createdAt.toISOString(),
+        },
+        totalTurns,
+    };
+}
+
+export async function endSpeakingExercise(
+    userId: string,
+    input: EndSpeakingInput,
+): Promise<{ exercise: SpeakingExerciseDetail }> {
+    const parsedId = idSchema.safeParse(userId);
+    if (!parsedId.success) {
+        throw new Error(getFirstError(parsedId.error));
+    }
+
+    const parsedInput = endSpeakingSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
+    }
+
+    const exercise = await speakingRepo.findSpeakingExerciseById(
+        parsedInput.data.exerciseId,
+        parsedId.data,
+    );
+
+    if (!exercise) {
+        throw new Error("Speaking exercise not found");
+    }
+
+    const totalTurns = exercise.conversation.messages.length;
+    const durationSeconds = Math.max(
+        0,
+        Math.floor((Date.now() - exercise.createdAt.getTime()) / 1000),
+    );
+
+    const updated = await speakingRepo.completeSpeakingExercise({
+        exerciseId: exercise.id,
+        status: exercise.feedback ? "reviewed" : "completed",
+        totalTurns,
+        durationSeconds,
+    });
+
+    return {
+        exercise: mapSpeakingDetail(updated),
+    };
+}
+
+export async function updateSpeakingExercise(
+    userId: string,
+    input: UpdateSpeakingExerciseInput,
+): Promise<{ exercise: SpeakingExerciseDetail }> {
+    const parsedId = idSchema.safeParse(userId);
+    if (!parsedId.success) {
+        throw new Error(getFirstError(parsedId.error));
+    }
+
+    const parsedInput = updateSpeakingExerciseSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
+    }
+
+    const exercise = await speakingRepo.findSpeakingExerciseById(
+        parsedInput.data.id,
+        parsedId.data,
+    );
+    if (!exercise) {
+        throw new Error("Speaking exercise not found");
+    }
+
+    const updateData: Pick<
+        Prisma.SpeakingExerciseUncheckedUpdateInput,
+        | "status"
+        | "totalTurns"
+        | "durationSeconds"
+        | "fluencyScore"
+        | "accuracyScore"
+        | "feedback"
+    > = {};
+
+    if (parsedInput.data.status !== undefined) {
+        updateData.status = parsedInput.data.status;
+    }
+    if (parsedInput.data.totalTurns !== undefined) {
+        updateData.totalTurns = parsedInput.data.totalTurns;
+    }
+    if (parsedInput.data.durationSeconds !== undefined) {
+        updateData.durationSeconds = parsedInput.data.durationSeconds;
+    }
+    if (parsedInput.data.fluencyScore !== undefined) {
+        updateData.fluencyScore = parsedInput.data.fluencyScore;
+    }
+    if (parsedInput.data.accuracyScore !== undefined) {
+        updateData.accuracyScore = parsedInput.data.accuracyScore;
+    }
+    if (parsedInput.data.feedback !== undefined) {
+        if (parsedInput.data.feedback === null) {
+            updateData.feedback = Prisma.JsonNull;
+        } else {
+            const parsedFeedback = speakingReviewResultSchema.safeParse(
+                parsedInput.data.feedback,
+            );
+            if (!parsedFeedback.success) {
+                throw new Error(getFirstError(parsedFeedback.error));
+            }
+            updateData.feedback = parsedFeedback.data;
+            updateData.fluencyScore =
+                parsedInput.data.fluencyScore ?? parsedFeedback.data.fluencyScore;
+            updateData.accuracyScore =
+                parsedInput.data.accuracyScore ??
+                parsedFeedback.data.accuracyScore;
+            updateData.status = parsedInput.data.status ?? "reviewed";
+        }
+    }
+
+    const updated = await speakingRepo.updateSpeakingExercise(
+        exercise.id,
+        updateData,
+    );
+
+    return {
+        exercise: mapSpeakingDetail(updated),
+    };
+}
+
 export async function deleteSpeakingExercise(
     userId: string,
-    params: DeleteSpeakingExerciseInput
+    input: DeleteSpeakingExerciseInput,
 ): Promise<{ id: string }> {
     const parsedId = idSchema.safeParse(userId);
     if (!parsedId.success) {
         throw new Error(getFirstError(parsedId.error));
     }
 
-    const parsedParams = deleteSpeakingExerciseSchema.safeParse(params);
-    if (!parsedParams.success) {
-        throw new Error(getFirstError(parsedParams.error));
+    const parsedInput = deleteSpeakingExerciseSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
     }
 
-    const { exerciseId } = parsedParams.data;
-
-    const ex = await speakingRepo.findSpeakingExerciseById(exerciseId, userId);
-    if (!ex) {
-        throw new Error("Exercise not found or access denied");
+    const exercise = await speakingRepo.findSpeakingExerciseById(
+        parsedInput.data.id,
+        parsedId.data,
+    );
+    if (!exercise) {
+        throw new Error("Speaking exercise not found");
     }
 
-    // 删除关联的会话（会级联删除消息）
-    await conversationService.deleteConversation(userId, { id: ex.conversationId });
-
-    // 删除练习
-    const result = await speakingRepo.deleteSpeakingExercise(exerciseId);
-
-    return { id: result.id };
+    return speakingRepo.deleteSpeakingExercise({
+        exerciseId: exercise.id,
+        conversationId: exercise.conversationId,
+    });
 }

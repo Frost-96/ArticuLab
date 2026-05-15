@@ -36,11 +36,6 @@ export function scoreRangeForScenarioType(
  * 将 WritingReviewResult 转换为适合存储的格式
  * （当前直接使用 WritingReviewResult，无需转换）
  */
-function prepareFeedback(result: WritingReviewResult): WritingReviewResult {
-  return result;
-}
-
-
 /**
  * 执行一次 AI 批改（无 API Key 时返回 Mock；有 Key 时调用 chat.completions + json_object）
  *
@@ -53,7 +48,7 @@ function prepareFeedback(result: WritingReviewResult): WritingReviewResult {
  */
 export async function assessWriting(
   input: AssessInput
-): Promise<{ ok: true; data: any } | { ok: false; error: string }> {
+): Promise<{ ok: true; data: WritingReviewResult } | { ok: false; error: string }> {
   const client = getWritingLlmClient();
   if (!client) {
     // Mock 数据（临时，待后续完善）
@@ -86,10 +81,12 @@ export async function assessWriting(
       return { ok: false, error: "Empty model response" };
     }
 
-    const parsed = JSON.parse(raw);
-    
-    //const validated = writingReviewResultSchema.safeParse(parsed);
-    return { ok: true, data: parsed };
+    const parsed = writingReviewResultSchema.safeParse(JSON.parse(raw));
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.message };
+    }
+
+    return { ok: true, data: parsed.data };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return { ok: false, error: msg };

@@ -25,7 +25,7 @@ const goals: {
         label: "Exam Preparation",
         description: "Preparing for IELTS, TOEFL, PTE, or other English exams",
         icon: GraduationCap,
-        color: "bg-purple-100 text-purple-600",
+        color: "bg-sky-100 text-sky-600",
     },
     {
         value: "academic",
@@ -63,7 +63,7 @@ export function GoalStep() {
     return (
         <div>
             <div className="mb-8 text-center">
-                <h2 className="mb-2 text-2xl font-bold text-slate-900 sm:text-3xl">
+                <h2 className="mb-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
                     What&apos;s your main goal?
                 </h2>
                 <p className="mx-auto max-w-md text-slate-500">
@@ -82,23 +82,23 @@ export function GoalStep() {
                             type="button"
                             onClick={() => setLearningGoal(goal.value)}
                             className={cn(
-                                "relative rounded-xl border-2 bg-white p-5 text-left transition-all duration-200 hover:shadow-md",
+                                "relative rounded-lg border bg-white p-5 text-left transition-colors",
                                 isSelected
-                                    ? "border-indigo-500 bg-indigo-50 shadow-md"
-                                    : "border-slate-200 hover:border-slate-300",
+                                    ? "border-sky-500 bg-sky-50"
+                                    : "border-slate-200 hover:border-sky-200",
                             )}
                         >
                             <div
                                 className={cn(
-                                    "mb-3 flex h-11 w-11 items-center justify-center rounded-xl",
-                                    isSelected ? "bg-indigo-100" : goal.color,
+                                    "mb-3 flex h-11 w-11 items-center justify-center rounded-md",
+                                    isSelected ? "bg-sky-100" : goal.color,
                                 )}
                             >
                                 <goal.icon
                                     className={cn(
                                         "h-5 w-5",
                                         isSelected
-                                            ? "text-indigo-600"
+                                            ? "text-sky-600"
                                             : goal.color.split(" ")[1],
                                     )}
                                 />
@@ -108,7 +108,7 @@ export function GoalStep() {
                                 className={cn(
                                     "mb-1 font-semibold",
                                     isSelected
-                                        ? "text-indigo-700"
+                                        ? "text-sky-700"
                                         : "text-slate-900",
                                 )}
                             >
@@ -122,7 +122,7 @@ export function GoalStep() {
                                 className={cn(
                                     "absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-md border-2 transition-all",
                                     isSelected
-                                        ? "border-indigo-500 bg-indigo-500"
+                                        ? "border-sky-500 bg-sky-500"
                                         : "border-slate-300",
                                 )}
                             >

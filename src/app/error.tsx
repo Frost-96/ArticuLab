@@ -18,10 +18,10 @@ export default function Error({
     }, [error]);
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-rose-50 via-white to-amber-50 px-4 py-12">
-            <Card className="w-full max-w-xl border-rose-200 shadow-xl">
+        <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+            <Card className="w-full max-w-xl border-rose-200 bg-white shadow-sm">
                 <CardContent className="flex flex-col items-center px-6 py-10 text-center sm:px-10">
-                    <div className="mb-6 flex size-16 items-center justify-center rounded-3xl bg-rose-100 text-rose-600">
+                    <div className="mb-6 flex size-14 items-center justify-center rounded-lg bg-rose-100 text-rose-600">
                         <AlertTriangle className="size-8" />
                     </div>
                     <p className="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-rose-600">
@@ -45,7 +45,7 @@ export default function Error({
                     <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
                         <Button
                             onClick={() => unstable_retry()}
-                            className="bg-indigo-600 hover:bg-indigo-700"
+                            className="bg-sky-600 hover:bg-sky-700"
                         >
                             <RefreshCw className="mr-2 size-4" />
                             Try again

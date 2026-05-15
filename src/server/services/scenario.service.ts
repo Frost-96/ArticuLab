@@ -1,85 +1,161 @@
 import * as scenarioRepo from "@/server/repositories/scenario.repository";
-import type { ScenarioCategory, ScenarioType, SpeakingScenarioType, WritingScenarioType, Difficulty } from "@/schema/enums";
-import { getScenarioListSchema, type GetScenarioListInput } from "@/schema/scenario.schema";
-import type { ScenarioPrompt, ScenarioListResult } from "@/types/scenario/scenarioTypes"
+import type { Difficulty, ScenarioCategory, ScenarioType } from "@/schema/enums";
+import {
+    createScenarioSchema,
+    deleteScenarioSchema,
+    getScenarioListSchema,
+    getScenarioSchema,
+    updateScenarioSchema,
+    type CreateScenarioInput,
+    type DeleteScenarioInput,
+    type GetScenarioInput,
+    type GetScenarioListInput,
+    type UpdateScenarioInput,
+} from "@/schema/scenario.schema";
+import type { ScenarioPrompt, ScenarioListResult } from "@/types/scenario/scenarioTypes";
 import { getFirstError } from "@/lib/error";
 
-
-// Repository 返回类型
 type FindScenariosResult = Awaited<ReturnType<typeof scenarioRepo.findScenarios>>;
 
-// ==================== 数据转换 ====================
-
 function formatScenarioList(rows: FindScenariosResult["rows"]): ScenarioPrompt[] {
-    return rows.map((s) => ({
-        id: s.id,
-        title: s.title,
-        description: s.description,
-        prompt: s.prompt,
-        difficulty: s.difficulty,
-        estimatedWords: 120, // 默认值
-        estimatedMinutes: 15, // 默认值
-        category: s.category as ScenarioType,
-        createdAt: s.createdAt.toISOString(),
+    return rows.map((scenario) => ({
+        id: scenario.id,
+        type: scenario.type as ScenarioCategory,
+        title: scenario.title,
+        description: scenario.description,
+        prompt: scenario.prompt,
+        aiRole: scenario.aiRole ?? null,
+        difficulty: scenario.difficulty as Difficulty,
+        estimatedWords: 120,
+        estimatedMinutes: 15,
+        category: scenario.category as ScenarioType,
+        createdAt: scenario.createdAt.toISOString(),
     }));
 }
 
-// ==================== 获取场景列表 ====================
+export type ScenarioDetail = ScenarioPrompt & {
+    isGenerated: boolean;
+    updatedAt: string;
+};
 
-/**
- * 获取场景列表（带分页）
- * @param params 筛选条件和分页参数
- * @returns 场景列表和分页信息
- */
-export async function getScenarioList(params: GetScenarioListInput): Promise<ScenarioListResult> {
-// ==================== 校验输入 ====================
-    const parsedParams=getScenarioListSchema.safeParse(params);
-    if(!parsedParams.success){
+function formatScenarioDetail(
+    scenario: NonNullable<Awaited<ReturnType<typeof scenarioRepo.findScenarioById>>>,
+): ScenarioDetail {
+    return {
+        id: scenario.id,
+        type: scenario.type as ScenarioCategory,
+        title: scenario.title,
+        description: scenario.description,
+        prompt: scenario.prompt,
+        aiRole: scenario.aiRole ?? null,
+        difficulty: scenario.difficulty as Difficulty,
+        estimatedWords: 120,
+        estimatedMinutes: 15,
+        category: scenario.category as ScenarioType,
+        isGenerated: scenario.isGenerated,
+        createdAt: scenario.createdAt.toISOString(),
+        updatedAt: scenario.updatedAt.toISOString(),
+    };
+}
+
+export async function getScenarioList(
+    params: GetScenarioListInput,
+): Promise<ScenarioListResult> {
+    const parsedParams = getScenarioListSchema.safeParse(params);
+
+    if (!parsedParams.success) {
         throw new Error(getFirstError(parsedParams.error));
     }
-// ==================== 业务逻辑 ====================    
 
-    const { category,scenarioType, difficulty, page, pageSize } = parsedParams.data;
-
+    const { category, scenarioType, difficulty, page, pageSize } = parsedParams.data;
     const skip = (page - 1) * pageSize;
     const { rows, total } = await scenarioRepo.findScenarios({
-        type:category,
-        category:scenarioType,
+        type: category,
+        category: scenarioType,
         difficulty,
         skip,
         take: pageSize,
     });
 
-    const prompts = formatScenarioList(rows);
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
-
     return {
-        prompts,
+        prompts: formatScenarioList(rows),
         pagination: {
             page,
             limit: pageSize,
             total,
-            totalPages,
+            totalPages: Math.max(1, Math.ceil(total / pageSize)),
         },
     };
 }
 
-// ==================== 获取场景类型列表 ====================
-
-/**
- * 获取口语类型列表
- * @returns 口语 ScenarioType 数组
- */
 export async function getSpeakingScenarioTypes(): Promise<ScenarioType[]> {
     const types = await scenarioRepo.findAllScenarioTypes("speaking");
     return [...types];
 }
 
-/**
- * 获取写作类型列表
- * @returns 写作 ScenarioType 数组
- */
 export async function getWritingScenarioTypes(): Promise<ScenarioType[]> {
     const types = await scenarioRepo.findAllScenarioTypes("writing");
     return [...types];
+}
+
+export async function getScenario(
+    input: GetScenarioInput,
+): Promise<{ scenario: ScenarioDetail }> {
+    const parsedInput = getScenarioSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
+    }
+
+    const scenario = await scenarioRepo.findScenarioById(parsedInput.data.id);
+    if (!scenario) {
+        throw new Error("Scenario not found");
+    }
+
+    return { scenario: formatScenarioDetail(scenario) };
+}
+
+export async function createScenario(
+    input: CreateScenarioInput,
+): Promise<{ scenario: ScenarioDetail }> {
+    const parsedInput = createScenarioSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
+    }
+
+    const scenario = await scenarioRepo.createScenario(parsedInput.data);
+    return { scenario: formatScenarioDetail(scenario) };
+}
+
+export async function updateScenario(
+    input: UpdateScenarioInput,
+): Promise<{ scenario: ScenarioDetail }> {
+    const parsedInput = updateScenarioSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
+    }
+
+    const { id, ...data } = parsedInput.data;
+    const existing = await scenarioRepo.findScenarioById(id);
+    if (!existing) {
+        throw new Error("Scenario not found");
+    }
+
+    const scenario = await scenarioRepo.updateScenario(id, data);
+    return { scenario: formatScenarioDetail(scenario) };
+}
+
+export async function deleteScenario(
+    input: DeleteScenarioInput,
+): Promise<{ id: string }> {
+    const parsedInput = deleteScenarioSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
+    }
+
+    const existing = await scenarioRepo.findScenarioById(parsedInput.data.id);
+    if (!existing) {
+        throw new Error("Scenario not found");
+    }
+
+    return scenarioRepo.deleteScenario(existing.id);
 }

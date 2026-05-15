@@ -1,13 +1,13 @@
 import Link from "next/link";
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import {
     BookOpen,
+    Check,
     Clock,
     Crown,
     Flame,
     Mic,
     PenLine,
-    Sparkles,
     Star,
     Target,
     TrendingUp,
@@ -17,7 +17,6 @@ import { getInitials } from "@/lib/user-display";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
 type ProfileViewProps = {
@@ -35,276 +34,332 @@ export function ProfileView({ data }: ProfileViewProps) {
     const initials = getInitials(data.header.displayName);
     const studyHours = Math.floor(data.stats.studyMinutes / 60);
     const studyMinutes = data.stats.studyMinutes % 60;
+    const recordedPracticeLabel = `${studyHours}h ${studyMinutes}m`;
+    const averageScoreLabel =
+        data.stats.avgFluency !== null && data.stats.avgAccuracy !== null
+            ? `${data.stats.avgFluency.toFixed(1)} / ${data.stats.avgAccuracy.toFixed(1)}`
+            : "No data";
 
-    const statsCards = [
+    const metrics = [
         {
-            label: "Words Written",
-            value: data.stats.totalWords.toLocaleString(),
-            icon: PenLine,
-            iconBg: "bg-indigo-100",
-            iconColor: "text-indigo-600",
+            label: "Total sessions",
+            value: String(data.stats.totalSessions),
+            detail: data.emptyStates.hasAnyActivity
+                ? "Across writing and speaking"
+                : "No activity yet",
+            icon: BookOpen,
         },
         {
-            label: "Essays Reviewed",
-            value: String(data.stats.reviewedWritingCount),
+            label: "Current streak",
+            value: `${data.stats.streak} days`,
+            detail: "Daily learning rhythm",
+            icon: Flame,
+        },
+        {
+            label: "Recorded practice",
+            value: recordedPracticeLabel,
+            detail: "Completed speaking sessions",
+            icon: Clock,
+        },
+        {
+            label: "Avg fluency / accuracy",
+            value: averageScoreLabel,
+            detail: "Reviewed speaking score",
             icon: TrendingUp,
-            iconBg: "bg-emerald-100",
-            iconColor: "text-emerald-600",
+        },
+    ];
+
+    const writingRows = [
+        {
+            label: "Words written",
+            value: data.stats.totalWords.toLocaleString(),
         },
         {
-            label: "Speaking Sessions",
+            label: "Essays reviewed",
+            value: String(data.stats.reviewedWritingCount),
+        },
+    ];
+
+    const speakingRows = [
+        {
+            label: "Speaking sessions",
             value: String(data.stats.completedSpeakingCount),
-            icon: Mic,
-            iconBg: "bg-violet-100",
-            iconColor: "text-violet-600",
         },
         {
-            label: "Avg Fluency / Accuracy",
-            value:
-                data.stats.avgFluency !== null && data.stats.avgAccuracy !== null
-                    ? `${data.stats.avgFluency.toFixed(1)} / ${data.stats.avgAccuracy.toFixed(1)}`
-                    : "No data",
-            icon: Star,
-            iconBg: "bg-amber-100",
-            iconColor: "text-amber-600",
+            label: "Average score",
+            value: averageScoreLabel,
         },
     ];
 
     return (
-        <div className="min-h-[calc(100vh-56px)] bg-slate-50 p-6">
-            <div className="mx-auto max-w-5xl space-y-6">
-                <Card>
-                    <CardContent className="p-6">
-                        <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
-                            <div className="flex items-start gap-4">
-                                <Avatar className="h-20 w-20">
-                                    <AvatarImage
-                                        src={data.header.avatar ?? undefined}
-                                        alt={data.header.displayName}
-                                    />
-                                    <AvatarFallback className="bg-indigo-100 text-2xl font-semibold text-indigo-700">
-                                        {initials}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div className="min-w-0">
-                                    <div className="flex flex-wrap items-center gap-3">
-                                        <h1 className="text-2xl font-semibold text-slate-900">
-                                            {data.header.displayName}
-                                        </h1>
-                                        <Badge
-                                            variant={
-                                                data.header.membershipTier === "pro"
-                                                    ? "default"
-                                                    : "secondary"
-                                            }
-                                            className={
-                                                data.header.membershipTier === "pro"
-                                                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white"
-                                                    : ""
-                                            }
-                                        >
-                                            {data.header.membershipTier === "pro" ? (
-                                                <>
-                                                    <Crown className="mr-1 h-3 w-3" />
-                                                    Pro
-                                                </>
-                                            ) : (
-                                                "Free"
-                                            )}
-                                        </Badge>
-                                    </div>
-                                    <p className="mt-1 text-slate-500">
-                                        {data.header.email}
-                                    </p>
-                                    <div className="mt-4 flex flex-wrap gap-2">
-                                        <Badge variant="outline">
-                                            {data.header.englishLevelLabel ?? "Level not set"}
-                                        </Badge>
-                                        <Badge variant="outline">
-                                            {data.header.learningGoalLabel ?? "Goal not set"}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            </div>
+        <div className="app-shell-page bg-[#f7f7f7]">
+            <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:py-8">
+                <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
+                            Profile
+                        </h1>
+                        <p className="mt-1 text-sm text-slate-500">
+                            A concise snapshot of your account and learning progress.
+                        </p>
+                    </div>
+                    <Button variant="outline" asChild>
+                        <Link href="/settings">Edit settings</Link>
+                    </Button>
+                </div>
 
-                            <div className="flex flex-1 flex-wrap items-center gap-4 lg:justify-end">
-                                <div className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-                                    <Flame className="h-4 w-4 text-amber-500" />
-                                    {data.stats.streak} day streak
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <section className="border-b border-slate-100 px-5 py-5">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                            <Avatar className="size-20">
+                                <AvatarImage
+                                    src={data.header.avatar ?? undefined}
+                                    alt={data.header.displayName}
+                                />
+                                <AvatarFallback className="bg-slate-100 text-2xl font-medium text-slate-700">
+                                    {initials}
+                                </AvatarFallback>
+                            </Avatar>
+
+                            <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <h2 className="truncate text-xl font-semibold text-slate-950">
+                                        {data.header.displayName}
+                                    </h2>
+                                    <Badge
+                                        variant={
+                                            data.header.membershipTier === "pro"
+                                                ? "default"
+                                                : "secondary"
+                                        }
+                                    >
+                                        {data.header.membershipTier === "pro" ? (
+                                            <>
+                                                <Crown className="size-3" />
+                                                Pro
+                                            </>
+                                        ) : (
+                                            "Free"
+                                        )}
+                                    </Badge>
                                 </div>
-                                <div className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
-                                    {data.stats.totalSessions} sessions
+                                <p className="mt-1 truncate text-sm text-slate-500">
+                                    {data.header.email}
+                                </p>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    <Badge variant="outline">
+                                        {data.header.englishLevelLabel ?? "Level not set"}
+                                    </Badge>
+                                    <Badge variant="outline">
+                                        {data.header.learningGoalLabel ?? "Goal not set"}
+                                    </Badge>
                                 </div>
-                                <div className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
-                                    {studyHours}h {studyMinutes}m recorded
-                                </div>
-                                <Button variant="outline" asChild>
-                                    <Link href="/settings">Edit in Settings</Link>
-                                </Button>
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
+                    </section>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    {statsCards.map((stat) => (
-                        <Card key={stat.label}>
-                            <CardContent className="p-4">
-                                <div
-                                    className={`mb-3 flex h-9 w-9 items-center justify-center rounded-lg ${stat.iconBg}`}
-                                >
-                                    <stat.icon className={`h-4 w-4 ${stat.iconColor}`} />
-                                </div>
-                                <p className="text-2xl font-bold text-slate-900">
-                                    {stat.value}
-                                </p>
-                                <p className="mt-0.5 text-xs text-slate-500">
-                                    {stat.label}
-                                </p>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-base">
-                                Skill Progress
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {data.emptyStates.hasSkillData ? (
-                                <div className="space-y-4">
-                                    {data.skills.map((skill) => (
-                                        <div key={skill.skill}>
-                                            <div className="mb-1.5 flex items-center justify-between text-sm">
-                                                <span className="text-slate-700">
-                                                    {skill.skill}
-                                                </span>
-                                                <span className="font-medium text-slate-900">
-                                                    {skill.scoreLabel ?? "No data"}
-                                                </span>
-                                            </div>
-                                            <Progress
-                                                value={skill.progress ?? 0}
-                                                className="h-2"
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <ProfileEmptyState
-                                    icon={Target}
-                                    title="No reviewed skill data yet"
-                                    description="Complete a reviewed writing or speaking session to unlock your real skill breakdown."
-                                    actions={[
-                                        { href: "/writing", label: "Start writing" },
-                                        { href: "/speaking", label: "Start speaking" },
-                                    ]}
+                    <section className="border-b border-slate-100 px-5 py-5">
+                        <SectionTitle
+                            title="Overview"
+                            description="High-level activity from your practice history."
+                        />
+                        <div className="mt-4 grid gap-0 overflow-hidden rounded-lg border border-slate-200 sm:grid-cols-2 lg:grid-cols-4">
+                            {metrics.map((metric) => (
+                                <MetricCell
+                                    key={metric.label}
+                                    label={metric.label}
+                                    value={metric.value}
+                                    detail={metric.detail}
+                                    icon={<metric.icon className="size-4" />}
                                 />
-                            )}
-                        </CardContent>
-                    </Card>
+                            ))}
+                        </div>
+                    </section>
 
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-base">
-                                Learning Snapshot
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3 text-sm">
-                            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
-                                <div className="flex items-center gap-2 text-slate-600">
-                                    <BookOpen className="h-4 w-4 text-indigo-500" />
-                                    Total sessions
-                                </div>
-                                <span className="font-medium text-slate-900">
-                                    {data.stats.totalSessions}
-                                </span>
+                    <section className="grid gap-0 border-b border-slate-100 lg:grid-cols-[1.15fr_0.85fr]">
+                        <div className="border-b border-slate-100 px-5 py-5 lg:border-r lg:border-b-0">
+                            <SectionTitle
+                                title="Skill progress"
+                                description="Reviewed writing and speaking signals on a 10-point scale."
+                            />
+                            <div className="mt-4">
+                                {data.emptyStates.hasSkillData ? (
+                                    <div className="space-y-4">
+                                        {data.skills.map((skill) => (
+                                            <div key={skill.skill}>
+                                                <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+                                                    <span className="font-medium text-slate-700">
+                                                        {skill.skill}
+                                                    </span>
+                                                    <span className="text-slate-500">
+                                                        {skill.scoreLabel ?? "No data"}
+                                                    </span>
+                                                </div>
+                                                <Progress
+                                                    value={skill.progress ?? 0}
+                                                    className="h-1.5"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <ProfileEmptyState
+                                        icon={Target}
+                                        title="No reviewed skill data yet"
+                                        description="Complete a reviewed writing or speaking session to unlock your skill breakdown."
+                                        actions={[
+                                            { href: "/writing", label: "Start writing" },
+                                            { href: "/speaking", label: "Start speaking" },
+                                        ]}
+                                    />
+                                )}
                             </div>
-                            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
-                                <div className="flex items-center gap-2 text-slate-600">
-                                    <Clock className="h-4 w-4 text-violet-500" />
-                                    Recorded practice
-                                </div>
-                                <span className="font-medium text-slate-900">
-                                    {studyHours}h {studyMinutes}m
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
-                                <div className="flex items-center gap-2 text-slate-600">
-                                    <Flame className="h-4 w-4 text-amber-500" />
-                                    Current streak
-                                </div>
-                                <span className="font-medium text-slate-900">
-                                    {data.stats.streak} days
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
-                                <div className="flex items-center gap-2 text-slate-600">
-                                    <Sparkles className="h-4 w-4 text-emerald-500" />
-                                    Profile state
-                                </div>
-                                <span className="font-medium text-slate-900">
-                                    {data.emptyStates.hasAnyActivity
-                                        ? "Active learner"
-                                        : "Just getting started"}
-                                </span>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                        </div>
 
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base">Achievements</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="px-5 py-5">
+                            <SectionTitle
+                                title="Learning snapshot"
+                                description="Current account state and practice totals."
+                            />
+                            <div className="mt-4 overflow-hidden rounded-lg border border-slate-200">
+                                <InfoLine
+                                    icon={<PenLine className="size-4" />}
+                                    label="Writing"
+                                    value={formatPair(writingRows)}
+                                />
+                                <InfoLine
+                                    icon={<Mic className="size-4" />}
+                                    label="Speaking"
+                                    value={formatPair(speakingRows)}
+                                />
+                                <InfoLine
+                                    icon={<Flame className="size-4" />}
+                                    label="Streak"
+                                    value={`${data.stats.streak} days`}
+                                />
+                                <InfoLine
+                                    icon={<Check className="size-4" />}
+                                    label="Profile state"
+                                    value={
+                                        data.emptyStates.hasAnyActivity
+                                            ? "Active learner"
+                                            : "Just getting started"
+                                    }
+                                />
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="px-5 py-5">
+                        <SectionTitle
+                            title="Achievements"
+                            description="Milestones unlocked from real learning activity."
+                        />
+                        <div className="mt-4 grid gap-2 sm:grid-cols-2">
                             {data.achievements.map((achievement) => {
                                 const Icon =
-                                    achievementIconMap[achievement.id as keyof typeof achievementIconMap] ??
-                                    Star;
+                                    achievementIconMap[
+                                        achievement.id as keyof typeof achievementIconMap
+                                    ] ?? Star;
 
                                 return (
                                     <div
                                         key={achievement.id}
-                                        className={`rounded-xl border p-4 transition-opacity ${
-                                            achievement.earned
-                                                ? "border-slate-200 bg-white opacity-100"
-                                                : "border-slate-100 bg-slate-50 opacity-60"
-                                        }`}
+                                        className="flex gap-3 rounded-lg border border-slate-200 bg-white p-3"
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <div
-                                                className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                                                    achievement.earned
-                                                        ? "bg-indigo-100 text-indigo-700"
-                                                        : "bg-slate-200 text-slate-500"
-                                                }`}
-                                            >
-                                                <Icon className="h-5 w-5" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-slate-900">
+                                        <div
+                                            className={
+                                                achievement.earned
+                                                    ? "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white"
+                                                    : "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-400"
+                                            }
+                                        >
+                                            <Icon className="size-4" />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <p className="text-sm font-medium text-slate-950">
                                                     {achievement.label}
                                                 </p>
-                                                <p className="text-xs text-slate-500">
-                                                    {achievement.earned ? "Unlocked" : "Locked"}
-                                                </p>
+                                                <span className="text-xs text-slate-400">
+                                                    {achievement.earned
+                                                        ? "Unlocked"
+                                                        : "Locked"}
+                                                </span>
                                             </div>
+                                            <p className="mt-1 text-xs leading-5 text-slate-500">
+                                                {achievement.description}
+                                            </p>
                                         </div>
-                                        <p className="mt-3 text-xs leading-5 text-slate-500">
-                                            {achievement.description}
-                                        </p>
                                     </div>
                                 );
                             })}
                         </div>
-                    </CardContent>
-                </Card>
+                    </section>
+                </div>
             </div>
+        </div>
+    );
+}
+
+function SectionTitle({
+    title,
+    description,
+}: {
+    title: string;
+    description: string;
+}) {
+    return (
+        <div>
+            <h3 className="text-base font-semibold text-slate-950">{title}</h3>
+            <p className="mt-1 text-sm leading-5 text-slate-500">{description}</p>
+        </div>
+    );
+}
+
+function MetricCell({
+    label,
+    value,
+    detail,
+    icon,
+}: {
+    label: string;
+    value: string;
+    detail: string;
+    icon: ReactNode;
+}) {
+    return (
+        <div className="border-b border-slate-200 p-4 last:border-b-0 sm:[&:nth-child(odd)]:border-r lg:border-b-0 lg:border-r lg:last:border-r-0">
+            <div className="mb-3 flex items-center gap-2 text-slate-400">
+                {icon}
+                <span className="text-xs font-medium uppercase text-slate-400">
+                    {label}
+                </span>
+            </div>
+            <p className="truncate text-xl font-semibold text-slate-950">{value}</p>
+            <p className="mt-1 text-xs leading-5 text-slate-500">{detail}</p>
+        </div>
+    );
+}
+
+function InfoLine({
+    icon,
+    label,
+    value,
+}: {
+    icon: ReactNode;
+    label: string;
+    value: string;
+}) {
+    return (
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-3 py-3 last:border-b-0">
+            <div className="flex min-w-0 items-center gap-2 text-slate-500">
+                {icon}
+                <span className="truncate text-sm">{label}</span>
+            </div>
+            <span className="min-w-0 truncate text-right text-sm font-medium text-slate-950">
+                {value}
+            </span>
         </div>
     );
 }
@@ -321,11 +376,11 @@ function ProfileEmptyState({
     actions: Array<{ href: string; label: string }>;
 }) {
     return (
-        <div className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-indigo-600 shadow-sm">
-                <Icon className="h-5 w-5" />
+        <div className="flex min-h-[220px] flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+            <div className="mb-4 flex size-10 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm">
+                <Icon className="size-5" />
             </div>
-            <p className="text-base font-medium text-slate-900">{title}</p>
+            <p className="text-base font-medium text-slate-950">{title}</p>
             <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
                 {description}
             </p>
@@ -338,4 +393,8 @@ function ProfileEmptyState({
             </div>
         </div>
     );
+}
+
+function formatPair(rows: Array<{ label: string; value: string }>) {
+    return rows.map((row) => `${row.value} ${row.label.toLowerCase()}`).join(" / ");
 }

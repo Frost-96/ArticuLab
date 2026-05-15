@@ -48,7 +48,7 @@ export function Footer() {
                 <div className="grid grid-cols-2 gap-8 py-12 md:grid-cols-6">
                     <div className="col-span-2">
                         <div className="mb-4 flex items-center gap-2">
-                            <div className="flex size-8 items-center justify-center rounded-xl bg-indigo-600 text-white">
+                            <div className="flex size-8 items-center justify-center rounded-xl bg-sky-600 text-white">
                                 <Sparkles className="size-4" />
                             </div>
                             <span className="text-lg font-semibold text-slate-900">
@@ -89,14 +89,14 @@ export function Footer() {
                                             link.href.startsWith("#") ? (
                                                 <a
                                                     href={link.href}
-                                                    className="text-sm text-slate-500 transition-colors hover:text-indigo-600"
+                                                    className="text-sm text-slate-500 transition-colors hover:text-sky-600"
                                                 >
                                                     {link.label}
                                                 </a>
                                             ) : (
                                                 <Link
                                                     href={link.href}
-                                                    className="text-sm text-slate-500 transition-colors hover:text-indigo-600"
+                                                    className="text-sm text-slate-500 transition-colors hover:text-sky-600"
                                                 >
                                                     {link.label}
                                                 </Link>

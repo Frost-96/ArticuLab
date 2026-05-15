@@ -1,17 +1,20 @@
 import { z } from "zod";
 
-// ==================== 通用校验 ====================
+// ==================== 閫氱敤鏍￠獙 ====================
 
-// CUID2 格式 ID（Prisma 默认生成格式）
-export const idSchema = z.cuid2("ID must be a valid CUID2");
+// Accept the ID formats used by the application and seed data.
+export const idSchema = z.union(
+    [z.cuid(), z.cuid2(), z.uuid()],
+    "ID must be a valid CUID, CUID2, or UUID",
+);
 
-// 分页参数
+// 鍒嗛〉鍙傛暟
 export const paginationSchema = z.object({
     page: z.coerce.number().int().min(1).default(1),
     pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 
-// 时间范围筛选
+// 鏃堕棿鑼冨洿绛涢€?
 export const dateRangeSchema = z
     .object({
         from: z.coerce.date().optional(),
@@ -25,7 +28,7 @@ export const dateRangeSchema = z
         { message: "Start date cannot be later than end date" },
     );
 
-// 统一 Action 返回类型
+// 缁熶竴 Action 杩斿洖绫诲瀷
 export const actionResultSchema = <T extends z.ZodType>(dataSchema: T) =>
     z.discriminatedUnion("success", [
         z.object({ success: z.literal(true), data: dataSchema }),

@@ -28,3 +28,5 @@ export * from "./scenario.schema";
 export * from "./dashboard.schema";
 export * from "./profile.schema";
 export * from "./settings.schema";
+export * from "./subscription.schema";
+export * from "./email-verification.schema";

@@ -72,7 +72,7 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --radius: 0.5rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -122,11 +122,29 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-slate-50 text-foreground antialiased;
   }
   html {
     @apply font-sans;
     scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  .app-shell-page {
+    @apply min-h-[calc(100vh-56px)] bg-slate-50;
+  }
+
+  .page-container {
+    @apply mx-auto w-full max-w-6xl px-4 py-6 sm:px-6;
+  }
+
+  .section-eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.18em] text-sky-600;
+  }
+
+  .soft-panel {
+    @apply rounded-lg border border-slate-200 bg-white shadow-sm;
   }
 }
 
@@ -176,4 +194,20 @@
 
 .animate-slide-down-fade {
   animation: slide-down-fade 0.3s ease-out;
+}
+
+.sidebar-content-enter {
+  animation: slide-right-fade 0.18s ease-out;
+}
+
+@keyframes slide-right-fade {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }

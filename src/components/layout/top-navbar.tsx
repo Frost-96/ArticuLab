@@ -53,8 +53,8 @@ export function TopNavbar({ userSummary }: TopNavbarProps) {
         : null;
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
-            <div className="flex h-full items-center justify-between px-4">
+        <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-slate-200 bg-white/90 backdrop-blur">
+            <div className="flex h-full items-center justify-between px-3 sm:px-4">
                 {/* Left Section */}
                 <div className="flex items-center gap-6">
                     {/* Mobile Menu Button */}
@@ -69,10 +69,10 @@ export function TopNavbar({ userSummary }: TopNavbarProps) {
 
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sky-600">
                             <Sparkles className="h-4 w-4 text-white" />
                         </div>
-                        <span className="hidden font-semibold text-lg text-slate-900 sm:block">
+                        <span className="hidden text-base font-semibold text-slate-950 sm:block">
                             ArticuLab
                         </span>
                     </Link>
@@ -86,9 +86,9 @@ export function TopNavbar({ userSummary }: TopNavbarProps) {
                                     key={item.href}
                                     href={item.href}
                                     className={cn(
-                                        "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                                        "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                                         isActive
-                                            ? "bg-indigo-50 text-indigo-700"
+                                            ? "bg-slate-100 text-slate-950"
                                             : "text-slate-600 hover:text-slate-900 hover:bg-slate-50",
                                     )}
                                 >
@@ -104,7 +104,7 @@ export function TopNavbar({ userSummary }: TopNavbarProps) {
                 <div className="flex items-center gap-3">
                     {/* Streak Badge */}
                     {streakLabel ? (
-                        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200">
+                        <div className="hidden sm:flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1">
                             <Flame className="h-4 w-4 text-amber-500" />
                             <span className="text-sm font-medium text-amber-700">
                                 {streakLabel}
@@ -113,7 +113,7 @@ export function TopNavbar({ userSummary }: TopNavbarProps) {
                     ) : null}
 
                     {/* Notifications */}
-                    <Button variant="ghost" size="icon" className="relative">
+                    <Button variant="ghost" size="icon" className="relative text-slate-600">
                         <Bell className="h-5 w-5 text-slate-600" />
                         <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
                     </Button>

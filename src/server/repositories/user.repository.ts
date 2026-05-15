@@ -18,9 +18,9 @@ const userProfileSelect = {
     name: true,
     avatar: true,
     englishLevel: true,
+    learningGoal: true,
     membershipTier: true,
     membershipExpiry: true,
-    learningGoal: true,
     createdAt: true,
     updatedAt: true,
 } satisfies Prisma.UserSelect;
@@ -114,7 +114,6 @@ export async function updateUser(
     });
 }
 
-
 export async function updateUserOnboarding(data: {
     userId: string;
     englishLevel: EnglishLevel;
@@ -157,5 +156,19 @@ export async function updateUserProfile(data: {
             learningGoal: data.learningGoal,
         },
         select: userProfileSelect,
+    });
+}
+
+export async function deleteUser(id: string) {
+    return prisma.user.update({
+        where: {
+            id,
+        },
+        data: {
+            isDeleted: true,
+        },
+        select: {
+            id: true,
+        },
     });
 }

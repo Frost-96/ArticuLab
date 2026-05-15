@@ -1,10 +1,18 @@
-// src/server/repositories/conversation.repository.ts
-
 import { prisma } from "@/lib/prisma";
+import type { ConversationType, MessageRole } from "@/schema";
 import { Prisma } from "../../../generated/prisma/client";
 
-// Select 模板定义 - 控制返回字段
-const conversationSelect = {
+const messageSelect = {
+    id: true,
+    conversationId: true,
+    role: true,
+    content: true,
+    audioUrl: true,
+    createdAt: true,
+    updatedAt: true,
+} satisfies Prisma.MessageSelect;
+
+const conversationSummarySelect = {
     id: true,
     userId: true,
     type: true,
@@ -12,39 +20,61 @@ const conversationSelect = {
     scenarioId: true,
     createdAt: true,
     updatedAt: true,
+    _count: {
+        select: {
+            messages: true,
+        },
+    },
 } satisfies Prisma.ConversationSelect;
 
-// ==================== 查询会话列表 ====================
+const conversationDetailSelect = {
+    id: true,
+    userId: true,
+    type: true,
+    title: true,
+    scenarioId: true,
+    createdAt: true,
+    updatedAt: true,
+    scenario: {
+        select: {
+            title: true,
+            type: true,
+            category: true,
+        },
+    },
+    messages: {
+        where: {
+            isDeleted: false,
+        },
+        orderBy: {
+            createdAt: "asc",
+        },
+        select: messageSelect,
+    },
+} satisfies Prisma.ConversationSelect;
 
-/**
- * 获取用户的会话列表（带分页）
- * @param userId - 用户 ID
- * @param type - 会话类型（可选：coach | writing | speaking）
- * @param skip - 跳过记录数
- * @param take - 获取记录数
- * @returns { rows: 会话列表，total: 总数 }
- */
 export async function findConversations(params: {
     userId: string;
-    type?: string;
+    type?: ConversationType;
     skip?: number;
     take?: number;
 }) {
-    const { userId, type, skip = 0, take = 10 } = params;
-
-    const where: Record<string, unknown> = {
+    const { userId, type, skip = 0, take = 20 } = params;
+    const where: Prisma.ConversationWhereInput = {
         userId,
         isDeleted: false,
         ...(type ? { type } : {}),
     };
 
-    const [rows, total] = await Promise.all([
+    const [rows, total] = await prisma.$transaction([
         prisma.conversation.findMany({
             where,
-            orderBy: { updatedAt: "desc" },
+            orderBy: {
+                updatedAt: "desc",
+            },
             skip,
             take,
-            select: conversationSelect,
+            select: conversationSummarySelect,
         }),
         prisma.conversation.count({ where }),
     ]);
@@ -52,34 +82,20 @@ export async function findConversations(params: {
     return { rows, total };
 }
 
-// ==================== 按 ID 查询会话 ====================
-
-/**
- * 按 ID 查询会话
- * @param id - 会话 ID
- * @param userId - 用户 ID（用于权限校验）
- * @returns Conversation | null
- */
-export async function findConversationById(
-    id: string,
-    userId: string
-) {
+export async function findConversationById(id: string, userId: string) {
     return prisma.conversation.findFirst({
-        where: { id, userId, isDeleted: false },
-        select: conversationSelect,
+        where: {
+            id,
+            userId,
+            isDeleted: false,
+        },
+        select: conversationDetailSelect,
     });
 }
 
-// ==================== 创建会话 ====================
-
-/**
- * 创建新会话
- * @param data - 会话数据
- * @returns 创建的会话
- */
 export async function createConversation(data: {
     userId: string;
-    type: string;
+    type: ConversationType;
     title?: string | null;
     scenarioId?: string | null;
 }) {
@@ -87,47 +103,172 @@ export async function createConversation(data: {
         data: {
             userId: data.userId,
             type: data.type,
-            title: data.title,
-            scenarioId: data.scenarioId,
+            title: data.title?.trim() || null,
+            scenarioId: data.scenarioId ?? null,
         },
-        select: conversationSelect,
+        select: conversationDetailSelect,
     });
 }
 
-// ==================== 更新会话 ====================
-
-/**
- * 更新会话标题
- * @param id - 会话 ID
- * @param title - 新标题
- * @returns 更新后的会话
- */
-export async function updateConversationTitle(
-    id: string,
-    title: string
-) {
+export async function updateConversationTitle(id: string, title: string) {
     return prisma.conversation.update({
-        where: { id },
-        data: { title },
-        select: conversationSelect,
-    });
-}
-
-// ==================== 删除会话 ====================
-
-/**
- * 删除会话（软删除）
- * @param id - 会话 ID
- * @returns 删除的会话 ID
- */
-export async function deleteConversation(id: string) {
-    return prisma.conversation.update({
-        where: { id },
+        where: {
+            id,
+        },
         data: {
-            isDeleted: true as unknown as boolean,
+            title: title.trim(),
         },
-        select: { id: true },
+        select: conversationDetailSelect,
     });
 }
 
+export async function deleteConversation(id: string) {
+    return prisma.$transaction(async (tx) => {
+        await tx.message.updateMany({
+            where: {
+                conversationId: id,
+                isDeleted: false,
+            },
+            data: {
+                isDeleted: true,
+            },
+        });
 
+        await tx.speakingExercise.updateMany({
+            where: {
+                conversationId: id,
+                isDeleted: false,
+            },
+            data: {
+                isDeleted: true,
+            },
+        });
+
+        return tx.conversation.update({
+            where: {
+                id,
+            },
+            data: {
+                isDeleted: true,
+            },
+            select: {
+                id: true,
+            },
+        });
+    });
+}
+
+export async function findMessages(params: {
+    userId: string;
+    conversationId: string;
+    cursor?: string;
+    take?: number;
+}) {
+    const { userId, conversationId, cursor, take = 50 } = params;
+
+    return prisma.message.findMany({
+        where: {
+            conversationId,
+            isDeleted: false,
+            conversation: {
+                userId,
+                isDeleted: false,
+            },
+        },
+        orderBy: {
+            createdAt: "asc",
+        },
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        take,
+        select: messageSelect,
+    });
+}
+
+export async function findMessageByIdForUser(id: string, userId: string) {
+    return prisma.message.findFirst({
+        where: {
+            id,
+            isDeleted: false,
+            conversation: {
+                userId,
+                isDeleted: false,
+            },
+        },
+        select: {
+            ...messageSelect,
+            conversation: {
+                select: {
+                    id: true,
+                    userId: true,
+                },
+            },
+        },
+    });
+}
+
+export async function createMessage(data: {
+    conversationId: string;
+    role: MessageRole;
+    content: string;
+    audioUrl?: string | null;
+}) {
+    return prisma.$transaction(async (tx) => {
+        const message = await tx.message.create({
+            data: {
+                conversationId: data.conversationId,
+                role: data.role,
+                content: data.content.trim(),
+                audioUrl: data.audioUrl ?? null,
+            },
+            select: messageSelect,
+        });
+
+        await tx.conversation.update({
+            where: {
+                id: data.conversationId,
+            },
+            data: {
+                updatedAt: new Date(),
+            },
+            select: {
+                id: true,
+            },
+        });
+
+        return message;
+    });
+}
+
+export async function updateMessage(
+    id: string,
+    data: {
+        content?: string;
+        audioUrl?: string | null;
+    },
+) {
+    return prisma.message.update({
+        where: {
+            id,
+        },
+        data: {
+            ...(data.content !== undefined && { content: data.content.trim() }),
+            ...(data.audioUrl !== undefined && { audioUrl: data.audioUrl }),
+        },
+        select: messageSelect,
+    });
+}
+
+export async function deleteMessage(id: string) {
+    return prisma.message.update({
+        where: {
+            id,
+        },
+        data: {
+            isDeleted: true,
+        },
+        select: {
+            id: true,
+            conversationId: true,
+        },
+    });
+}

@@ -1,124 +1,69 @@
-// src/server/services/conversation.service.ts
-
-import * as conversationRepo from "@/server/repositories/conversation.repository";
-import * as messageService from "./message.service";
 import { getFirstError } from "@/lib/error";
-import { idSchema } from "@/schema/shared.schema";
 import {
     createConversationSchema,
-    getConversationMessagesSchema,
-    updateConversationTitleSchema,
     deleteConversationSchema,
+    deleteMessageSchema,
+    getConversationListSchema,
+    getConversationMessagesSchema,
+    getConversationSchema,
+    idSchema,
+    saveMessageSchema,
+    updateConversationTitleSchema,
+    updateMessageSchema,
     type CreateConversationInput,
-    type GetConversationMessagesInput,
-    type UpdateConversationTitleInput,
     type DeleteConversationInput,
-} from "@/schema/conversation.schema";
-import type { MessageData } from "@/types/message/messageTypes";
-import type {
-    ConversationSummary,
-    CreateConversationResult,
-    ConversationDetailWithMessages,
-} from "@/types/conversation/conversationTypes";
+    type DeleteMessageInput,
+    type GetConversationInput,
+    type GetConversationListInput,
+    type GetConversationMessagesInput,
+    type SaveMessageInput,
+    type UpdateConversationTitleInput,
+    type UpdateMessageInput,
+} from "@/schema";
+import * as conversationRepo from "@/server/repositories/conversation.repository";
+import * as scenarioRepo from "@/server/repositories/scenario.repository";
 
-// ==================== 辅助函数 ====================
+type ConversationRecord = NonNullable<
+    Awaited<ReturnType<typeof conversationRepo.findConversationById>>
+>;
+type ConversationSummaryRecord = Awaited<
+    ReturnType<typeof conversationRepo.findConversations>
+>["rows"][number];
+type MessageRecord = Awaited<
+    ReturnType<typeof conversationRepo.findMessages>
+>[number];
 
-/**
- * 格式化会话数据
- * @param conv - Repository 返回的会话对象
- * @returns 格式化后的会话摘要
- */
-function formatConversationSummary(conv: { 
-    id: string; 
-    type: string; 
-    title: string | null; 
-    scenarioId: string | null; 
-    createdAt: Date;
-}): ConversationSummary {
-    return {
-        id: conv.id,
-        type: conv.type,
-        title: conv.title ?? null,
-        scenarioId: conv.scenarioId ?? null,
-        createdAt: conv.createdAt.toISOString(),
-    };
-}
+export type ConversationMessage = {
+    id: string;
+    conversationId: string;
+    role: "user" | "assistant";
+    content: string;
+    audioUrl: string | null;
+    createdAt: string;
+    updatedAt: string;
+};
 
-/**
- * 格式化会话详情
- * @param conv - Repository 返回的会话对象
- * @returns 格式化后的会话详情
- */
-function formatConversationDetail(conv: NonNullable<Awaited<ReturnType<typeof conversationRepo.findConversationById>>>) {
-    return {
-        id: conv.id,
-        userId: conv.userId,
-        type: conv.type,
-        title: conv.title ?? null,
-        scenarioId: conv.scenarioId ?? null,
-        createdAt: conv.createdAt.toISOString(),
-        updatedAt: (conv.updatedAt as Date).toISOString(),
-    };
-}
+export type ConversationSummary = {
+    id: string;
+    userId: string;
+    type: "coach" | "writing" | "speaking";
+    title: string | null;
+    scenarioId: string | null;
+    messageCount: number;
+    createdAt: string;
+    updatedAt: string;
+};
 
-// ==================== 创建会话 ====================
+export type ConversationDetail = ConversationSummary & {
+    scenario: {
+        title: string;
+        type: string;
+        category: string;
+    } | null;
+    messages: ConversationMessage[];
+};
 
-/**
- * 创建新会话
- * @param userId - 用户 ID
- * @param params - 创建参数（type, title?, scenarioId?）
- * @returns 创建的会话
- */
-export async function createConversation(
-    userId: string,
-    params: CreateConversationInput
-): Promise<CreateConversationResult> {
-    const parsedId = idSchema.safeParse(userId);
-    if (!parsedId.success) {
-        throw new Error(getFirstError(parsedId.error));
-    }
-
-    const parsed = createConversationSchema.safeParse(params);
-    if (!parsed.success) {
-        throw new Error(getFirstError(parsed.error));
-    }
-
-    const { type, title, scenarioId } = parsed.data;
-
-    const conv = await conversationRepo.createConversation({
-        userId,
-        type,
-        title: title ?? null,
-        scenarioId: scenarioId ?? null,
-    });
-
-    return {
-        conversation: {
-            id: conv.id,
-            type: conv.type,
-            title: conv.title ?? null,
-            scenarioId: conv.scenarioId ?? null,
-            createdAt: conv.createdAt.toISOString(),
-        },
-    };
-}
-
-// ==================== 获取会话列表 ====================
-
-/**
- * 获取用户的会话列表（带分页）
- * @param userId - 用户 ID
- * @param params - 筛选和分页参数
- * @returns 会话列表和分页信息
- */
-export async function getUserConversations(
-    userId: string,
-    params: {
-        type?: string;
-        page: number;
-        limit: number;
-    }
-): Promise<{
+export type ConversationListResult = {
     conversations: ConversationSummary[];
     pagination: {
         page: number;
@@ -126,169 +71,287 @@ export async function getUserConversations(
         total: number;
         totalPages: number;
     };
-}> {
+};
+
+function normalizeUserId(userId: string) {
     const parsedId = idSchema.safeParse(userId);
     if (!parsedId.success) {
         throw new Error(getFirstError(parsedId.error));
     }
 
-    const { type, page, limit } = params;
-    const skip = (page - 1) * limit;
+    return parsedId.data;
+}
 
+function mapMessage(record: MessageRecord): ConversationMessage {
+    return {
+        id: record.id,
+        conversationId: record.conversationId,
+        role: record.role as "user" | "assistant",
+        content: record.content,
+        audioUrl: record.audioUrl,
+        createdAt: record.createdAt.toISOString(),
+        updatedAt: record.updatedAt.toISOString(),
+    };
+}
+
+function mapConversationSummary(
+    record: ConversationSummaryRecord,
+): ConversationSummary {
+    return {
+        id: record.id,
+        userId: record.userId,
+        type: record.type as "coach" | "writing" | "speaking",
+        title: record.title,
+        scenarioId: record.scenarioId,
+        messageCount: record._count.messages,
+        createdAt: record.createdAt.toISOString(),
+        updatedAt: record.updatedAt.toISOString(),
+    };
+}
+
+function mapConversationDetail(record: ConversationRecord): ConversationDetail {
+    return {
+        id: record.id,
+        userId: record.userId,
+        type: record.type as "coach" | "writing" | "speaking",
+        title: record.title,
+        scenarioId: record.scenarioId,
+        messageCount: record.messages.length,
+        createdAt: record.createdAt.toISOString(),
+        updatedAt: record.updatedAt.toISOString(),
+        scenario: record.scenario
+            ? {
+                  title: record.scenario.title,
+                  type: record.scenario.type,
+                  category: record.scenario.category,
+              }
+            : null,
+        messages: record.messages.map(mapMessage),
+    };
+}
+
+export async function getConversationList(
+    userId: string,
+    input: GetConversationListInput,
+): Promise<ConversationListResult> {
+    const parsedUserId = normalizeUserId(userId);
+    const parsedInput = getConversationListSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
+    }
+
+    const { page, pageSize, type } = parsedInput.data;
+    const skip = (page - 1) * pageSize;
     const { rows, total } = await conversationRepo.findConversations({
-        userId,
+        userId: parsedUserId,
         type,
         skip,
-        take: limit,
+        take: pageSize,
     });
 
-    const conversations = rows.map(formatConversationSummary);
-    const totalPages = Math.max(1, Math.ceil(total / limit));
-
     return {
-        conversations,
+        conversations: rows.map(mapConversationSummary),
         pagination: {
             page,
-            limit,
+            limit: pageSize,
             total,
-            totalPages,
+            totalPages: Math.max(1, Math.ceil(total / pageSize)),
         },
     };
 }
 
-// ==================== 获取会话详情（含消息）====================
-
-/**
- * 获取会话详情及消息列表（支持分页）
- * @param userId - 用户 ID
- * @param params - 查询参数（conversationId, cursor?, limit?）
- * @returns 会话详情和消息列表
- */
-export async function getConversationDetail(
+export async function getConversation(
     userId: string,
-    params: GetConversationMessagesInput
-): Promise<ConversationDetailWithMessages> {
-    const parsedId = idSchema.safeParse(userId);
-    if (!parsedId.success) {
-        throw new Error(getFirstError(parsedId.error));
+    input: GetConversationInput,
+): Promise<{ conversation: ConversationDetail }> {
+    const parsedUserId = normalizeUserId(userId);
+    const parsedInput = getConversationSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
     }
 
-    const parsed = getConversationMessagesSchema.safeParse(params);
-    if (!parsed.success) {
-        throw new Error(getFirstError(parsed.error));
+    const conversation = await conversationRepo.findConversationById(
+        parsedInput.data.id,
+        parsedUserId,
+    );
+    if (!conversation) {
+        throw new Error("Conversation not found");
     }
 
-    const { conversationId, cursor, limit } = parsed.data;
+    return { conversation: mapConversationDetail(conversation) };
+}
 
-    // 验证会话所有权
-    const conv = await conversationRepo.findConversationById(conversationId, userId);
-    if (!conv) {
-        throw new Error("Conversation not found or access denied");
+export async function createConversation(
+    userId: string,
+    input: CreateConversationInput,
+): Promise<{ conversation: ConversationDetail }> {
+    const parsedUserId = normalizeUserId(userId);
+    const parsedInput = createConversationSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
     }
 
-    // 获取会话的消息(支持分页)
-    const { messages, hasMore, nextCursor } = await messageService.getConversationMessages({
-        conversationId,
-        cursor,
-        limit,
+    const { scenarioId, type } = parsedInput.data;
+    if (scenarioId) {
+        const scenario = await scenarioRepo.findScenarioById(scenarioId);
+        if (!scenario) {
+            throw new Error("Scenario not found");
+        }
+        if (scenario.type !== type) {
+            throw new Error("Scenario type does not match conversation type");
+        }
+    }
+
+    const conversation = await conversationRepo.createConversation({
+        userId: parsedUserId,
+        type,
+        title: parsedInput.data.title,
+        scenarioId: scenarioId ?? null,
     });
 
-    return {
-        conversation: {
-            id: conv.id,
-            userId: conv.userId,
-            type: conv.type,
-            title: conv.title ?? null,
-            scenarioId: conv.scenarioId ?? null,
-            createdAt: conv.createdAt.toISOString(),
-            updatedAt: (conv.updatedAt as Date).toISOString(),
-        },
-        messages,
-        hasMore,
-        nextCursor,
-    };
+    return { conversation: mapConversationDetail(conversation) };
 }
 
-// ==================== 更新会话标题 ====================
-
-/**
- * 更新会话标题
- * @param userId - 用户 ID
- * @param params - 更新参数（id, title）
- * @returns 更新后的会话
- */
 export async function updateConversationTitle(
     userId: string,
-    params: UpdateConversationTitleInput
-): Promise<{
-    conversation: {
-        id: string;
-        title: string;
-    };
-}> {
-    const parsedId = idSchema.safeParse(userId);
-    if (!parsedId.success) {
-        throw new Error(getFirstError(parsedId.error));
+    input: UpdateConversationTitleInput,
+): Promise<{ conversation: ConversationDetail }> {
+    const parsedUserId = normalizeUserId(userId);
+    const parsedInput = updateConversationTitleSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
     }
 
-    const parsed = updateConversationTitleSchema.safeParse(params);
-    if (!parsed.success) {
-        throw new Error(getFirstError(parsed.error));
+    const existing = await conversationRepo.findConversationById(
+        parsedInput.data.id,
+        parsedUserId,
+    );
+    if (!existing) {
+        throw new Error("Conversation not found");
     }
 
-    const { id: conversationId, title } = parsed.data;
+    const conversation = await conversationRepo.updateConversationTitle(
+        existing.id,
+        parsedInput.data.title,
+    );
 
-    // 验证会话所有权
-    const conv = await conversationRepo.findConversationById(conversationId, userId);
-    if (!conv) {
-        throw new Error("Conversation not found or access denied");
-    }
-
-    const updated = await conversationRepo.updateConversationTitle(conversationId, title);
-
-    return {
-        conversation: {
-            id: updated.id,
-            title: updated.title ?? title,
-        },
-    };
+    return { conversation: mapConversationDetail(conversation) };
 }
 
-// ==================== 删除会话 ====================
-
-/**
- * 删除会话（软删除，级联删除消息）
- * @param userId - 用户 ID
- * @param params - 删除参数（id）
- * @returns 已删除的会话 ID
- */
 export async function deleteConversation(
     userId: string,
-    params: DeleteConversationInput
+    input: DeleteConversationInput,
 ): Promise<{ id: string }> {
-    const parsedId = idSchema.safeParse(userId);
-    if (!parsedId.success) {
-        throw new Error(getFirstError(parsedId.error));
+    const parsedUserId = normalizeUserId(userId);
+    const parsedInput = deleteConversationSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
     }
 
-    const parsed = deleteConversationSchema.safeParse(params);
-    if (!parsed.success) {
-        throw new Error(getFirstError(parsed.error));
+    const existing = await conversationRepo.findConversationById(
+        parsedInput.data.id,
+        parsedUserId,
+    );
+    if (!existing) {
+        throw new Error("Conversation not found");
     }
 
-    const { id: conversationId } = parsed.data;
+    return conversationRepo.deleteConversation(existing.id);
+}
 
-    // 验证会话所有权
-    const conv = await conversationRepo.findConversationById(conversationId, userId);
-    if (!conv) {
-        throw new Error("Conversation not found or access denied");
+export async function getConversationMessages(
+    userId: string,
+    input: GetConversationMessagesInput,
+): Promise<{ messages: ConversationMessage[] }> {
+    const parsedUserId = normalizeUserId(userId);
+    const parsedInput = getConversationMessagesSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
     }
 
-    // 先删除所有消息
-    await messageService.deleteAllMessages(conversationId);
+    const existing = await conversationRepo.findConversationById(
+        parsedInput.data.conversationId,
+        parsedUserId,
+    );
+    if (!existing) {
+        throw new Error("Conversation not found");
+    }
 
-    // 再删除会话
-    const result = await conversationRepo.deleteConversation(conversationId);
+    const messages = await conversationRepo.findMessages({
+        userId: parsedUserId,
+        conversationId: parsedInput.data.conversationId,
+        cursor: parsedInput.data.cursor,
+        take: parsedInput.data.limit,
+    });
 
-    return { id: result.id };
+    return { messages: messages.map(mapMessage) };
+}
+
+export async function saveMessage(
+    userId: string,
+    input: SaveMessageInput,
+): Promise<{ message: ConversationMessage }> {
+    const parsedUserId = normalizeUserId(userId);
+    const parsedInput = saveMessageSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
+    }
+
+    const existing = await conversationRepo.findConversationById(
+        parsedInput.data.conversationId,
+        parsedUserId,
+    );
+    if (!existing) {
+        throw new Error("Conversation not found");
+    }
+
+    const message = await conversationRepo.createMessage(parsedInput.data);
+    return { message: mapMessage(message) };
+}
+
+export async function updateMessage(
+    userId: string,
+    input: UpdateMessageInput,
+): Promise<{ message: ConversationMessage }> {
+    const parsedUserId = normalizeUserId(userId);
+    const parsedInput = updateMessageSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
+    }
+
+    const existing = await conversationRepo.findMessageByIdForUser(
+        parsedInput.data.id,
+        parsedUserId,
+    );
+    if (!existing) {
+        throw new Error("Message not found");
+    }
+
+    const message = await conversationRepo.updateMessage(existing.id, {
+        content: parsedInput.data.content,
+        audioUrl: parsedInput.data.audioUrl,
+    });
+
+    return { message: mapMessage(message) };
+}
+
+export async function deleteMessage(
+    userId: string,
+    input: DeleteMessageInput,
+): Promise<{ id: string; conversationId: string }> {
+    const parsedUserId = normalizeUserId(userId);
+    const parsedInput = deleteMessageSchema.safeParse(input);
+    if (!parsedInput.success) {
+        throw new Error(getFirstError(parsedInput.error));
+    }
+
+    const existing = await conversationRepo.findMessageByIdForUser(
+        parsedInput.data.id,
+        parsedUserId,
+    );
+    if (!existing) {
+        throw new Error("Message not found");
+    }
+
+    return conversationRepo.deleteMessage(existing.id);
 }

@@ -6,6 +6,7 @@ import {
     createWritingExerciseSchema,
     getWritingExerciseSchema,
     deleteWritingExerciseSchema,
+    renameWritingExerciseSchema,
     getWritingHistorySchema,
     getDraftSchema,
     saveDraftSchema,
@@ -14,6 +15,7 @@ import {
     type GetWritingHistoryInput,
     type GetWritingExerciseInput,
     type DeleteWritingExerciseInput,
+    type RenameWritingExerciseInput,
     type GetDraftInput,
     type SaveDraftInput,
     type SubmitWritingInput,
@@ -255,6 +257,69 @@ export async function saveDraftAction(
  * 提交内容中的scenarioType和isCustomPrompt必须与 exerciseId 对应的记录一致
  * 目前的逻辑是只在创建作文记录时设置scenarioType、isCustomPrompt、scenarioId，之后不可变更
  */
+export async function completeWritingExerciseAction(
+    input: GetWritingExerciseInput,
+): Promise<ActionResult<{ exercise: WritingExerciseDetail }>> {
+    try {
+        const user = await getCurrentUser();
+
+        if (!user) {
+            return { success: false, error: "Unauthorized: Please login first" };
+        }
+
+        const parsed = getWritingExerciseSchema.safeParse(input);
+        if (!parsed.success) {
+            return { success: false, error: getFirstError(parsed.error) };
+        }
+
+        const result = await writingService.completeWritingExercise(
+            user.userId,
+            parsed.data,
+        );
+
+        return { success: true, data: result };
+    } catch (error) {
+        return {
+            success: false,
+            error:
+                error instanceof Error
+                    ? error.message
+                    : "Failed to complete writing exercise",
+        };
+    }
+}
+
+export async function renameWritingExerciseAction(
+    input: RenameWritingExerciseInput,
+): Promise<ActionResult<{ exercise: WritingExerciseDetail }>> {
+    try {
+        const user = await getCurrentUser();
+
+        if (!user) {
+            return { success: false, error: "Unauthorized: Please login first" };
+        }
+
+        const parsed = renameWritingExerciseSchema.safeParse(input);
+        if (!parsed.success) {
+            return { success: false, error: getFirstError(parsed.error) };
+        }
+
+        const result = await writingService.renameWritingExercise(
+            user.userId,
+            parsed.data,
+        );
+        return { success: true, data: result };
+    } catch (error) {
+        return {
+            success: false,
+            error:
+                error instanceof Error
+                    ? error.message
+                    : "Failed to rename writing exercise",
+        };
+    }
+}
+
 export async function submitWritingAction(
     input: SubmitWritingInput
 ): Promise<ActionResult<{result: SubmitWritingResult;}>> {

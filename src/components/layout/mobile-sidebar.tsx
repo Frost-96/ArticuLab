@@ -66,22 +66,22 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
 
     return (
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-            <SheetContent side="left" className="w-80 p-0">
-                <SheetHeader className="border-b border-slate-200 p-4">
+            <SheetContent side="left" className="w-80 bg-slate-100 p-0">
+                <SheetHeader className="border-b border-slate-200/70 p-3">
                     <SheetTitle className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
-                            <Sparkles className="h-4 w-4 text-white" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200/80">
+                            <Sparkles className="h-4 w-4 text-sky-700" />
                         </div>
-                        <span className="text-lg font-semibold">ArticuLab</span>
+                        <span className="text-base font-semibold text-slate-900">ArticuLab</span>
                     </SheetTitle>
                 </SheetHeader>
 
                 <div className="flex h-[calc(100%-65px)] flex-col">
-                    <div className="border-b border-slate-200 p-4">
+                    <div className="border-b border-slate-200/70 p-3">
                         <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10">
                                 <AvatarImage src={userSummary?.avatar ?? undefined} />
-                                <AvatarFallback className="bg-indigo-100 text-indigo-700">
+                                <AvatarFallback className="bg-white text-sky-700 ring-1 ring-slate-200">
                                     {userInitials}
                                 </AvatarFallback>
                             </Avatar>
@@ -101,7 +101,7 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
                             </Badge>
                         </div>
 
-                        <div className="mt-3 flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 p-2">
+                        <div className="mt-3 flex items-center justify-between rounded-xl bg-white/70 p-2 ring-1 ring-slate-200/80">
                             <div className="flex items-center gap-2">
                                 <Flame className="h-5 w-5 text-amber-500" />
                                 <div>
@@ -127,10 +127,10 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
                                         href={item.href}
                                         onClick={() => setSidebarOpen(false)}
                                         className={cn(
-                                            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                                            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                                             isActive
-                                                ? "bg-indigo-50 text-indigo-700"
-                                                : "text-slate-700 hover:bg-slate-100",
+                                                ? "bg-white text-slate-950 shadow-sm ring-1 ring-slate-200/80"
+                                                : "text-slate-700 hover:bg-slate-200/70",
                                         )}
                                     >
                                         <item.icon className="h-5 w-5" />
@@ -138,7 +138,7 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
                                         <ChevronRight
                                             className={cn(
                                                 "ml-auto h-4 w-4 transition-transform",
-                                                isActive && "text-indigo-700",
+                                                isActive && "text-sky-700",
                                             )}
                                         />
                                     </Link>
@@ -158,10 +158,10 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
                                         href={item.href}
                                         onClick={() => setSidebarOpen(false)}
                                         className={cn(
-                                            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                                            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                                             isActive
-                                                ? "bg-indigo-50 text-indigo-700"
-                                                : "text-slate-700 hover:bg-slate-100",
+                                                ? "bg-white text-slate-950 shadow-sm ring-1 ring-slate-200/80"
+                                                : "text-slate-700 hover:bg-slate-200/70",
                                         )}
                                     >
                                         <item.icon className="h-5 w-5" />
@@ -173,16 +173,16 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
                     </nav>
 
                     {membershipTier === "free" ? (
-                        <div className="border-t border-slate-200 p-4">
-                            <div className="rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 p-4 text-white">
+                        <div className="border-t border-slate-200/70 p-3">
+                            <div className="rounded-xl bg-white/70 p-4 text-slate-900 ring-1 ring-slate-200/80">
                                 <p className="text-sm font-medium">Upgrade to Pro</p>
-                                <p className="mt-1 text-xs text-indigo-100">
+                                <p className="mt-1 text-xs text-sky-700">
                                     Unlimited essays, speaking practice & more
                                 </p>
                                 <Button
                                     size="sm"
                                     variant="secondary"
-                                    className="mt-3 w-full bg-white text-indigo-700 hover:bg-indigo-50"
+                                    className="mt-3 w-full bg-sky-600 text-white hover:bg-sky-700"
                                     asChild
                                 >
                                     <Link
@@ -196,9 +196,9 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
                         </div>
                     ) : null}
 
-                    <div className="border-t border-slate-200 p-2">
+                    <div className="border-t border-slate-200/70 p-2">
                         <button
-                            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
                             onClick={handleLogout}
                         >
                             <LogOut className="h-5 w-5" />

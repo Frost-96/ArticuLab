@@ -81,7 +81,7 @@ export async function getSettingsData(userId: string): Promise<SettingsData> {
         },
         dangerZone: {
             canLogout: true,
-            canDeleteAccount: false,
+            canDeleteAccount: true,
         },
     });
 }

@@ -42,7 +42,7 @@ export function NavbarLanding() {
                     <Link href="/" className="flex items-center gap-2">
                         <div
                             className={cn(
-                                "flex items-center justify-center rounded-xl bg-indigo-600 text-white transition-all",
+                                "flex items-center justify-center rounded-xl bg-sky-600 text-white transition-all",
                                 scrolled ? "size-8" : "size-9",
                             )}
                         >
@@ -69,7 +69,7 @@ export function NavbarLanding() {
                         <Button variant="ghost" asChild>
                             <Link href="/login">Log In</Link>
                         </Button>
-                        <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
+                        <Button asChild className="bg-sky-600 hover:bg-sky-700">
                             <Link href="/signup">
                                 Get Started Free
                                 <ArrowRight className="ml-1 size-4" />
@@ -122,7 +122,7 @@ export function NavbarLanding() {
                                 </Button>
                                 <Button
                                     asChild
-                                    className="w-full bg-indigo-600 hover:bg-indigo-700"
+                                    className="w-full bg-sky-600 hover:bg-sky-700"
                                 >
                                     <Link href="/signup" onClick={closeMenu}>
                                         Get Started Free

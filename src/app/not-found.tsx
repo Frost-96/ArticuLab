@@ -5,13 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export default function NotFound() {
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-white to-indigo-50 px-4 py-12">
-            <Card className="w-full max-w-xl border-slate-200 shadow-xl">
+        <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+            <Card className="w-full max-w-xl border-slate-200 bg-white shadow-sm">
                 <CardContent className="flex flex-col items-center px-6 py-10 text-center sm:px-10">
-                    <div className="mb-6 flex size-16 items-center justify-center rounded-3xl bg-indigo-100 text-indigo-600">
+                    <div className="mb-6 flex size-14 items-center justify-center rounded-lg bg-sky-100 text-sky-600">
                         <SearchX className="size-8" />
                     </div>
-                    <p className="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">
+                    <p className="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-sky-600">
                         404
                     </p>
                     <h1 className="mb-3 text-3xl font-semibold tracking-tight text-slate-900">
@@ -23,7 +23,7 @@ export default function NotFound() {
                     </p>
 
                     <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-                        <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
+                        <Button asChild className="bg-sky-600 hover:bg-sky-700">
                             <Link href="/">
                                 <Home className="mr-2 size-4" />
                                 Go to homepage

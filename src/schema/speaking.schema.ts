@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { speakingScenarioTypeEnum, difficultyEnum } from "./enums";
+import { speakingExerciseStatusEnum, speakingScenarioTypeEnum } from "./enums";
 import { idSchema, paginationSchema } from "./shared.schema";
 
 // ==================== 口语练习 ====================
@@ -39,10 +39,10 @@ export const startSpeakingSchema = z.object({
 export const speakingChatSchema = z.object({
     exerciseId: idSchema,
     conversationId: idSchema,
-    // message: z
-    //     .string()
-    //     .min(1, "Message cannot be empty")
-    //     .max(5000, "Message must not exceed 5000 characters"),
+    message: z
+        .string()
+        .min(1, "Message cannot be empty")
+        .max(5000, "Message must not exceed 5000 characters"),
     audioUrl: z.string().url("Invalid audio URL"),
 });
 
@@ -51,9 +51,33 @@ export const endSpeakingSchema = z.object({
     exerciseId: idSchema,
 });
 
+// 更新口语练习
+export const updateSpeakingExerciseSchema = z
+    .object({
+        id: idSchema,
+        status: speakingExerciseStatusEnum.optional(),
+        totalTurns: z.number().int().min(0).optional(),
+        durationSeconds: z.number().int().min(0).optional(),
+        fluencyScore: z.number().min(0).max(10).nullable().optional(),
+        accuracyScore: z.number().min(0).max(10).nullable().optional(),
+        feedback: z.unknown().nullable().optional(),
+    })
+    .refine(
+        (data) =>
+            data.status !== undefined ||
+            data.totalTurns !== undefined ||
+            data.durationSeconds !== undefined ||
+            data.fluencyScore !== undefined ||
+            data.accuracyScore !== undefined ||
+            data.feedback !== undefined,
+        {
+            message: "At least one speaking exercise field must be provided",
+        },
+    );
+
 // 删除口语练习
 export const deleteSpeakingExerciseSchema = z.object({
-    exerciseId: idSchema,
+    id: idSchema,
 });
 
 // 获取口语练习详情（复盘页）
@@ -136,7 +160,12 @@ export const speakingReviewResultSchema = z.object({
 export type StartSpeakingInput = z.infer<typeof startSpeakingSchema>;
 export type SpeakingChatInput = z.infer<typeof speakingChatSchema>;
 export type EndSpeakingInput = z.infer<typeof endSpeakingSchema>;
-export type DeleteSpeakingExerciseInput = z.infer<typeof deleteSpeakingExerciseSchema>;
+export type UpdateSpeakingExerciseInput = z.infer<
+    typeof updateSpeakingExerciseSchema
+>;
+export type DeleteSpeakingExerciseInput = z.infer<
+    typeof deleteSpeakingExerciseSchema
+>;
 export type GetSpeakingExerciseInput = z.infer<
     typeof getSpeakingExerciseSchema
 >;

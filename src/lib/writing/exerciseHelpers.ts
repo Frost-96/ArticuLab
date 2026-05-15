@@ -35,6 +35,13 @@ export function isGraded(ex: { overallScore: number | null }): boolean {
     return ex.overallScore != null;
 }
 
-export function inferExerciseStatus(ex: { overallScore: number | null }): WritingExerciseStatus {
+export function inferExerciseStatus(ex: {
+    overallScore: number | null;
+    status?: string | null;
+}): WritingExerciseStatus {
+    if (ex.status === "completed") {
+        return "completed";
+    }
+
     return isGraded(ex) ? "completed" : "draft";
 }

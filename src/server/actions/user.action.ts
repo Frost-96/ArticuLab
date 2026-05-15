@@ -9,7 +9,7 @@ import {
 } from "@/schema";
 import type { ActionResult } from "@/schema";
 import { getFirstError } from "@/lib/error";
-import { getCurrentUser } from "@/lib/auth";
+import { clearAuthCookie, getCurrentUser } from "@/lib/auth";
 
 type UserProfile = {
     id: string;
@@ -83,7 +83,6 @@ export async function updatePassword(
 // ==================== 更新用户信息 ====================
 
 export async function updateUserProfile(
-    userId: string,
     input: UpdateProfileInput,
 ): Promise<ActionResult<{ userProfile: UserProfile }>> {
 // 1. 鉴权：获取当前登录用户
@@ -110,6 +109,29 @@ export async function updateUserProfile(
                 error instanceof Error
                     ? error.message
                     : "Failed to update user profile",
+        };
+    }
+}
+
+export async function deleteCurrentUserAction(): Promise<
+    ActionResult<{ id: string }>
+> {
+    const user = await getCurrentUser();
+    if (!user) {
+        return { success: false, error: "Unauthorized: Please login first" };
+    }
+
+    try {
+        const result = await userService.deleteCurrentUser(user.userId);
+        await clearAuthCookie();
+        return { success: true, data: result };
+    } catch (error) {
+        return {
+            success: false,
+            error:
+                error instanceof Error
+                    ? error.message
+                    : "Failed to delete user account",
         };
     }
 }

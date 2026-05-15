@@ -39,13 +39,13 @@ export function UserNav({ userSummary }: UserNavProps) {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                <button className="flex items-center gap-2 rounded-full focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
                     <Avatar className="h-8 w-8 cursor-pointer">
                         <AvatarImage
                             src={userSummary?.avatar ?? undefined}
                             alt={displayName}
                         />
-                        <AvatarFallback className="bg-indigo-100 text-indigo-700 text-sm">
+                        <AvatarFallback className="bg-sky-100 text-sky-700 text-sm">
                             {initials}
                         </AvatarFallback>
                     </Avatar>
@@ -61,7 +61,7 @@ export function UserNav({ userSummary }: UserNavProps) {
                                 Free Plan
                             </Badge>
                         ) : (
-                            <Badge className="mt-1 w-fit bg-gradient-to-r from-amber-500 to-orange-500 text-xs">
+                            <Badge className="mt-1 w-fit bg-amber-500 text-xs text-white">
                                 <Crown className="mr-1 h-3 w-3" />
                                 Pro
                             </Badge>
@@ -93,7 +93,7 @@ export function UserNav({ userSummary }: UserNavProps) {
                         <DropdownMenuItem asChild>
                             <Link
                                 href="/pricing"
-                                className="cursor-pointer text-indigo-600 focus:text-indigo-600"
+                                className="cursor-pointer text-sky-600 focus:text-sky-600"
                             >
                                 <Crown className="mr-2 h-4 w-4" />
                                 Upgrade to Pro

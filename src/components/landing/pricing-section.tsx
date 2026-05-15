@@ -11,73 +11,81 @@ import { cn } from "@/lib/utils";
 const plans = [
     {
         name: "Free",
-        description: "Perfect for trying out ArticuLab",
+        description: "For getting started with structured practice.",
         monthlyPrice: 0,
         yearlyPrice: 0,
-        cta: "Get Started Free",
+        cta: "Get started free",
         ctaVariant: "outline" as const,
         popular: false,
         features: [
             { text: "3 writing essays per month", included: true },
             { text: "5 speaking sessions per month", included: true },
             { text: "Basic AI feedback", included: true },
-            { text: "AI Coach (10 messages/day)", included: true },
-            { text: "Advanced annotations", included: false },
+            { text: "AI Coach, 10 messages/day", included: true },
+            { text: "Advanced inline annotations", included: false },
             { text: "Progress analytics", included: false },
-            { text: "Export to PDF", included: false },
+            { text: "PDF export", included: false },
             { text: "Priority support", included: false },
         ],
     },
     {
         name: "Pro",
-        description: "For serious learners preparing for exams",
+        description: "For serious learners preparing for exams.",
         monthlyPrice: 19,
         yearlyPrice: 15,
-        cta: "Start Pro Trial",
+        cta: "Start Pro trial",
         ctaVariant: "default" as const,
         popular: true,
         features: [
             { text: "Unlimited writing essays", included: true },
             { text: "Unlimited speaking sessions", included: true },
-            { text: "Advanced AI feedback + rewrites", included: true },
+            { text: "Advanced AI feedback and rewrites", included: true },
             { text: "Unlimited AI Coach", included: true },
-            { text: "Inline annotations & tips", included: true },
+            { text: "Inline annotations and tips", included: true },
             { text: "Full progress analytics", included: true },
-            { text: "Export to PDF", included: true },
+            { text: "PDF export", included: true },
             { text: "Priority email support", included: true },
         ],
     },
 ];
 
-export function PricingSection() {
+type PricingSectionProps = {
+    standalone?: boolean;
+};
+
+export function PricingSection({ standalone = false }: PricingSectionProps) {
     const [isYearly, setIsYearly] = useState(false);
 
     return (
-        <section id="pricing" className="bg-slate-50 py-20 sm:py-28">
-            <div className="mx-auto max-w-5xl px-4 sm:px-6">
-                <div className="mx-auto mb-12 max-w-2xl text-center">
-                    <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">
-                        Pricing
-                    </p>
-                    <h2 className="mb-4 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-                        Simple, transparent pricing
+        <section
+            id="pricing"
+            className={cn(
+                "bg-white",
+                standalone ? "px-4 pb-16 pt-24 sm:px-6 sm:pt-28" : "px-4 py-20 sm:px-6 sm:py-24",
+            )}
+        >
+            <div className="mx-auto max-w-5xl">
+                <div className="mx-auto mb-10 max-w-2xl text-center">
+                    <p className="section-eyebrow">Pricing</p>
+                    <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+                        Simple plans for consistent English practice
                     </h2>
-                    <p className="text-lg leading-8 text-slate-600">
-                        Start free and upgrade when you&apos;re ready for unlimited
-                        practice.
+                    <p className="mt-4 text-base leading-7 text-slate-600">
+                        Start with the free plan, then upgrade when you need unlimited
+                        reviews, richer analytics, and deeper coaching.
                     </p>
                 </div>
 
-                <div className="mb-12 flex items-center justify-center">
-                    <div className="inline-flex items-center rounded-full border border-slate-200 bg-white p-1 shadow-sm">
+                <div className="mb-8 flex items-center justify-center">
+                    <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
                         <button
                             type="button"
                             onClick={() => setIsYearly(false)}
                             className={cn(
-                                "rounded-full px-5 py-2 text-sm font-medium transition-all",
+                                "rounded-md px-4 py-2 text-sm font-medium transition-colors",
                                 !isYearly
-                                    ? "bg-indigo-600 text-white shadow-sm"
-                                    : "text-slate-600 hover:text-slate-900",
+                                    ? "bg-white text-slate-950 shadow-sm"
+                                    : "text-slate-600 hover:text-slate-950",
                             )}
                         >
                             Monthly
@@ -86,21 +94,21 @@ export function PricingSection() {
                             type="button"
                             onClick={() => setIsYearly(true)}
                             className={cn(
-                                "flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-all",
+                                "flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors",
                                 isYearly
-                                    ? "bg-indigo-600 text-white shadow-sm"
-                                    : "text-slate-600 hover:text-slate-900",
+                                    ? "bg-white text-slate-950 shadow-sm"
+                                    : "text-slate-600 hover:text-slate-950",
                             )}
                         >
                             Yearly
                             <Badge className="border-0 bg-emerald-100 text-emerald-700">
-                                -20%
+                                Save 20%
                             </Badge>
                         </button>
                     </div>
                 </div>
 
-                <div className="mx-auto grid max-w-4xl gap-8 md:grid-cols-2">
+                <div className="grid gap-5 md:grid-cols-2">
                     {plans.map((plan) => {
                         const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
 
@@ -108,52 +116,49 @@ export function PricingSection() {
                             <div
                                 key={plan.name}
                                 className={cn(
-                                    "relative rounded-3xl border-2 bg-white p-8 transition-shadow",
+                                    "relative rounded-lg border bg-white p-6 shadow-sm",
                                     plan.popular
-                                        ? "border-indigo-500 shadow-xl shadow-indigo-100"
+                                        ? "border-sky-300 ring-2 ring-sky-100"
                                         : "border-slate-200",
                                 )}
                             >
                                 {plan.popular ? (
-                                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                                        <Badge className="bg-indigo-600 px-4 py-1 text-sm text-white shadow-md">
-                                            <Crown className="mr-1.5 size-3.5" />
-                                            Most Popular
-                                        </Badge>
-                                    </div>
+                                    <Badge className="absolute right-4 top-4 bg-sky-600 text-white">
+                                        <Crown className="mr-1.5 size-3.5" />
+                                        Recommended
+                                    </Badge>
                                 ) : null}
 
-                                <div className="mb-6">
-                                    <h3 className="mb-1 text-xl font-semibold text-slate-900">
+                                <div className="pr-24">
+                                    <h3 className="text-xl font-semibold text-slate-950">
                                         {plan.name}
                                     </h3>
-                                    <p className="text-sm text-slate-500">
+                                    <p className="mt-1 text-sm leading-6 text-slate-500">
                                         {plan.description}
                                     </p>
                                 </div>
 
-                                <div className="mb-6">
+                                <div className="mt-6">
                                     <div className="flex items-baseline gap-1">
-                                        <span className="text-5xl font-semibold text-slate-900">
+                                        <span className="text-4xl font-semibold text-slate-950">
                                             ${price}
                                         </span>
-                                        <span className="text-slate-500">/month</span>
+                                        <span className="text-sm text-slate-500">
+                                            /month
+                                        </span>
                                     </div>
-                                    {isYearly && price > 0 ? (
-                                        <p className="mt-1 text-sm text-emerald-600">
-                                            Billed yearly (${price * 12}/year)
-                                        </p>
-                                    ) : null}
-                                    {!isYearly && plan.monthlyPrice > 0 ? (
-                                        <p className="mt-1 text-sm text-slate-400">
-                                            Billed monthly
-                                        </p>
-                                    ) : null}
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        {price > 0
+                                            ? isYearly
+                                                ? `Billed yearly at $${price * 12}.`
+                                                : "Billed monthly."
+                                            : "No credit card required."}
+                                    </p>
                                 </div>
 
-                                <Separator className="mb-6" />
+                                <Separator className="my-6" />
 
-                                <ul className="mb-8 space-y-3">
+                                <ul className="space-y-3">
                                     {plan.features.map((feature) => (
                                         <li
                                             key={feature.text}
@@ -165,17 +170,11 @@ export function PricingSection() {
                                             )}
                                         >
                                             {feature.included ? (
-                                                <Check className="mt-0.5 size-5 shrink-0 text-emerald-500" />
+                                                <Check className="mt-0.5 size-4 shrink-0 text-emerald-600" />
                                             ) : (
-                                                <X className="mt-0.5 size-5 shrink-0 text-slate-300" />
+                                                <X className="mt-0.5 size-4 shrink-0 text-slate-300" />
                                             )}
-                                            <span
-                                                className={
-                                                    feature.included ? "" : "line-through"
-                                                }
-                                            >
-                                                {feature.text}
-                                            </span>
+                                            <span>{feature.text}</span>
                                         </li>
                                     ))}
                                 </ul>
@@ -184,29 +183,23 @@ export function PricingSection() {
                                     asChild
                                     variant={plan.ctaVariant}
                                     className={cn(
-                                        "h-12 w-full text-base",
+                                        "mt-8 h-10 w-full",
                                         plan.popular
-                                            ? "bg-indigo-600 hover:bg-indigo-700"
+                                            ? "bg-sky-600 hover:bg-sky-700"
                                             : "",
                                     )}
                                 >
                                     <Link href="/signup">{plan.cta}</Link>
                                 </Button>
-
-                                {plan.popular ? (
-                                    <p className="mt-3 text-center text-xs text-slate-400">
-                                        7-day free trial • Cancel anytime
-                                    </p>
-                                ) : null}
                             </div>
                         );
                     })}
                 </div>
 
-                <div className="mt-10 text-center text-sm text-slate-500">
-                    Students with a valid academic email can unlock special pricing
-                    when registration opens for campus offers.
-                </div>
+                <p className="mx-auto mt-8 max-w-2xl text-center text-sm leading-6 text-slate-500">
+                    Campus and cohort pricing can be supported for schools and
+                    language programs when registration opens for organizations.
+                </p>
             </div>
         </section>
     );

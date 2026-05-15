@@ -52,8 +52,8 @@ const activityIconMap = {
 };
 
 const activityColorMap = {
-    writing: "bg-indigo-100 text-indigo-600",
-    speaking: "bg-violet-100 text-violet-600",
+    writing: "bg-sky-100 text-sky-600",
+    speaking: "bg-blue-100 text-blue-600",
     coach: "bg-emerald-100 text-emerald-600",
 };
 
@@ -69,14 +69,14 @@ export function DashboardView({ data }: DashboardViewProps) {
             value: String(data.stats.totalSessions),
             detail: `${data.stats.writingCount} writing | ${data.stats.speakingCount} speaking | ${data.stats.coachChatCount} coach`,
             icon: BookOpen,
-            iconClassName: "bg-indigo-100 text-indigo-600",
+            iconClassName: "bg-sky-100 text-sky-600",
         },
         {
             label: "Recorded Practice Time",
             value: `${recordedHours}h ${recordedMinutes}m`,
             detail: "Based on completed speaking sessions",
             icon: Clock,
-            iconClassName: "bg-violet-100 text-violet-600",
+            iconClassName: "bg-blue-100 text-blue-600",
         },
         {
             label: "Current Streak",
@@ -100,12 +100,12 @@ export function DashboardView({ data }: DashboardViewProps) {
     ];
 
     return (
-        <div className="min-h-[calc(100vh-56px)] bg-slate-50 p-6">
-            <div className="mx-auto max-w-6xl space-y-6">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="app-shell-page">
+            <div className="page-container space-y-6">
+                <div className="soft-panel flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-semibold text-slate-900">
+                            <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
                                 Welcome back, {data.header.displayName}
                             </h1>
                             <Badge
@@ -116,27 +116,27 @@ export function DashboardView({ data }: DashboardViewProps) {
                                 }
                                 className={cn(
                                     data.header.membershipTier === "pro"
-                                        ? "bg-indigo-600 text-white"
+                                        ? "bg-sky-600 text-white"
                                         : "",
                                 )}
                             >
                                 {data.header.membershipTier === "pro" ? "Pro" : "Free"}
                             </Badge>
                         </div>
-                        <p className="mt-1 text-slate-500">
-                            Your dashboard now reflects real activity from the
-                            database.
+                        <p className="mt-1 text-sm leading-6 text-slate-500">
+                            Track your practice loop across writing, speaking, and
+                            coach sessions.
                         </p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
-                        <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
+                        <div className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
                             <Calendar className="size-4 text-slate-500" />
                             Last 8 weeks
                         </div>
                         <Button
                             asChild
-                            className="bg-indigo-600 hover:bg-indigo-700"
+                            className="bg-sky-600 hover:bg-sky-700"
                         >
                             <Link href="/writing">
                                 Start Learning
@@ -148,14 +148,14 @@ export function DashboardView({ data }: DashboardViewProps) {
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                     {statsCards.map((card) => (
-                        <Card key={card.label}>
+                        <Card key={card.label} className="bg-white shadow-sm">
                             <CardContent className="p-5">
                                 <div className="flex items-center justify-between">
                                     <div className="min-w-0">
                                         <p className="mb-1 text-sm text-slate-500">
                                             {card.label}
                                         </p>
-                                        <p className="truncate text-3xl font-bold text-slate-900">
+                                        <p className="truncate text-3xl font-semibold tracking-tight text-slate-950">
                                             {card.value}
                                         </p>
                                         <p className="mt-1 text-sm text-slate-500">
@@ -164,7 +164,7 @@ export function DashboardView({ data }: DashboardViewProps) {
                                     </div>
                                     <div
                                         className={cn(
-                                            "flex size-12 shrink-0 items-center justify-center rounded-xl",
+                                            "flex size-10 shrink-0 items-center justify-center rounded-md",
                                             card.iconClassName,
                                         )}
                                     >
@@ -177,7 +177,7 @@ export function DashboardView({ data }: DashboardViewProps) {
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    <Card>
+                    <Card className="bg-white shadow-sm">
                         <CardHeader>
                             <CardTitle>Skill Breakdown</CardTitle>
                             <CardDescription>
@@ -187,7 +187,7 @@ export function DashboardView({ data }: DashboardViewProps) {
                         </CardHeader>
                         <CardContent>
                             {data.emptyStates.hasFullRadarData ? (
-                                <div className="h-[300px]">
+                                <div className="h-[300px] min-h-[300px] min-w-0">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <RadarChart data={data.radar}>
                                             <PolarGrid stroke="#e2e8f0" />
@@ -203,8 +203,8 @@ export function DashboardView({ data }: DashboardViewProps) {
                                             <Radar
                                                 name="Score"
                                                 dataKey="score"
-                                                stroke="#6366f1"
-                                                fill="#6366f1"
+                                                stroke="#0ea5e9"
+                                                fill="#0ea5e9"
                                                 fillOpacity={0.2}
                                             />
                                         </RadarChart>
@@ -223,7 +223,7 @@ export function DashboardView({ data }: DashboardViewProps) {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="bg-white shadow-sm">
                         <CardHeader>
                             <CardTitle>Progress Trend</CardTitle>
                             <CardDescription>
@@ -233,7 +233,7 @@ export function DashboardView({ data }: DashboardViewProps) {
                         </CardHeader>
                         <CardContent>
                             {data.emptyStates.hasTrendData ? (
-                                <div className="h-[300px]">
+                                <div className="h-[300px] min-h-[300px] min-w-0">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <LineChart data={data.trend}>
                                             <CartesianGrid
@@ -252,17 +252,17 @@ export function DashboardView({ data }: DashboardViewProps) {
                                             <Line
                                                 type="monotone"
                                                 dataKey="writingScore"
-                                                stroke="#6366f1"
+                                                stroke="#0ea5e9"
                                                 strokeWidth={2}
-                                                dot={{ fill: "#6366f1" }}
+                                                dot={{ fill: "#0ea5e9" }}
                                                 name="Writing Overall"
                                             />
                                             <Line
                                                 type="monotone"
                                                 dataKey="speakingScore"
-                                                stroke="#a855f7"
+                                                stroke="#38bdf8"
                                                 strokeWidth={2}
-                                                dot={{ fill: "#a855f7" }}
+                                                dot={{ fill: "#38bdf8" }}
                                                 name="Speaking Fluency"
                                             />
                                         </LineChart>
@@ -289,7 +289,7 @@ export function DashboardView({ data }: DashboardViewProps) {
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    <Card>
+                    <Card className="bg-white shadow-sm">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
                                 <Target className="size-4 text-amber-600" />
@@ -305,7 +305,7 @@ export function DashboardView({ data }: DashboardViewProps) {
                                 data.weaknesses.map((weakness) => (
                                     <div
                                         key={`${weakness.category}-${weakness.description}`}
-                                        className="rounded-lg border border-amber-100 bg-amber-50 p-3"
+                                    className="rounded-md border border-amber-100 bg-amber-50 p-3"
                                     >
                                         <div className="flex items-start justify-between gap-3">
                                             <div>
@@ -350,7 +350,7 @@ export function DashboardView({ data }: DashboardViewProps) {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="bg-white shadow-sm">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
                                 <Clock className="size-4 text-slate-600" />
@@ -358,7 +358,7 @@ export function DashboardView({ data }: DashboardViewProps) {
                             </CardTitle>
                             <CardDescription>
                                 Writing, speaking, and coach activity merged from
-                                real records.
+                                your recent practice.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -372,12 +372,12 @@ export function DashboardView({ data }: DashboardViewProps) {
                                                 key={`${activity.type}-${activity.id}`}
                                                 type="button"
                                                 onClick={() => router.push(activity.href)}
-                                                className="flex w-full items-center justify-between rounded-lg p-3 text-left transition-colors hover:bg-slate-50"
+                                                className="flex w-full items-center justify-between rounded-md p-3 text-left transition-colors hover:bg-slate-50"
                                             >
                                                 <div className="flex min-w-0 items-center gap-3">
                                                     <div
                                                         className={cn(
-                                                            "flex size-8 shrink-0 items-center justify-center rounded-lg",
+                                                            "flex size-8 shrink-0 items-center justify-center rounded-md",
                                                             activityColorMap[activity.type],
                                                         )}
                                                     >
@@ -443,8 +443,8 @@ function ModuleEmptyState({
     actions: Array<{ href: string; label: string }>;
 }) {
     return (
-        <div className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-            <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-white text-indigo-600 shadow-sm">
+        <div className="flex min-h-[220px] flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+            <div className="mb-4 flex size-11 items-center justify-center rounded-md bg-white text-sky-600 shadow-sm">
                 <LayoutDashboard className="size-5" />
             </div>
             <p className="text-base font-medium text-slate-900">{title}</p>

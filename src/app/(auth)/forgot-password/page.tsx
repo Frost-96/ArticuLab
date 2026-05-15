@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
     return (
         <div className="w-full max-w-md">
             <div className="mb-8 text-center">
-                <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-indigo-600">
+                <div className="mb-4 inline-flex size-11 items-center justify-center rounded-lg bg-sky-600">
                     <Sparkles className="size-6 text-white" />
                 </div>
                 <h1 className="text-2xl font-bold text-slate-900">Reset password</h1>
@@ -32,7 +32,7 @@ export default function ForgotPasswordPage() {
                 </p>
             </div>
 
-            <Card className="border-slate-200 shadow-lg">
+            <Card className="border-slate-200 bg-white shadow-sm">
                 <CardHeader className="px-6 pb-0 pt-6">
                     <h2 className="text-xl font-semibold text-slate-900">
                         Forgot your password?
@@ -45,9 +45,9 @@ export default function ForgotPasswordPage() {
 
                 <CardContent className="space-y-4 p-6">
                     {submitted ? (
-                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
                             <div className="flex items-start gap-3">
-                                <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                                <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-emerald-100">
                                     <Mail className="size-4 text-emerald-700" />
                                 </div>
                                 <div>
@@ -78,7 +78,7 @@ export default function ForgotPasswordPage() {
                             </div>
 
                             <Button
-                                className="w-full bg-indigo-600 hover:bg-indigo-700"
+                                className="w-full bg-sky-600 hover:bg-sky-700"
                                 onClick={handleSubmit}
                                 disabled={!email.trim()}
                             >
@@ -90,7 +90,7 @@ export default function ForgotPasswordPage() {
                     <div className="space-y-2 border-t border-slate-100 pt-4">
                         <Link
                             href="/login"
-                            className="inline-flex items-center gap-2 text-sm font-medium text-indigo-600 hover:underline"
+                            className="inline-flex items-center gap-2 text-sm font-medium text-sky-600 hover:underline"
                         >
                             <ArrowLeft className="size-4" />
                             Back to login
