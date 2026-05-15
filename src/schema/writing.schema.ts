@@ -103,6 +103,14 @@ export const deleteWritingExerciseSchema = z.object({
     exerciseId: idSchema,
 });
 
+export const renameWritingExerciseSchema = z.object({
+    exerciseId: idSchema,
+    title: z
+        .string()
+        .min(1, "Title cannot be empty")
+        .max(1000, "Title must not exceed 1000 characters"),
+});
+
 // ==================== AI 批改反馈结构 ====================
 
 // 逐句点评项
@@ -146,5 +154,6 @@ export type GetWritingHistoryInput = z.infer<typeof getWritingHistorySchema>;
 export type CreateWritingExerciseInput = z.infer<typeof createWritingExerciseSchema>;
 export type GetDraftInput = z.infer<typeof getDraftSchema>;
 export type DeleteWritingExerciseInput = z.infer<typeof deleteWritingExerciseSchema>;
+export type RenameWritingExerciseInput = z.infer<typeof renameWritingExerciseSchema>;
 export type SentenceFeedback = z.infer<typeof sentenceFeedbackSchema>;
 export type WritingReviewResult = z.infer<typeof writingReviewResultSchema>;

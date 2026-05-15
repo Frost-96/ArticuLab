@@ -6,6 +6,7 @@ import {
     createWritingExerciseSchema,
     getWritingExerciseSchema,
     deleteWritingExerciseSchema,
+    renameWritingExerciseSchema,
     getWritingHistorySchema,
     getDraftSchema,
     saveDraftSchema,
@@ -14,6 +15,7 @@ import {
     type GetWritingHistoryInput,
     type GetWritingExerciseInput,
     type DeleteWritingExerciseInput,
+    type RenameWritingExerciseInput,
     type GetDraftInput,
     type SaveDraftInput,
     type SubmitWritingInput,
@@ -283,6 +285,37 @@ export async function completeWritingExerciseAction(
                 error instanceof Error
                     ? error.message
                     : "Failed to complete writing exercise",
+        };
+    }
+}
+
+export async function renameWritingExerciseAction(
+    input: RenameWritingExerciseInput,
+): Promise<ActionResult<{ exercise: WritingExerciseDetail }>> {
+    try {
+        const user = await getCurrentUser();
+
+        if (!user) {
+            return { success: false, error: "Unauthorized: Please login first" };
+        }
+
+        const parsed = renameWritingExerciseSchema.safeParse(input);
+        if (!parsed.success) {
+            return { success: false, error: getFirstError(parsed.error) };
+        }
+
+        const result = await writingService.renameWritingExercise(
+            user.userId,
+            parsed.data,
+        );
+        return { success: true, data: result };
+    } catch (error) {
+        return {
+            success: false,
+            error:
+                error instanceof Error
+                    ? error.message
+                    : "Failed to rename writing exercise",
         };
     }
 }

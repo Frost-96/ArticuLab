@@ -12,6 +12,7 @@ const speakingMessageSelect = {
 
 const speakingExerciseListSelect = {
     id: true,
+    conversationId: true,
     scenarioType: true,
     scenarioRole: true,
     status: true,

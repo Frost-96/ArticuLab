@@ -6,6 +6,7 @@ import type {
 
 export type SpeakingHistoryItem = {
     id: string;
+    conversationId: string;
     title: string;
     scenarioType: SpeakingScenarioType;
     scenarioRole: string;

@@ -1,5 +1,6 @@
 export type SidebarHistoryItem = {
     id: string;
+    conversationId?: string;
     title: string;
     href: string;
     date: string;

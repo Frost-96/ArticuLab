@@ -58,16 +58,9 @@ export async function getCoachPageData(
 
     const conversations = await loadCoachConversations(parsedId.data);
     const summaries = conversations.map(mapConversationSummary);
-    const firstConversation = summaries[0];
-
-    if (!firstConversation) {
-        return {
-            conversations: [],
-            activeConversation: null,
-        };
-    }
-
-    let activeConversation = null;
+    let activeConversation: Awaited<
+        ReturnType<typeof coachRepo.findCoachConversationById>
+    > = null;
 
     if (activeConversationId) {
         const parsedConversationId = idSchema.safeParse(activeConversationId);
@@ -77,13 +70,6 @@ export async function getCoachPageData(
                 parsedConversationId.data,
             );
         }
-    }
-
-    if (!activeConversation) {
-        activeConversation = await coachRepo.findCoachConversationById(
-            parsedId.data,
-            firstConversation.id,
-        );
     }
 
     return {

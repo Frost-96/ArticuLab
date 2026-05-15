@@ -1,12 +1,23 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
 import {
+    type FormEvent,
+    useMemo,
+    useState,
+    useSyncExternalStore,
+    useTransition,
+} from "react";
+import {
+    Loader2,
     MessageSquare,
     Mic,
+    MoreHorizontal,
     PanelLeft,
+    Pencil,
     PenLine,
+    Pin,
+    PinOff,
     Plus,
     SquarePen,
     Trash2,
@@ -14,11 +25,34 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/uiStore";
-import { deleteConversationAction } from "@/server/actions/conversation.action";
+import {
+    deleteConversationAction,
+    updateConversationTitleAction,
+} from "@/server/actions/conversation.action";
 import { deleteSpeakingExerciseAction } from "@/server/actions/speaking.action";
-import { deleteWritingExerciseAction } from "@/server/actions/writing.action";
+import {
+    deleteWritingExerciseAction,
+    renameWritingExerciseAction,
+} from "@/server/actions/writing.action";
 import type { SidebarHistoryItem } from "@/types/navigation/sidebarTypes";
 
 export type SidebarType = "coach" | "writing" | "speaking";
@@ -130,18 +164,105 @@ const META_BADGE_STYLES = [
     "bg-slate-100 text-slate-600 ring-1 ring-slate-200/70",
 ];
 
+const PINNED_SIDEBAR_EVENT = "articulab-sidebar-pinned-change";
+
+function readPinnedSnapshot(storageKey: string) {
+    if (typeof window === "undefined") {
+        return "[]";
+    }
+
+    try {
+        return window.localStorage.getItem(storageKey) ?? "[]";
+    } catch {
+        return "[]";
+    }
+}
+
+function parsePinnedIds(snapshot: string) {
+    try {
+        const parsedPinnedIds = JSON.parse(snapshot);
+
+        if (!Array.isArray(parsedPinnedIds)) {
+            return [];
+        }
+
+        return parsedPinnedIds.filter(
+            (value): value is string => typeof value === "string",
+        );
+    } catch {
+        return [];
+    }
+}
+
+function subscribeToPinnedIds(onStoreChange: () => void) {
+    if (typeof window === "undefined") {
+        return () => {};
+    }
+
+    window.addEventListener("storage", onStoreChange);
+    window.addEventListener(PINNED_SIDEBAR_EVENT, onStoreChange);
+
+    return () => {
+        window.removeEventListener("storage", onStoreChange);
+        window.removeEventListener(PINNED_SIDEBAR_EVENT, onStoreChange);
+    };
+}
+
 export function LeftSidebar({ type, items }: LeftSidebarProps) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const [isPending, startTransition] = useTransition();
-    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [mutatingId, setMutatingId] = useState<string | null>(null);
+    const [renameTarget, setRenameTarget] =
+        useState<SidebarHistoryItem | null>(null);
+    const [renameTitle, setRenameTitle] = useState("");
+    const [deleteTarget, setDeleteTarget] =
+        useState<SidebarHistoryItem | null>(null);
     const { sidebarCollapsed, toggleSidebarCollapse } = useUIStore();
 
     const query = searchParams.toString();
     const currentHref = query ? `${pathname}?${query}` : pathname;
-    const groups = groupByDay(items);
     const theme = getSidebarTheme(type);
+    const pinnedStorageKey = `articulab.sidebar.${type}.pinned`;
+    const pinnedSnapshot = useSyncExternalStore(
+        subscribeToPinnedIds,
+        () => readPinnedSnapshot(pinnedStorageKey),
+        () => "[]",
+    );
+    const pinnedIds = useMemo(
+        () => parsePinnedIds(pinnedSnapshot),
+        [pinnedSnapshot],
+    );
+    const pinnedIdSet = useMemo(() => new Set(pinnedIds), [pinnedIds]);
+    const orderedItems = useMemo(() => {
+        return [...items].sort((a, b) => {
+            const aPinned = pinnedIdSet.has(a.id);
+            const bPinned = pinnedIdSet.has(b.id);
+
+            if (aPinned !== bPinned) {
+                return aPinned ? -1 : 1;
+            }
+
+            return items.indexOf(a) - items.indexOf(b);
+        });
+    }, [items, pinnedIdSet]);
+    const groups = useMemo(() => {
+        const pinnedItems = orderedItems.filter((item) => pinnedIdSet.has(item.id));
+        const unpinnedItems = orderedItems.filter(
+            (item) => !pinnedIdSet.has(item.id),
+        );
+
+        return [
+            pinnedItems.length > 0
+                ? { label: "Pinned", items: pinnedItems }
+                : null,
+            ...groupByDay(unpinnedItems),
+        ].filter(
+            (group): group is { label: string; items: SidebarHistoryItem[] } =>
+                group !== null,
+        );
+    }, [orderedItems, pinnedIdSet]);
 
     const newHref = {
         coach: "/coach",
@@ -160,17 +281,106 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
         writing: PenLine,
         speaking: Mic,
     }[type];
-    const recentItems = items.slice(0, 6);
+    const recentItems = orderedItems.slice(0, 6);
     const hasActiveRecentItem = recentItems.some((item) => currentHref === item.href);
     const collapsedRecentLabel = "\u6700\u8fd1\u804a\u5929";
 
-    function deleteItem(item: SidebarHistoryItem) {
-        const confirmed = window.confirm(`Delete "${item.title}"?`);
-        if (!confirmed) {
+    function togglePinnedItem(item: SidebarHistoryItem) {
+        const next = pinnedIds.includes(item.id)
+            ? pinnedIds.filter((id) => id !== item.id)
+            : [item.id, ...pinnedIds];
+
+        try {
+            window.localStorage.setItem(pinnedStorageKey, JSON.stringify(next));
+            window.dispatchEvent(new Event(PINNED_SIDEBAR_EVENT));
+        } catch {
+            window.dispatchEvent(new Event(PINNED_SIDEBAR_EVENT));
+        }
+    }
+
+    function getRenameConversationId(item: SidebarHistoryItem) {
+        if (item.conversationId) {
+            return item.conversationId;
+        }
+
+        if (type === "coach") {
+            return item.id;
+        }
+
+        return null;
+    }
+
+    function canRenameItem(item: SidebarHistoryItem) {
+        return type === "writing" || getRenameConversationId(item) !== null;
+    }
+
+    function openRenameDialog(item: SidebarHistoryItem) {
+        if (!canRenameItem(item)) {
             return;
         }
 
-        setDeletingId(item.id);
+        setRenameTarget(item);
+        setRenameTitle(item.title);
+    }
+
+    function submitRename(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+
+        if (!renameTarget) {
+            return;
+        }
+
+        const item = renameTarget;
+        const conversationId = getRenameConversationId(item);
+        if (type !== "writing" && !conversationId) {
+            return;
+        }
+
+        const nextTitle = renameTitle.trim();
+        if (!nextTitle || nextTitle === item.title) {
+            setRenameTarget(null);
+            return;
+        }
+
+        setMutatingId(item.id);
+        startTransition(() => {
+            void (async () => {
+                const result =
+                    type === "writing"
+                        ? await renameWritingExerciseAction({
+                              exerciseId: item.id,
+                              title: nextTitle.trim(),
+                          })
+                        : await updateConversationTitleAction({
+                              id: conversationId!,
+                              title: nextTitle.trim(),
+                          });
+
+                setMutatingId(null);
+
+                if (!result.success) {
+                    window.alert(result.error);
+                    return;
+                }
+
+                setRenameTarget(null);
+                setRenameTitle("");
+                router.refresh();
+            })();
+        });
+    }
+
+    function openDeleteDialog(item: SidebarHistoryItem) {
+        setDeleteTarget(item);
+    }
+
+    function confirmDeleteItem() {
+        if (!deleteTarget) {
+            return;
+        }
+
+        const item = deleteTarget;
+        setMutatingId(item.id);
         startTransition(() => {
             void (async () => {
                 const result =
@@ -186,13 +396,14 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
                                 id: item.id,
                             });
 
-                setDeletingId(null);
+                setMutatingId(null);
 
                 if (!result.success) {
                     window.alert(result.error);
                     return;
                 }
 
+                setDeleteTarget(null);
                 if (currentHref === item.href) {
                     router.push(newHref);
                 }
@@ -349,6 +560,10 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
                             <div className="space-y-0.5">
                                 {group.items.map((item) => {
                                     const active = currentHref === item.href;
+                                    const isPinned = pinnedIdSet.has(item.id);
+                                    const canRename = canRenameItem(item);
+                                    const isMutating =
+                                        isPending && mutatingId === item.id;
 
                                     return (
                                         <div
@@ -420,27 +635,75 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
                                                             </div>
                                                         ) : null}
                                                     </div>
-                                                    <div
-                                                        className={cn(
-                                                            "mt-1 h-2 w-2 shrink-0 rounded-full",
-                                                            active
-                                                                ? "bg-current opacity-80"
-                                                            : "bg-slate-300",
-                                                        )}
-                                                    />
+                                                    {isPinned ? (
+                                                        <Pin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                                                    ) : (
+                                                        <div
+                                                            className={cn(
+                                                                "mt-1 h-2 w-2 shrink-0 rounded-full",
+                                                                active
+                                                                    ? "bg-current opacity-80"
+                                                                    : "bg-slate-300",
+                                                            )}
+                                                        />
+                                                    )}
                                                 </div>
                                             </button>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                className="absolute right-1.5 top-2.5 shrink-0 rounded-lg text-slate-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover/item:opacity-100 focus-visible:opacity-100"
-                                                disabled={isPending && deletingId === item.id}
-                                                onClick={() => deleteItem(item)}
-                                                title="Delete"
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </Button>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon-sm"
+                                                        className="absolute right-1.5 top-2.5 shrink-0 rounded-lg text-slate-400 opacity-0 transition-all hover:bg-white hover:text-slate-700 data-[state=open]:bg-white data-[state=open]:text-slate-700 data-[state=open]:opacity-100 group-hover/item:opacity-100 focus-visible:opacity-100"
+                                                        disabled={isMutating}
+                                                        title="More actions"
+                                                        aria-label={`More actions for ${item.title}`}
+                                                    >
+                                                        {isMutating ? (
+                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                        ) : (
+                                                            <MoreHorizontal className="h-3.5 w-3.5" />
+                                                        )}
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent
+                                                    align="end"
+                                                    className="w-36"
+                                                >
+                                                    <DropdownMenuItem
+                                                        onSelect={() =>
+                                                            togglePinnedItem(item)
+                                                        }
+                                                    >
+                                                        {isPinned ? (
+                                                            <PinOff className="h-4 w-4" />
+                                                        ) : (
+                                                            <Pin className="h-4 w-4" />
+                                                        )}
+                                                        {isPinned ? "Unpin" : "Pin to top"}
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        disabled={!canRename}
+                                                        onSelect={() =>
+                                                            openRenameDialog(item)
+                                                        }
+                                                    >
+                                                        <Pencil className="h-4 w-4" />
+                                                        Rename
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        variant="destructive"
+                                                        onSelect={() =>
+                                                            openDeleteDialog(item)
+                                                        }
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                        Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
                                     );
                                 })}
@@ -449,6 +712,165 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
                     ))}
                 </div>
             </ScrollArea>
+            <RenameDialog
+                open={renameTarget !== null}
+                title={renameTitle}
+                itemTitle={renameTarget?.title ?? ""}
+                isPending={isPending && mutatingId === renameTarget?.id}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setRenameTarget(null);
+                        setRenameTitle("");
+                    }
+                }}
+                onTitleChange={setRenameTitle}
+                onSubmit={submitRename}
+            />
+            <DeleteDialog
+                open={deleteTarget !== null}
+                title={deleteTarget?.title ?? ""}
+                type={type}
+                isPending={isPending && mutatingId === deleteTarget?.id}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDeleteTarget(null);
+                    }
+                }}
+                onConfirm={confirmDeleteItem}
+            />
         </aside>
+    );
+}
+
+function RenameDialog({
+    open,
+    title,
+    itemTitle,
+    isPending,
+    onOpenChange,
+    onTitleChange,
+    onSubmit,
+}: {
+    open: boolean;
+    title: string;
+    itemTitle: string;
+    isPending: boolean;
+    onOpenChange: (open: boolean) => void;
+    onTitleChange: (title: string) => void;
+    onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <form onSubmit={onSubmit} className="space-y-4">
+                    <DialogHeader>
+                        <DialogTitle>Rename</DialogTitle>
+                        <DialogDescription>
+                            Update the title shown in the sidebar.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="sidebar-rename-title">Title</Label>
+                        <Input
+                            id="sidebar-rename-title"
+                            value={title}
+                            onChange={(event) => onTitleChange(event.target.value)}
+                            placeholder={itemTitle || "Untitled"}
+                            autoFocus
+                            disabled={isPending}
+                        />
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={isPending}
+                            onClick={() => onOpenChange(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            disabled={!title.trim() || isPending}
+                            className="bg-slate-900 hover:bg-slate-800"
+                        >
+                            {isPending ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Saving
+                                </>
+                            ) : (
+                                "Save"
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function DeleteDialog({
+    open,
+    title,
+    type,
+    isPending,
+    onOpenChange,
+    onConfirm,
+}: {
+    open: boolean;
+    title: string;
+    type: SidebarType;
+    isPending: boolean;
+    onOpenChange: (open: boolean) => void;
+    onConfirm: () => void;
+}) {
+    const noun =
+        type === "coach"
+            ? "conversation"
+            : type === "writing"
+              ? "writing session"
+              : "speaking session";
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Delete {noun}?</DialogTitle>
+                    <DialogDescription>
+                        This will remove <span className="font-medium">{title || "Untitled"}</span> from your
+                        history. This action cannot be undone.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <DialogFooter>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        disabled={isPending}
+                        onClick={() => onOpenChange(false)}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        disabled={isPending}
+                        onClick={onConfirm}
+                    >
+                        {isPending ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Deleting
+                            </>
+                        ) : (
+                            "Delete"
+                        )}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }

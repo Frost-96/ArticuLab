@@ -1,26 +1,27 @@
 "use client";
 
-import { startTransition, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
     ArrowLeft,
     Mic,
     Pause,
-    Play,
     Send,
     Square,
     Volume2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import {
     endSpeakingAction,
     sendSpeakingMessageAction,
 } from "@/server/actions/speaking.action";
 import { cn } from "@/lib/utils";
-import type { SpeakingExerciseDetail, SpeakingMessage } from "@/types/speaking/speakingTypes";
+import type {
+    SpeakingExerciseDetail,
+    SpeakingMessage,
+} from "@/types/speaking/speakingTypes";
 
 type SpeakingSessionProps = {
     exercise: SpeakingExerciseDetail;
@@ -34,6 +35,7 @@ function formatDuration(seconds: number) {
 
 export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     const router = useRouter();
+    const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const [messages, setMessages] = useState<SpeakingMessage[]>(exercise.messages);
     const [input, setInput] = useState("");
     const [error, setError] = useState<string | null>(null);
@@ -42,6 +44,14 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     const [isFinishing, setIsFinishing] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const readOnly = exercise.status !== "in_progress";
+    const latestMessageId = messages[messages.length - 1]?.id;
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "end",
+        });
+    }, [latestMessageId]);
 
     async function handleSend() {
         if (!input.trim() || readOnly) {
@@ -92,25 +102,27 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     }
 
     return (
-        <div className="flex min-h-full flex-col bg-slate-50">
-            <header className="border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
-                <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
+        <div className="flex h-full min-h-full flex-col bg-white">
+            <header className="shrink-0 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
+                <div className="mx-auto flex max-w-4xl items-center justify-between gap-4">
+                    <div className="flex min-w-0 items-center gap-3">
                         <Button variant="ghost" size="sm" asChild>
                             <Link href="/speaking">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
                                 Back
                             </Link>
                         </Button>
-                        <div>
-                            <h1 className="font-medium text-slate-900">{exercise.title}</h1>
-                            <p className="text-xs text-slate-400">
+                        <div className="min-w-0">
+                            <h1 className="truncate font-medium text-slate-900">
+                                {exercise.title}
+                            </h1>
+                            <p className="truncate text-xs text-slate-400">
                                 {exercise.aiRole} | {exercise.scenarioType}
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex shrink-0 items-center gap-2">
                         <Badge variant="secondary">{exercise.status}</Badge>
                         <Button
                             variant="outline"
@@ -126,11 +138,11 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                 </div>
             </header>
 
-            <main className="flex-1 overflow-auto p-4 sm:p-6">
-                <div className="mx-auto max-w-5xl space-y-4">
-                    <Card className="border-blue-100 bg-white shadow-sm">
-                        <CardContent className="grid gap-4 p-5 lg:grid-cols-[1fr_auto] lg:items-center">
-                            <div className="space-y-2">
+            <main className="flex-1 overflow-auto">
+                <div className="mx-auto flex min-h-full max-w-4xl flex-col px-4 py-6 sm:px-6">
+                    <section className="mb-8 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="space-y-1">
                                 <p className="text-sm font-medium text-slate-900">
                                     {exercise.description || exercise.prompt || exercise.title}
                                 </p>
@@ -140,175 +152,135 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                                     </p>
                                 ) : null}
                             </div>
-                            <div className="flex items-center gap-4 text-sm text-slate-500">
+                            <div className="flex shrink-0 items-center gap-3 text-xs text-slate-500">
                                 <span>{totalTurns} turns</span>
                                 <span>{formatDuration(exercise.durationSeconds)}</span>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </section>
 
                     {error ? (
-                        <Card className="border-red-200 bg-red-50">
-                            <CardContent className="p-4 text-sm text-red-700">
-                                {error}
-                            </CardContent>
-                        </Card>
+                        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            {error}
+                        </div>
                     ) : null}
 
-                    <div className="space-y-4">
+                    <div className="flex-1 space-y-7 pb-6">
                         {messages.length > 0 ? (
                             messages.map((message) => (
                                 <div
                                     key={message.id}
                                     className={cn(
-                                        "flex gap-3",
-                                        message.role === "user" && "flex-row-reverse",
+                                        "flex w-full",
+                                        message.role === "user"
+                                            ? "justify-end"
+                                            : "justify-start",
                                     )}
                                 >
                                     <div
                                         className={cn(
-                                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium",
+                                            "max-w-[86%] text-sm leading-7 sm:max-w-[75%]",
                                             message.role === "assistant"
-                                                ? "bg-blue-100 text-blue-700"
-                                                : "bg-emerald-100 text-emerald-700",
+                                                ? "text-slate-800"
+                                                : "rounded-3xl bg-slate-100 px-4 py-2.5 text-slate-900",
                                         )}
                                     >
-                                        {message.role === "assistant" ? "AI" : "You"}
-                                    </div>
-                                    <div
-                                        className={cn(
-                                            "max-w-[78%] rounded-lg px-4 py-3 text-sm leading-6 shadow-sm",
-                                            message.role === "assistant"
-                                                ? "border border-slate-200 bg-white text-slate-700"
-                                                : "bg-sky-600 text-white",
-                                        )}
-                                    >
-                                        <p>{message.content}</p>
+                                        <p className="whitespace-pre-wrap">{message.content}</p>
                                         {message.role === "assistant" ? (
-                                            <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-2">
+                                            <div className="mt-3 flex items-center gap-2 text-slate-500">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="h-7 gap-1 px-2 text-xs text-blue-700"
+                                                    className="h-8 gap-1 rounded-full px-2 text-xs text-slate-600 hover:text-slate-900"
                                                     disabled={!message.audioUrl}
                                                 >
                                                     <Volume2 className="h-3.5 w-3.5" />
                                                     Audio
                                                 </Button>
-                                                <span className="text-xs text-slate-400">
-                                                    AI response
-                                                </span>
                                             </div>
                                         ) : null}
                                     </div>
                                 </div>
                             ))
                         ) : (
-                            <Card className="bg-white shadow-sm">
-                                <CardContent className="p-6 text-sm text-slate-500">
+                            <div className="flex flex-1 items-center justify-center">
+                                <div className="max-w-md text-center text-sm leading-6 text-slate-500">
                                     No transcript yet. Start recording or type a response to
                                     begin the conversation.
-                                </CardContent>
-                            </Card>
+                                </div>
+                            </div>
                         )}
+                        <div ref={messagesEndRef} />
                     </div>
                 </div>
             </main>
 
-            <footer className="border-t border-slate-200 bg-white p-3 sm:p-4">
-                <div className="mx-auto grid max-w-5xl gap-4 lg:grid-cols-[220px_1fr_auto] lg:items-end">
-                    <div className="flex flex-col items-center rounded-lg border border-slate-200 bg-slate-50 p-4">
-                        <button
-                            type="button"
-                            disabled={readOnly || isSending || isFinishing}
-                            onClick={() => setIsRecording((value) => !value)}
-                            className={cn(
-                                "relative flex h-20 w-20 items-center justify-center rounded-full border text-white shadow-sm transition-all",
-                                isRecording
-                                    ? "border-red-300 bg-red-500"
-                                    : "border-blue-300 bg-blue-600 hover:bg-blue-700",
-                                (readOnly || isSending || isFinishing) &&
-                                    "cursor-not-allowed opacity-60",
-                            )}
-                        >
-                            {isRecording ? (
-                                <>
-                                    <span className="absolute inset-0 animate-ping rounded-full bg-red-400/30" />
-                                    <Pause className="relative h-7 w-7" />
-                                </>
-                            ) : (
-                                <Mic className="h-8 w-8" />
-                            )}
-                        </button>
-                        <p className="mt-3 text-sm font-medium text-slate-900">
-                            {isRecording ? "Recording" : "Tap to speak"}
-                        </p>
-                        <div className="mt-2 flex h-6 items-end gap-1">
-                            {[10, 18, 26, 14, 22].map((height, index) => (
-                                <span
-                                    key={`${height}-${index}`}
-                                    className={cn(
-                                        "w-1.5 rounded-full bg-blue-300",
-                                        isRecording && "animate-pulse bg-red-300",
-                                    )}
-                                    style={{ height }}
-                                />
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium text-slate-900">
-                                Live transcript
-                            </p>
-                            <p className="text-xs text-slate-400">
-                                {totalTurns} turns · {formatDuration(exercise.durationSeconds)}
-                            </p>
-                        </div>
-                        <textarea
-                            value={input}
-                            disabled={readOnly || isSending || isFinishing}
-                            onChange={(event) => setInput(event.target.value)}
-                            onKeyDown={(event) => {
-                                if (event.key === "Enter" && !event.shiftKey) {
-                                    event.preventDefault();
-                                    void handleSend();
+            <footer className="shrink-0 bg-white px-3 pb-4 sm:px-4">
+                <div className="mx-auto max-w-4xl">
+                    <div className="rounded-[1.75rem] border border-slate-200 bg-white p-3 shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
+                        <div className="flex items-end gap-2">
+                            <button
+                                type="button"
+                                disabled={readOnly || isSending || isFinishing}
+                                onClick={() => setIsRecording((value) => !value)}
+                                className={cn(
+                                    "relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-white transition-all",
+                                    isRecording
+                                        ? "border-red-300 bg-red-500"
+                                        : "border-blue-600 bg-blue-600 hover:bg-blue-700",
+                                    (readOnly || isSending || isFinishing) &&
+                                        "cursor-not-allowed opacity-60",
+                                )}
+                                aria-label={
+                                    isRecording ? "Pause recording" : "Start recording"
                                 }
-                            }}
-                            placeholder={
-                                readOnly
-                                    ? "This completed session is available for review."
-                                    : isRecording
-                                      ? "Speak now. Your transcript appears here..."
-                                      : "Type or record your response..."
-                            }
-                            className="min-h-[96px] w-full resize-none rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm leading-6 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
+                            >
+                                {isRecording ? (
+                                    <>
+                                        <span className="absolute inset-0 animate-ping rounded-full bg-red-400/30" />
+                                        <Pause className="relative h-5 w-5" />
+                                    </>
+                                ) : (
+                                    <Mic className="h-5 w-5" />
+                                )}
+                            </button>
 
-                    <div className="flex gap-2 lg:flex-col">
-                        <Button
-                            variant="outline"
-                            className="flex-1 gap-2 lg:w-32"
-                            disabled={readOnly || isSending || isFinishing}
-                            onClick={() => setIsRecording((value) => !value)}
-                        >
-                            {isRecording ? (
-                                <Pause className="h-4 w-4" />
-                            ) : (
-                                <Play className="h-4 w-4" />
-                            )}
-                            {isRecording ? "Pause" : "Record"}
-                        </Button>
-                        <Button
-                            className="flex-1 gap-2 bg-sky-600 hover:bg-sky-700 lg:w-32"
-                            disabled={!input.trim() || readOnly || isSending || isFinishing}
-                            onClick={() => void handleSend()}
-                        >
-                            <Send className="h-4 w-4" />
-                            Send
-                        </Button>
+                            <textarea
+                                value={input}
+                                disabled={readOnly || isSending || isFinishing}
+                                onChange={(event) => setInput(event.target.value)}
+                                onKeyDown={(event) => {
+                                    if (event.key === "Enter" && !event.shiftKey) {
+                                        event.preventDefault();
+                                        void handleSend();
+                                    }
+                                }}
+                                placeholder={
+                                    readOnly
+                                        ? "This completed session is available for review."
+                                        : isRecording
+                                          ? "Speak now. Your transcript appears here..."
+                                          : "Type or record your response..."
+                                }
+                                className="max-h-36 min-h-11 w-full resize-none border-0 bg-transparent px-2 py-2.5 text-sm leading-6 outline-none placeholder:text-slate-400"
+                            />
+
+                            <Button
+                                size="icon"
+                                className="h-11 w-11 shrink-0 rounded-full bg-blue-600 text-white hover:bg-blue-700"
+                                disabled={!input.trim() || readOnly || isSending || isFinishing}
+                                onClick={() => void handleSend()}
+                                aria-label="Send message"
+                            >
+                                <Send className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between px-2 text-xs text-slate-400">
+                            <span>{isRecording ? "Recording" : "Ready"}</span>
+                            <span>
+                                {totalTurns} turns | {formatDuration(exercise.durationSeconds)}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </footer>

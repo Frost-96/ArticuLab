@@ -79,6 +79,7 @@ function mapSpeakingHistoryItem(
 ): SpeakingHistoryItem {
     return {
         id: record.id,
+        conversationId: record.conversationId,
         title:
             record.conversation?.title?.trim() ||
             record.scenario?.title ||

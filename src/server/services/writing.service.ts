@@ -13,12 +13,14 @@ import {
     type GetWritingHistoryInput,
     type GetWritingExerciseInput,
     type DeleteWritingExerciseInput,
+    type RenameWritingExerciseInput,
     type GetDraftInput,
     type SaveDraftInput,
     type SubmitWritingInput,
     createWritingExerciseSchema,
     getWritingExerciseSchema,
     deleteWritingExerciseSchema,
+    renameWritingExerciseSchema,
     getWritingHistorySchema,
     getDraftSchema,
     saveDraftSchema,
@@ -375,6 +377,62 @@ export async function deleteWritingExercise(
 
     await writingRepo.deleteWritingExercise(exerciseId);
     return { id: ex.id };
+}
+
+export async function renameWritingExercise(
+    userId: string,
+    params: RenameWritingExerciseInput,
+): Promise<{ exercise: WritingExerciseDetail }> {
+    const userID = normalizeUserId(userId);
+
+    const parsedParams = renameWritingExerciseSchema.safeParse(params);
+    if (!parsedParams.success) {
+        throw new Error(getFirstError(parsedParams.error));
+    }
+
+    const { exerciseId, title } = parsedParams.data;
+    const ex = await writingRepo.findWritingExerciseById(exerciseId, userID);
+    if (!ex) {
+        throw new Error("Writing exercise not found");
+    }
+
+    const updated = await writingRepo.updateWritingExercise(exerciseId, {
+        prompt: title.trim(),
+    });
+
+    return {
+        exercise: {
+            id: updated.id,
+            userId: updated.userId,
+            scenarioType: updated.scenarioType as WritingScenarioType,
+            prompt: updated.prompt,
+            isCustomPrompt: updated.isCustomPrompt,
+            content: updated.content,
+            wordCount: updated.wordCount,
+            status: inferExerciseStatus(updated),
+            scores: isGraded(updated)
+                ? {
+                      overall: updated.overallScore,
+                      grammar: updated.grammarScore,
+                      vocabulary: updated.vocabularyScore,
+                      coherence: updated.coherenceScore,
+                      taskCompletion: updated.taskScore,
+                  }
+                : {
+                      overall: null,
+                      grammar: null,
+                      vocabulary: null,
+                      coherence: null,
+                      taskCompletion: null,
+                  },
+            feedback: getFeedback(updated),
+            scenarioId: updated.scenarioId,
+            createdAt: updated.createdAt.toISOString(),
+            evaluatedAt: isGraded(updated)
+                ? updated.updatedAt.toISOString()
+                : null,
+        },
+    };
 }
 
 // ==================== 获取草稿 ====================

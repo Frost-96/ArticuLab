@@ -99,6 +99,7 @@ export async function getSpeakingSidebarItems(
 
     return history.exercises.map((exercise) => ({
         id: exercise.id,
+        conversationId: exercise.conversationId,
         title: exercise.title,
         href: `/speaking/${exercise.id}`,
         date: exercise.createdAt,

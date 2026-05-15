@@ -1,9 +1,26 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    useSyncExternalStore,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Clock, FileText, Save } from "lucide-react";
+import {
+    ArrowLeft,
+    ArrowRight,
+    Clock,
+    FileText,
+    Pause,
+    Play,
+    RotateCcw,
+    Save,
+    Timer,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +36,14 @@ type WritingEditorProps = {
     exercise: WritingExerciseDetail;
 };
 
+const writingStopwatchEventName = "articulab-writing-stopwatch";
+const writingStopwatchStoragePrefix = "articulab:writing-stopwatch:";
+
+type WritingStopwatchState = {
+    elapsedSeconds: number;
+    isRunning: boolean;
+};
+
 function formatDateTime(value: string) {
     return new Intl.DateTimeFormat("en-US", {
         month: "short",
@@ -26,6 +51,227 @@ function formatDateTime(value: string) {
         hour: "2-digit",
         minute: "2-digit",
     }).format(new Date(value));
+}
+
+function formatStopwatchTime(totalSeconds: number) {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+        return [hours, minutes, seconds]
+            .map((unit) => String(unit).padStart(2, "0"))
+            .join(":");
+    }
+
+    return [minutes, seconds]
+        .map((unit) => String(unit).padStart(2, "0"))
+        .join(":");
+}
+
+function getStopwatchStorageKey(exerciseId: string) {
+    return `${writingStopwatchStoragePrefix}${exerciseId}`;
+}
+
+function encodeStopwatchState(state: WritingStopwatchState) {
+    return JSON.stringify(state);
+}
+
+function decodeStopwatchState(value: string): WritingStopwatchState {
+    try {
+        const parsed = JSON.parse(value) as Partial<WritingStopwatchState>;
+        return {
+            elapsedSeconds:
+                typeof parsed.elapsedSeconds === "number" &&
+                    Number.isFinite(parsed.elapsedSeconds)
+                    ? Math.max(0, Math.floor(parsed.elapsedSeconds))
+                    : 0,
+            isRunning: Boolean(parsed.isRunning),
+        };
+    } catch {
+        return { elapsedSeconds: 0, isRunning: false };
+    }
+}
+
+function readStopwatchSnapshot(exerciseId: string, readOnly: boolean) {
+    if (typeof window === "undefined") {
+        return encodeStopwatchState({ elapsedSeconds: 0, isRunning: false });
+    }
+
+    const storedValue = window.localStorage.getItem(
+        getStopwatchStorageKey(exerciseId),
+    );
+
+    if (!storedValue) {
+        return encodeStopwatchState({
+            elapsedSeconds: 0,
+            isRunning: !readOnly,
+        });
+    }
+
+    const storedState = decodeStopwatchState(storedValue);
+    return encodeStopwatchState({
+        elapsedSeconds: storedState.elapsedSeconds,
+        isRunning: readOnly ? false : storedState.isRunning,
+    });
+}
+
+function writeStopwatchSnapshot(exerciseId: string, state: WritingStopwatchState) {
+    if (typeof window === "undefined") {
+        return;
+    }
+
+    const key = getStopwatchStorageKey(exerciseId);
+    window.localStorage.setItem(key, encodeStopwatchState(state));
+    window.dispatchEvent(
+        new CustomEvent(writingStopwatchEventName, { detail: { key } }),
+    );
+}
+
+function subscribeToStopwatch(exerciseId: string, onStoreChange: () => void) {
+    if (typeof window === "undefined") {
+        return () => undefined;
+    }
+
+    const key = getStopwatchStorageKey(exerciseId);
+
+    const handleStorage = (event: StorageEvent) => {
+        if (event.key === key) {
+            onStoreChange();
+        }
+    };
+
+    const handleLocalChange = (event: Event) => {
+        if (
+            event instanceof CustomEvent &&
+            (event.detail as { key?: string } | undefined)?.key === key
+        ) {
+            onStoreChange();
+        }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(writingStopwatchEventName, handleLocalChange);
+
+    return () => {
+        window.removeEventListener("storage", handleStorage);
+        window.removeEventListener(writingStopwatchEventName, handleLocalChange);
+    };
+}
+
+function WritingStopwatch({
+    exerciseId,
+    readOnly,
+}: {
+    exerciseId: string;
+    readOnly: boolean;
+}) {
+    const isStableMountRef = useRef(false);
+    const snapshot = useSyncExternalStore(
+        useCallback(
+            (onStoreChange) => subscribeToStopwatch(exerciseId, onStoreChange),
+            [exerciseId],
+        ),
+        useCallback(
+            () => readStopwatchSnapshot(exerciseId, readOnly),
+            [exerciseId, readOnly],
+        ),
+        () => encodeStopwatchState({ elapsedSeconds: 0, isRunning: false }),
+    );
+    const stopwatchState = useMemo(
+        () => decodeStopwatchState(snapshot),
+        [snapshot],
+    );
+    const { elapsedSeconds, isRunning } = stopwatchState;
+
+    useEffect(() => {
+        if (!isRunning) {
+            return;
+        }
+
+        const timer = window.setInterval(() => {
+            writeStopwatchSnapshot(exerciseId, {
+                elapsedSeconds:
+                    decodeStopwatchState(
+                        readStopwatchSnapshot(exerciseId, readOnly),
+                    ).elapsedSeconds + 1,
+                isRunning: true,
+            });
+        }, 1000);
+
+        return () => window.clearInterval(timer);
+    }, [exerciseId, isRunning, readOnly]);
+
+    useEffect(() => {
+        const mountTimer = window.setTimeout(() => {
+            isStableMountRef.current = true;
+        }, 0);
+
+        const pauseStopwatch = () => {
+            const current = decodeStopwatchState(
+                readStopwatchSnapshot(exerciseId, readOnly),
+            );
+            writeStopwatchSnapshot(exerciseId, {
+                elapsedSeconds: current.elapsedSeconds,
+                isRunning: false,
+            });
+        };
+
+        window.addEventListener("pagehide", pauseStopwatch);
+
+        return () => {
+            window.clearTimeout(mountTimer);
+            window.removeEventListener("pagehide", pauseStopwatch);
+            if (!isStableMountRef.current) {
+                return;
+            }
+
+            pauseStopwatch();
+        };
+    }, [exerciseId, readOnly]);
+
+    return (
+        <div className="flex items-center gap-2 rounded-full border border-sky-200 bg-white px-2.5 py-1 text-slate-600 shadow-sm">
+            <Timer className="h-3.5 w-3.5 text-sky-600" />
+            <span className="font-mono text-sm font-semibold tabular-nums text-slate-900">
+                {formatStopwatchTime(elapsedSeconds)}
+            </span>
+            {!readOnly ? (
+                <div className="ml-1 flex items-center gap-1">
+                    <button
+                        type="button"
+                        onClick={() =>
+                            writeStopwatchSnapshot(exerciseId, {
+                                elapsedSeconds,
+                                isRunning: !isRunning,
+                            })
+                        }
+                        className="rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-sky-700"
+                        aria-label={isRunning ? "Pause stopwatch" : "Start stopwatch"}
+                    >
+                        {isRunning ? (
+                            <Pause className="h-3.5 w-3.5" />
+                        ) : (
+                            <Play className="h-3.5 w-3.5" />
+                        )}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            writeStopwatchSnapshot(exerciseId, {
+                                elapsedSeconds: 0,
+                                isRunning: true,
+                            });
+                        }}
+                        className="rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-sky-700"
+                        aria-label="Reset stopwatch"
+                    >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                    </button>
+                </div>
+            ) : null}
+        </div>
+    );
 }
 
 export function WritingEditor({ exercise }: WritingEditorProps) {
@@ -44,7 +290,7 @@ export function WritingEditor({ exercise }: WritingEditorProps) {
         latestContentRef.current = content;
     }, [content]);
 
-    async function persistDraft(nextContent: string, silent = false) {
+    const persistDraft = useCallback(async (nextContent: string, silent = false) => {
         if (readOnly) {
             return true;
         }
@@ -85,7 +331,7 @@ export function WritingEditor({ exercise }: WritingEditorProps) {
         setLastSavedAt(result.data.draft.lastSavedAt);
         setSaveLabel(silent ? "Auto-saved" : "Saved");
         return true;
-    }
+    }, [exercise.id, readOnly]);
 
     useEffect(() => {
         if (readOnly || content === savedContentRef.current) {
@@ -97,7 +343,7 @@ export function WritingEditor({ exercise }: WritingEditorProps) {
         }, 1500);
 
         return () => window.clearTimeout(timer);
-    }, [content, readOnly]);
+    }, [content, persistDraft, readOnly]);
 
     useEffect(() => {
         if (readOnly) {
@@ -115,7 +361,7 @@ export function WritingEditor({ exercise }: WritingEditorProps) {
             handleBeforeUnload();
             window.removeEventListener("beforeunload", handleBeforeUnload);
         };
-    }, [readOnly]);
+    }, [persistDraft, readOnly]);
 
     const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
     const progressValue = Math.min((wordCount / 250) * 100, 100);
@@ -191,6 +437,11 @@ export function WritingEditor({ exercise }: WritingEditorProps) {
                                     <Clock className="h-3.5 w-3.5" />
                                     Created {formatDateTime(exercise.createdAt)}
                                 </span>
+                                <WritingStopwatch
+                                    key={exercise.id}
+                                    exerciseId={exercise.id}
+                                    readOnly={readOnly}
+                                />
                                 <span>Status: {exercise.status}</span>
                                 {readOnly ? (
                                     <span className="text-emerald-600">

@@ -1,26 +1,28 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     CheckCircle2,
     Loader2,
-    MessageSquare,
+    MessageSquarePlus,
     Mic,
-    Pencil,
     Send,
     Sparkles,
-    Trash2,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
     createConversationAction,
-    deleteConversationAction,
     saveMessageAction,
-    updateConversationTitleAction,
 } from "@/server/actions/conversation.action";
+import { cn } from "@/lib/utils";
 import type { CoachPageData } from "@/types/coach/coachTypes";
 
 type CoachHistoryPageProps = {
@@ -59,7 +61,9 @@ function buildCoachReply(input: string) {
 }
 
 function HighlightedCoachText({ content }: { content: string }) {
-    const pieces = content.split(/(He goes|He went|verb form|thesis|topic sentences|vocabulary upgrade)/gi);
+    const pieces = content.split(
+        /(He goes|He went|verb form|thesis|topic sentences|vocabulary upgrade)/gi,
+    );
 
     return (
         <p className="whitespace-pre-wrap">
@@ -95,13 +99,58 @@ function HighlightedCoachText({ content }: { content: string }) {
     );
 }
 
+function CoachMessageBubble({ message }: { message: LocalCoachMessage }) {
+    const isAssistant = message.role === "assistant";
+
+    return (
+        <div
+            className={cn(
+                "flex w-full",
+                isAssistant ? "justify-start" : "justify-end",
+            )}
+        >
+            <div
+                className={cn(
+                    "max-w-[86%] text-sm leading-7 sm:max-w-[75%]",
+                    isAssistant
+                        ? "text-slate-800"
+                        : "rounded-3xl bg-slate-100 px-4 py-2.5 text-slate-900",
+                )}
+            >
+                {isAssistant ? (
+                    <HighlightedCoachText content={message.content} />
+                ) : (
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                )}
+                <div
+                    className={cn(
+                        "mt-2 flex items-center gap-2 text-xs text-slate-400",
+                        !isAssistant && "justify-end",
+                    )}
+                >
+                    {message.pending ? (
+                        <>
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Thinking
+                        </>
+                    ) : (
+                        <>
+                            <CheckCircle2 className="h-3 w-3" />
+                            {formatDate(message.createdAt)}
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
     const router = useRouter();
+    const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const activeConversationId = data.activeConversation?.id ?? null;
     const [draft, setDraft] = useState("");
     const [isComposing, setIsComposing] = useState(false);
-    const [isMutatingConversation, startConversationTransition] =
-        useTransition();
     const [localMessages, setLocalMessages] = useState<LocalCoachMessage[]>([]);
     const messages = useMemo(
         () => [
@@ -110,6 +159,19 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
         ],
         [data.activeConversation?.messages, localMessages],
     );
+    const latestMessageId = messages[messages.length - 1]?.id;
+    const quickPrompts = [
+        "Highlight my grammar mistakes",
+        "Make this sentence more academic",
+        "Explain why this sounds unnatural",
+    ];
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "end",
+        });
+    }, [latestMessageId]);
 
     async function handleSend() {
         const content = draft.trim();
@@ -208,293 +270,118 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
         return result.data.conversation.id;
     }
 
-    function handleRenameConversation(conversationId: string, title: string) {
-        const nextTitle = window.prompt("Rename conversation", title);
-        if (!nextTitle?.trim()) {
-            return;
-        }
-
-        startConversationTransition(() => {
-            void (async () => {
-                const result = await updateConversationTitleAction({
-                    id: conversationId,
-                    title: nextTitle.trim(),
-                });
-
-                if (!result.success) {
-                    window.alert(result.error);
-                    return;
-                }
-
-                router.refresh();
-            })();
-        });
-    }
-
-    function handleDeleteConversation(conversationId: string, title: string) {
-        const confirmed = window.confirm(`Delete "${title}"?`);
-        if (!confirmed) {
-            return;
-        }
-
-        startConversationTransition(() => {
-            void (async () => {
-                const result = await deleteConversationAction({
-                    id: conversationId,
-                });
-
-                if (!result.success) {
-                    window.alert(result.error);
-                    return;
-                }
-
-                router.push("/coach");
-                router.refresh();
-            })();
-        });
-    }
-
-    if (data.conversations.length === 0) {
-        return (
-            <div className="flex h-full items-center justify-center bg-slate-50 p-4 sm:p-6">
-                <Card className="w-full max-w-2xl border-slate-200 bg-white shadow-sm">
-                    <CardContent className="space-y-6 p-8">
-                        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg bg-sky-100">
-                            <Sparkles className="h-6 w-6 text-sky-700" />
-                        </div>
-                        <div className="text-center">
-                            <h1 className="text-xl font-semibold text-slate-900">
-                                Start with your AI writing coach
-                            </h1>
-                            <p className="mt-2 text-sm leading-6 text-slate-500">
-                                Ask for a grammar check, a clearer sentence, or a quick
-                                IELTS-style explanation.
-                            </p>
-                        </div>
-                        <div className="grid gap-2 sm:grid-cols-3">
-                            {[
-                                "Check this sentence",
-                                "Improve my essay tone",
-                                "Explain this grammar point",
-                            ].map((item) => (
-                                <button
-                                    key={item}
-                                    type="button"
-                                    onClick={() => setDraft(item)}
-                                    className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 hover:border-sky-200 hover:text-sky-700"
-                                >
-                                    {item}
-                                </button>
-                            ))}
-                        </div>
-                        {localMessages.length > 0 ? (
-                            <div className="max-h-64 space-y-3 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3">
-                                {localMessages.map((message) => (
-                                    <div
+    return (
+        <TooltipProvider>
+            <div className="flex h-full flex-col bg-white">
+                <main className="flex-1 overflow-auto">
+                    <div className="mx-auto flex min-h-full max-w-4xl flex-col px-4 py-6 sm:px-6">
+                        {messages.length ? (
+                            <div className="flex-1 space-y-7 pb-6">
+                                {messages.map((message) => (
+                                    <CoachMessageBubble
                                         key={message.id}
-                                    className={`rounded-lg px-3 py-2 text-sm leading-6 ${
-                                            message.role === "assistant"
-                                                ? "border border-slate-200 bg-white text-slate-700"
-                                                : "ml-auto bg-sky-600 text-white"
-                                        }`}
-                                    >
-                                        {message.role === "assistant" ? (
-                                            <HighlightedCoachText content={message.content} />
+                                        message={message}
+                                    />
+                                ))}
+                                <div ref={messagesEndRef} />
+                            </div>
+                        ) : (
+                            <div className="flex flex-1 items-center justify-center py-8">
+                                <div className="w-full max-w-2xl text-center">
+                                    <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-600 text-white">
+                                        {data.conversations.length === 0 ? (
+                                            <Sparkles className="h-6 w-6" />
                                         ) : (
-                                            message.content
+                                            <MessageSquarePlus className="h-6 w-6" />
                                         )}
                                     </div>
+                                    <h1 className="text-2xl font-semibold text-slate-950">
+                                        How can I help with your English today?
+                                    </h1>
+                                    <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+                                        Ask for grammar feedback, a rewrite, pronunciation
+                                        phrasing, or a quick explanation.
+                                    </p>
+                                    <div className="mt-6 grid gap-2 sm:grid-cols-3">
+                                        {quickPrompts.map((item) => (
+                                            <button
+                                                key={item}
+                                                type="button"
+                                                onClick={() => setDraft(item)}
+                                                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm leading-5 text-slate-700 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800"
+                                            >
+                                                {item}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </main>
+
+                <footer className="shrink-0 bg-white px-3 pb-4 sm:px-4">
+                    <div className="mx-auto max-w-4xl">
+                        {messages.length ? (
+                            <div className="mb-2 flex flex-wrap gap-2 px-1">
+                                {quickPrompts.map((suggestion) => (
+                                    <button
+                                        key={suggestion}
+                                        type="button"
+                                        onClick={() => setDraft(suggestion)}
+                                        className="rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-600 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800"
+                                    >
+                                        {suggestion}
+                                    </button>
                                 ))}
                             </div>
                         ) : null}
-                        <div className="flex items-end gap-2 rounded-lg border border-slate-200 bg-white p-2">
-                            <Textarea
-                                value={draft}
-                                onChange={(event) => setDraft(event.target.value)}
-                                placeholder="Ask your coach anything about English..."
-                                className="min-h-11 flex-1 resize-none border-0 bg-transparent px-2 py-2 text-sm focus-visible:ring-0"
-                                rows={1}
-                            />
-                            <Button variant="outline" size="icon">
-                                <Mic className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                size="icon"
-                                className="bg-sky-600 hover:bg-sky-700"
-                                onClick={() => void handleSend()}
-                                disabled={!draft.trim() || isComposing}
-                            >
-                                <Send className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
-
-    return (
-        <div className="flex h-full flex-col bg-slate-50">
-                <div className="border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900 text-white">
-                            <MessageSquare className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <h2 className="font-semibold text-slate-950">
-                                {data.activeConversation?.title ?? "Conversation"}
-                            </h2>
-                            <p className="text-sm text-slate-500">
-                                {data.activeConversation
-                                    ? `${data.activeConversation.messages.length} messages`
-                                    : "No active conversation"}
-                            </p>
-                        </div>
-                        {data.activeConversation ? (
-                            <div className="ml-auto flex items-center gap-2">
+                        <div className="rounded-[1.75rem] border border-slate-200 bg-white p-3 shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
+                            <div className="flex items-end gap-2">
+                                <Textarea
+                                    value={draft}
+                                    onChange={(event) => setDraft(event.target.value)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === "Enter" && !event.shiftKey) {
+                                            event.preventDefault();
+                                            void handleSend();
+                                        }
+                                    }}
+                                    placeholder="Message your coach..."
+                                    className="max-h-36 min-h-11 resize-none border-0 bg-transparent px-2 py-2.5 text-sm leading-6 shadow-none focus-visible:ring-0"
+                                    rows={1}
+                                />
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-11 w-11 rounded-full border-teal-200 text-teal-700 hover:bg-teal-50 hover:text-teal-800"
+                                            aria-label="Voice input"
+                                        >
+                                            <Mic className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Voice input</TooltipContent>
+                                </Tooltip>
                                 <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={isMutatingConversation}
-                                    onClick={() =>
-                                        handleRenameConversation(
-                                            data.activeConversation!.id,
-                                            data.activeConversation!.title,
-                                        )
-                                    }
+                                    size="icon"
+                                    className="h-11 w-11 rounded-full bg-teal-600 text-white hover:bg-teal-700"
+                                    onClick={() => void handleSend()}
+                                    disabled={!draft.trim() || isComposing}
+                                    aria-label="Send message"
                                 >
-                                    <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                                    Rename
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="border-red-200 text-red-600 hover:bg-red-50"
-                                    disabled={isMutatingConversation}
-                                    onClick={() =>
-                                        handleDeleteConversation(
-                                            data.activeConversation!.id,
-                                            data.activeConversation!.title,
-                                        )
-                                    }
-                                >
-                                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                                    Delete
+                                    {isComposing ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Send className="h-4 w-4" />
+                                    )}
                                 </Button>
                             </div>
-                        ) : null}
-                    </div>
-                </div>
-
-                <div className="flex-1 overflow-auto p-4 sm:p-6">
-                    <div className="mx-auto max-w-4xl space-y-4">
-                        {messages.length ? (
-                            messages.map((message) => (
-                                <div
-                                    key={message.id}
-                                    className={`flex gap-3 ${
-                                        message.role === "user" ? "flex-row-reverse" : ""
-                                    }`}
-                                >
-                                    <div
-                                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
-                                            message.role === "assistant"
-                                                ? "bg-emerald-100 text-emerald-700"
-                                                : "bg-slate-900 text-white"
-                                        }`}
-                                    >
-                                        {message.role === "assistant" ? "AI" : "You"}
-                                    </div>
-                                    <div
-                                    className={`max-w-[82%] rounded-lg px-4 py-3 text-sm leading-6 shadow-sm ${
-                                            message.role === "assistant"
-                                                ? "border border-slate-200 bg-white text-slate-700"
-                                                : "bg-sky-600 text-white"
-                                        }`}
-                                    >
-                                        {message.role === "assistant" ? (
-                                            <HighlightedCoachText content={message.content} />
-                                        ) : (
-                                            <p className="whitespace-pre-wrap">
-                                                {message.content}
-                                            </p>
-                                        )}
-                                        <div className="mt-2 flex items-center gap-2 text-xs opacity-70">
-                                            {"pending" in message && message.pending ? (
-                                                <>
-                                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                                    Thinking
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <CheckCircle2 className="h-3 w-3" />
-                                                    {formatDate(message.createdAt)}
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <Card className="border-dashed bg-white shadow-sm">
-                                <CardContent className="p-6 text-sm text-slate-500">
-                                    This conversation is ready for your first question.
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
-                </div>
-
-                <div className="border-t border-slate-200 bg-white p-3 sm:p-4">
-                    <div className="mx-auto max-w-4xl space-y-2">
-                        <div className="flex flex-wrap gap-2">
-                            {[
-                                "Highlight my grammar mistakes",
-                                "Make this sentence more academic",
-                                "Explain why this sounds unnatural",
-                            ].map((suggestion) => (
-                                <button
-                                    key={suggestion}
-                                    type="button"
-                                    onClick={() => setDraft(suggestion)}
-                                    className="rounded-md border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:border-sky-200 hover:text-sky-700"
-                                >
-                                    {suggestion}
-                                </button>
-                            ))}
-                        </div>
-                        <div className="flex items-end gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
-                            <Textarea
-                                value={draft}
-                                onChange={(event) => setDraft(event.target.value)}
-                                onKeyDown={(event) => {
-                                    if (event.key === "Enter" && !event.shiftKey) {
-                                        event.preventDefault();
-                                        void handleSend();
-                                    }
-                                }}
-                                placeholder="Ask for feedback, a rewrite, or a grammar explanation..."
-                                className="min-h-11 flex-1 resize-none border-0 bg-transparent px-2 py-2 text-sm focus-visible:ring-0"
-                                rows={1}
-                            />
-                            <Button variant="outline" size="icon">
-                                <Mic className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                size="icon"
-                                className="bg-sky-600 hover:bg-sky-700"
-                                onClick={() => void handleSend()}
-                                disabled={!draft.trim() || isComposing}
-                            >
-                                {isComposing ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                    <Send className="h-4 w-4" />
-                                )}
-                            </Button>
                         </div>
                     </div>
-                </div>
-        </div>
+                </footer>
+            </div>
+        </TooltipProvider>
     );
 }
