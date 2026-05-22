@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { WritingExercise } from "../../../generated/prisma/client";
-import type { WritingReviewResult, WritingExerciseStatus } from "@/schema"
+import type { WritingReviewResult, WritingExerciseStatus } from "@/schema";
 /**
  * 按练习 id 与用户 id 查询一条 WritingExercise（用于鉴权后读写）
  *
@@ -26,22 +26,23 @@ export function parseFeedback(raw: unknown): WritingReviewResult | null {
   return null;
 }
 
-
-export function getFeedback(ex: { feedback: unknown }): WritingReviewResult | null {
-    return parseFeedback(ex.feedback);
+export function getFeedback(ex: {
+  feedback: unknown;
+}): WritingReviewResult | null {
+  return parseFeedback(ex.feedback);
 }
 
 export function isGraded(ex: { overallScore: number | null }): boolean {
-    return ex.overallScore != null;
+  return ex.overallScore != null;
 }
 
 export function inferExerciseStatus(ex: {
-    overallScore: number | null;
-    status?: string | null;
+  overallScore: number | null;
+  status?: string | null;
 }): WritingExerciseStatus {
-    if (ex.status === "completed") {
-        return "completed";
-    }
+  if (ex.status === "completed") {
+    return "completed";
+  }
 
-    return isGraded(ex) ? "completed" : "draft";
+  return isGraded(ex) ? "completed" : "draft";
 }

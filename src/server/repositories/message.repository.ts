@@ -5,13 +5,18 @@ import { Prisma } from "../../../generated/prisma/client";
 
 // Select 模板定义 - 控制返回字段
 const messageSelect = {
-    id: true,
-    conversationId: true,
-    role: true,
-    content: true,
-    audioUrl: true,
-    createdAt: true,
-    updatedAt: true,
+  id: true,
+  conversationId: true,
+  role: true,
+  content: true,
+  audioUrl: true,
+  pronunciationScore: true,
+  pronunciationAccuracy: true,
+  pronunciationFluency: true,
+  pronunciationCompleteness: true,
+  pronunciationProsody: true,
+  createdAt: true,
+  updatedAt: true,
 } satisfies Prisma.MessageSelect;
 
 // ==================== 查询消息列表 ====================
@@ -24,26 +29,26 @@ const messageSelect = {
  * @returns 消息列表
  */
 export async function findMessagesByConversation(params: {
-    conversationId: string;
-    cursor?: string;
-    limit: number;
+  conversationId: string;
+  cursor?: string;
+  limit: number;
 }) {
-    const { conversationId, cursor, limit = 20 } = params;
+  const { conversationId, cursor, limit = 20 } = params;
 
-    const where: Record<string, unknown> = {
-        conversationId,
-        isDeleted: false,
-        ...(cursor ? { id: { gt: cursor } } : {}),
-    };
+  const where: Record<string, unknown> = {
+    conversationId,
+    isDeleted: false,
+    ...(cursor ? { id: { gt: cursor } } : {}),
+  };
 
-    const messages = await prisma.message.findMany({
-        where,
-        orderBy: { createdAt: "asc" },
-        take: limit,
-        select: messageSelect,
-    });
+  const messages = await prisma.message.findMany({
+    where,
+    orderBy: { createdAt: "asc" },
+    take: limit,
+    select: messageSelect,
+  });
 
-    return messages;
+  return messages;
 }
 
 // ==================== 创建消息 ====================
@@ -54,20 +59,20 @@ export async function findMessagesByConversation(params: {
  * @returns 创建的消息
  */
 export async function createMessage(data: {
-    conversationId: string;
-    role: string;
-    content: string;
-    audioUrl?: string | null;
+  conversationId: string;
+  role: string;
+  content: string;
+  audioUrl?: string | null;
 }) {
-    return prisma.message.create({
-        data: {
-            conversationId: data.conversationId,
-            role: data.role,
-            content: data.content,
-            audioUrl: data.audioUrl,
-        },
-        select: messageSelect,
-    });
+  return prisma.message.create({
+    data: {
+      conversationId: data.conversationId,
+      role: data.role,
+      content: data.content,
+      audioUrl: data.audioUrl,
+    },
+    select: messageSelect,
+  });
 }
 
 // ==================== 批量创建消息 ====================
@@ -78,28 +83,28 @@ export async function createMessage(data: {
  * @returns 创建的消息列表
  */
 export async function createManyMessages(
-    messages: Array<{
-        conversationId: string;
-        role: string;
-        content: string;
-        audioUrl?: string | null;
-    }>
+  messages: Array<{
+    conversationId: string;
+    role: string;
+    content: string;
+    audioUrl?: string | null;
+  }>,
 ) {
-    const created = await prisma.$transaction(
-        messages.map((msg) =>
-            prisma.message.create({
-                data: {
-                    conversationId: msg.conversationId,
-                    role: msg.role as Prisma.MessageCreateInput["role"],
-                    content: msg.content,
-                    audioUrl: msg.audioUrl,
-                },
-                select: messageSelect,
-            })
-        )
-    );
+  const created = await prisma.$transaction(
+    messages.map((msg) =>
+      prisma.message.create({
+        data: {
+          conversationId: msg.conversationId,
+          role: msg.role as Prisma.MessageCreateInput["role"],
+          content: msg.content,
+          audioUrl: msg.audioUrl,
+        },
+        select: messageSelect,
+      }),
+    ),
+  );
 
-    return created;
+  return created;
 }
 
 // ==================== 统计会话消息数 ====================
@@ -109,15 +114,13 @@ export async function createManyMessages(
  * @param conversationId - 会话 ID
  * @returns 消息总数
  */
-export async function countMessagesByConversation(
-    conversationId: string
-) {
-    return prisma.message.count({
-        where: {
-            conversationId,
-            isDeleted: false,
-        },
-    });
+export async function countMessagesByConversation(conversationId: string) {
+  return prisma.message.count({
+    where: {
+      conversationId,
+      isDeleted: false,
+    },
+  });
 }
 
 // ==================== 删除消息 ====================
@@ -128,13 +131,13 @@ export async function countMessagesByConversation(
  * @returns 删除的消息 ID
  */
 export async function deleteMessage(id: string) {
-    return prisma.message.update({
-        where: { id },
-        data: {
-            isDeleted: true as unknown as boolean,
-        },
-        select: { id: true },
-    });
+  return prisma.message.update({
+    where: { id },
+    data: {
+      isDeleted: true as unknown as boolean,
+    },
+    select: { id: true },
+  });
 }
 
 /**
@@ -142,20 +145,49 @@ export async function deleteMessage(id: string) {
  * @param conversationId - 会话 ID
  * @returns 删除的消息数量
  */
-export async function deleteMessagesByConversation(
-    conversationId: string
-) {
-    const result = await prisma.message.updateMany({
-        where: {
-            conversationId,
-            isDeleted: false,
-        },
-        data: {
-            isDeleted: true as unknown as boolean,
-        },
-    });
+export async function deleteMessagesByConversation(conversationId: string) {
+  const result = await prisma.message.updateMany({
+    where: {
+      conversationId,
+      isDeleted: false,
+    },
+    data: {
+      isDeleted: true as unknown as boolean,
+    },
+  });
 
-    return { count: result.count };
+  return { count: result.count };
 }
 
+// ==================== 发音评估 ====================
 
+/**
+ * 更新消息的发音评估结果
+ * @param messageId - 消息 ID
+ * @param data - 发音评估数据
+ * @returns 更新后的消息
+ */
+export async function updateMessagePronunciation(
+  messageId: string,
+  data: {
+    pronunciationScore: number;
+    pronunciationAccuracy: number;
+    pronunciationFluency: number;
+    pronunciationCompleteness: number;
+    pronunciationProsody: number;
+    pronunciationFeedback: object;
+  },
+) {
+  return prisma.message.update({
+    where: { id: messageId },
+    data: {
+      pronunciationScore: data.pronunciationScore,
+      pronunciationAccuracy: data.pronunciationAccuracy,
+      pronunciationFluency: data.pronunciationFluency,
+      pronunciationCompleteness: data.pronunciationCompleteness,
+      pronunciationProsody: data.pronunciationProsody,
+      pronunciationFeedback: data.pronunciationFeedback,
+    },
+    select: messageSelect,
+  });
+}

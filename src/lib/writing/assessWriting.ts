@@ -1,7 +1,10 @@
 //import type { ScenarioType } from "../../../generated/prisma/enums";
-import type { WritingScenarioType } from "@/schema"
+import type { WritingScenarioType } from "@/schema";
 import { getWritingLlmClient, getWritingLlmModel } from "./llmClient";
-import { writingReviewResultSchema , type WritingReviewResult } from "@/schema/writing.schema";
+import {
+  writingReviewResultSchema,
+  type WritingReviewResult,
+} from "@/schema/writing.schema";
 import type { AssessInput } from "@/types/writing/writingTypes";
 import { SYSTEM_WRITING_PROMPT } from "@/lib/aiPrompt";
 /**
@@ -14,7 +17,6 @@ import { SYSTEM_WRITING_PROMPT } from "@/lib/aiPrompt";
  *   }
  */
 
-
 /**
  * 按场景类型返回分数区间
  *
@@ -26,7 +28,7 @@ import { SYSTEM_WRITING_PROMPT } from "@/lib/aiPrompt";
  */
 
 export function scoreRangeForScenarioType(
-  t: WritingScenarioType
+  t: WritingScenarioType,
 ): [number, number] {
   if (t === "ielts_task1" || t === "ielts_task2") return [0, 9];
   if (t === "cet4" || t === "cet6") return [0, 100];
@@ -47,8 +49,10 @@ export function scoreRangeForScenarioType(
  * - 失败：{ "ok": false, "error": "string" }
  */
 export async function assessWriting(
-  input: AssessInput
-): Promise<{ ok: true; data: WritingReviewResult } | { ok: false; error: string }> {
+  input: AssessInput,
+): Promise<
+  { ok: true; data: WritingReviewResult } | { ok: false; error: string }
+> {
   const client = getWritingLlmClient();
   if (!client) {
     // Mock 数据（临时，待后续完善）

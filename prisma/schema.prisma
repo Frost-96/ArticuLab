@@ -110,6 +110,14 @@ model Message {
   content        String   @db.Text
   audioUrl       String?  @map("audio_url") @db.VarChar(500)
 
+  // Pronunciation assessment (Azure, per user message)
+  pronunciationScore        Float?   @map("pronunciation_score")
+  pronunciationAccuracy     Float?   @map("pronunciation_accuracy")
+  pronunciationFluency      Float?   @map("pronunciation_fluency")
+  pronunciationCompleteness Float?   @map("pronunciation_completeness")
+  pronunciationProsody      Float?   @map("pronunciation_prosody")
+  pronunciationFeedback     Json?    @map("pronunciation_feedback")
+
   // Audit
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
