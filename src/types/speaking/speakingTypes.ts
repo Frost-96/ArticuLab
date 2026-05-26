@@ -2,6 +2,7 @@ import type {
   SpeakingExerciseStatus,
   SpeakingReviewResult,
   SpeakingScenarioType,
+  PronunciationResultLite,
 } from "@/schema";
 
 /** 轻量级练习访问信息（用于验证后的上下文传递） */
@@ -55,6 +56,8 @@ export type SpeakingMessage = {
   pronunciationFluency?: number | null;
   pronunciationCompleteness?: number | null;
   pronunciationProsody?: number | null;
+  // 完整发音评估结果（含逐词+音素数据）
+  pronunciationFeedback?: PronunciationResultLite | null;
 };
 
 export type SpeakingExerciseDetail = {

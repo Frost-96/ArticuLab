@@ -4,7 +4,6 @@ import { speakingChatSchema } from "@/schema/speaking.schema";
 import { getFirstError } from "@/lib/error";
 import { generateSpeakingResponse } from "@/lib/speaking/aiChat";
 import { textToSpeech } from "@/lib/speaking/tts";
-import { audioBufferToBase64 } from "@/lib/speaking/audioStorage";
 import * as speakingService from "@/server/services/speaking.service";
 import * as conversationService from "@/server/services/conversation.service";
 import type { MessageData } from "@/types/message/messageTypes";
@@ -144,7 +143,7 @@ export async function POST(request: NextRequest) {
   const ttsResult = await textToSpeech(aiResult.text);
 
   if (ttsResult.ok) {
-    audioBase64 = audioBufferToBase64(ttsResult.audioBuffer);
+    audioBase64 = ttsResult.audioBuffer.toString("base64");
   }
   // TTS 失败时不阻断流程，AI 消息已保存（audioUrl 为 null）
 
