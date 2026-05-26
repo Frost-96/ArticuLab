@@ -3,172 +3,176 @@ import type { EnglishLevel, LearningGoal } from "@/schema";
 import { Prisma } from "../../../generated/prisma/client";
 
 const userAuthSelect = {
-    id: true,
-    email: true,
-    name: true,
-    password: true,
-    englishLevel: true,
-    learningGoal: true,
-    membershipTier: true,
+  id: true,
+  email: true,
+  name: true,
+  password: true,
+  englishLevel: true,
+  learningGoal: true,
+  membershipTier: true,
 } satisfies Prisma.UserSelect;
 
 const userProfileSelect = {
-    id: true,
-    email: true,
-    name: true,
-    avatar: true,
-    englishLevel: true,
-    learningGoal: true,
-    membershipTier: true,
-    membershipExpiry: true,
-    createdAt: true,
-    updatedAt: true,
+  id: true,
+  email: true,
+  name: true,
+  avatar: true,
+  englishLevel: true,
+  learningGoal: true,
+  membershipTier: true,
+  membershipExpiry: true,
+  createdAt: true,
+  updatedAt: true,
 } satisfies Prisma.UserSelect;
 
 export async function createUser(data: {
-    email: string;
-    hashedPassword: string;
-    name?: string;
+  email: string;
+  hashedPassword: string;
+  name?: string;
 }) {
-    return prisma.user.create({
-        data: {
-            email: data.email.toLowerCase().trim(),
-            password: data.hashedPassword,
-            name: data.name?.trim() ?? null,
-            englishLevel: null,
-            learningGoal: null,
-        },
-        select: {
-            id: true,
-            email: true,
-            name: true,
-            englishLevel: true,
-            learningGoal: true,
-            membershipTier: true,
-        },
-    });
+  return prisma.user.create({
+    data: {
+      email: data.email.toLowerCase().trim(),
+      password: data.hashedPassword,
+      name: data.name?.trim() ?? null,
+      englishLevel: null,
+      learningGoal: null,
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      englishLevel: true,
+      learningGoal: true,
+      membershipTier: true,
+    },
+  });
 }
 
 export async function findUserByEmail(email: string) {
-    return prisma.user.findFirst({
-        where: {
-            email: email.toLowerCase().trim(),
-            isDeleted: false,
-        },
-        select: userAuthSelect,
-    });
+  return prisma.user.findFirst({
+    where: {
+      email: email.toLowerCase().trim(),
+      isDeleted: false,
+    },
+    select: userAuthSelect,
+  });
 }
 
 export async function findUserById(id: string) {
-    return prisma.user.findFirst({
-        where: {
-            id,
-            isDeleted: false,
-        },
-        select: userAuthSelect,
-    });
+  return prisma.user.findFirst({
+    where: {
+      id,
+      isDeleted: false,
+    },
+    select: userAuthSelect,
+  });
 }
 
 export async function findUserPasswordById(id: string) {
-    return prisma.user.findFirst({
-        where: {
-            id,
-            isDeleted: false,
-        },
-        select: {
-            password: true,
-        },
-    });
+  return prisma.user.findFirst({
+    where: {
+      id,
+      isDeleted: false,
+    },
+    select: {
+      password: true,
+    },
+  });
 }
 
 export async function findUserByIdFull(id: string) {
-    return prisma.user.findFirst({
-        where: {
-            id,
-            isDeleted: false,
-        },
-        select: userProfileSelect,
-    });
+  return prisma.user.findFirst({
+    where: {
+      id,
+      isDeleted: false,
+    },
+    select: userProfileSelect,
+  });
 }
 
 export async function updateUser(
-    id: string,
-    data: {
-        name?: string | null;
-        avatar?: string | null;
-        password?: string | null;
-        englishLevel?: EnglishLevel | null;
-        learningGoal?: string | null;
-    },
+  id: string,
+  data: {
+    name?: string | null;
+    avatar?: string | null;
+    password?: string | null;
+    englishLevel?: EnglishLevel | null;
+    learningGoal?: string | null;
+  },
 ) {
-    return prisma.user.update({
-        where: { id },
-        data: {
-            ...(data.name !== undefined && { name: data.name }),
-            ...(data.avatar !== undefined && { avatar: data.avatar }),
-            ...(data.password !== undefined && { password: data.password }),
-            ...(data.englishLevel !== undefined && { englishLevel: data.englishLevel }),
-            ...(data.learningGoal !== undefined && { learningGoal: data.learningGoal }),
-        },
-        select: userProfileSelect,
-    });
+  return prisma.user.update({
+    where: { id },
+    data: {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.avatar !== undefined && { avatar: data.avatar }),
+      ...(data.password !== undefined && { password: data.password }),
+      ...(data.englishLevel !== undefined && {
+        englishLevel: data.englishLevel,
+      }),
+      ...(data.learningGoal !== undefined && {
+        learningGoal: data.learningGoal,
+      }),
+    },
+    select: userProfileSelect,
+  });
 }
 
 export async function updateUserOnboarding(data: {
-    userId: string;
-    englishLevel: EnglishLevel;
-    learningGoal: LearningGoal;
+  userId: string;
+  englishLevel: EnglishLevel;
+  learningGoal: LearningGoal;
 }) {
-    return prisma.user.update({
-        where: {
-            id: data.userId,
-        },
-        data: {
-            englishLevel: data.englishLevel,
-            learningGoal: data.learningGoal.trim(),
-        },
-        select: {
-            id: true,
-            email: true,
-            name: true,
-            englishLevel: true,
-            learningGoal: true,
-            membershipTier: true,
-        },
-    });
+  return prisma.user.update({
+    where: {
+      id: data.userId,
+    },
+    data: {
+      englishLevel: data.englishLevel,
+      learningGoal: data.learningGoal.trim(),
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      englishLevel: true,
+      learningGoal: true,
+      membershipTier: true,
+    },
+  });
 }
 
 export async function updateUserProfile(data: {
-    userId: string;
-    name: string | null;
-    avatar: string | null;
-    englishLevel: EnglishLevel | null;
-    learningGoal: LearningGoal | null;
+  userId: string;
+  name: string | null;
+  avatar: string | null;
+  englishLevel: EnglishLevel | null;
+  learningGoal: LearningGoal | null;
 }) {
-    return prisma.user.update({
-        where: {
-            id: data.userId,
-        },
-        data: {
-            name: data.name,
-            avatar: data.avatar,
-            englishLevel: data.englishLevel,
-            learningGoal: data.learningGoal,
-        },
-        select: userProfileSelect,
-    });
+  return prisma.user.update({
+    where: {
+      id: data.userId,
+    },
+    data: {
+      name: data.name,
+      avatar: data.avatar,
+      englishLevel: data.englishLevel,
+      learningGoal: data.learningGoal,
+    },
+    select: userProfileSelect,
+  });
 }
 
 export async function deleteUser(id: string) {
-    return prisma.user.update({
-        where: {
-            id,
-        },
-        data: {
-            isDeleted: true,
-        },
-        select: {
-            id: true,
-        },
-    });
+  return prisma.user.update({
+    where: {
+      id,
+    },
+    data: {
+      isDeleted: true,
+    },
+    select: {
+      id: true,
+    },
+  });
 }

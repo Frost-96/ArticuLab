@@ -4,13 +4,13 @@ import { getCurrentUser } from "@/lib/auth";
 import { getProfileData } from "@/server/services/profile.service";
 
 export default async function Page() {
-    const currentUser = await getCurrentUser();
+  const currentUser = await getCurrentUser();
 
-    if (!currentUser) {
-        redirect("/login");
-    }
+  if (!currentUser) {
+    redirect("/login");
+  }
 
-    const profileData = await getProfileData(currentUser.userId);
+  const profileData = await getProfileData(currentUser.userId);
 
-    return <ProfileView data={profileData} />;
+  return <ProfileView data={profileData} />;
 }

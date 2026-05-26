@@ -73,7 +73,12 @@ export const scenarioCategoryEnum = z.enum(["writing", "speaking"]);
 export const writingExerciseStatusEnum = z.enum(["draft", "completed"]);
 
 // 口语练习状态
-export const speakingExerciseStatusEnum = z.enum(["in_progress", "completed", "reviewed", "failed"]);
+export const speakingExerciseStatusEnum = z.enum([
+  "in_progress",
+  "completed",
+  "reviewed",
+  "failed",
+]);
 
 // 批改反馈严重程度
 export const feedbackSeverityEnum = z.enum(["error", "warning", "suggestion"]);

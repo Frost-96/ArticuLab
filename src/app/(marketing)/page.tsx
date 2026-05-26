@@ -9,17 +9,17 @@ import { StatsSection } from "@/components/landing/stats-section";
 import { Testimonials } from "@/components/landing/testimonials";
 
 export default function HomePage() {
-    return (
-        <>
-            <HeroSection />
-            <FeatureSection />
-            <HowItWorks />
-            <DemoSection />
-            <StatsSection />
-            <Testimonials />
-            <PricingSection />
-            <FAQSection />
-            <CTASection />
-        </>
-    );
+  return (
+    <>
+      <HeroSection />
+      <FeatureSection />
+      <HowItWorks />
+      <DemoSection />
+      <StatsSection />
+      <Testimonials />
+      <PricingSection />
+      <FAQSection />
+      <CTASection />
+    </>
+  );
 }

@@ -1,5 +1,7 @@
 // src/types/message/messageTypes.ts
 
+import type { PronunciationResultLite } from "@/schema/speaking.schema";
+
 // ==================== 消息相关类型定义 ====================
 
 export type MessageData = {
@@ -15,6 +17,8 @@ export type MessageData = {
   pronunciationFluency?: number | null;
   pronunciationCompleteness?: number | null;
   pronunciationProsody?: number | null;
+  // 完整发音评估结果（含逐词+音素数据）
+  pronunciationFeedback?: PronunciationResultLite | null;
 };
 
 export type SaveMessageResult = {

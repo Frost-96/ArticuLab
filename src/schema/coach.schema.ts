@@ -5,11 +5,11 @@ import { idSchema } from "./shared.schema";
 
 // F-010: 发送文字消息（POST /api/chat）
 export const chatMessageSchema = z.object({
-    conversationId: idSchema.optional(), // 不传则创建新会话
-    message: z
-        .string()
-        .min(1, "Message cannot be empty")
-        .max(10000, "Message must not exceed 10000 characters"),
+  conversationId: idSchema.optional(), // 不传则创建新会话
+  message: z
+    .string()
+    .min(1, "Message cannot be empty")
+    .max(10000, "Message must not exceed 10000 characters"),
 });
 
 // F-012: 写作批改入口 — 当检测到长文本时自动切换
@@ -17,8 +17,8 @@ export const chatMessageSchema = z.object({
 
 // F-014: 手动切换模式
 export const switchModeSchema = z.object({
-    conversationId: idSchema,
-    mode: z.enum(["chat", "correct", "review", "qa"]),
+  conversationId: idSchema,
+  mode: z.enum(["chat", "correct", "review", "qa"]),
 });
 
 // ==================== 类型导出 ====================
