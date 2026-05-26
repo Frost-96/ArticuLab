@@ -5,6 +5,7 @@ import { completeOnboarding } from "@/server/actions/auth.action";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 import type { EnglishLevel } from "@/types/onboarding";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { StepIndicator } from "./step-indicator";
@@ -22,6 +23,7 @@ interface OnboardingFlowProps {
 export function OnboardingFlow({
     initialEnglishLevel = null,
 }: OnboardingFlowProps) {
+    const router = useRouter();
     const {
         currentStep,
         totalSteps,
@@ -73,7 +75,7 @@ export function OnboardingFlow({
         }
 
         toast.success("Your profile is ready");
-        nextStep();
+        router.replace(result.data.redirect);
     }
 
     return (
