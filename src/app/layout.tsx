@@ -6,15 +6,15 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export default function RootLayout({
-    children,
+  children,
 }: Readonly<{
-    children: React.ReactNode;
+  children: React.ReactNode;
 }>) {
-    return (
-        <html lang="en" className={cn("font-sans", geist.variable)}>
-            <body>
-                <TooltipProvider>{children}</TooltipProvider>
-            </body>
-        </html>
-    );
+  return (
+    <html lang="en" className={cn("font-sans", geist.variable)}>
+      <body>
+        <TooltipProvider>{children}</TooltipProvider>
+      </body>
+    </html>
+  );
 }

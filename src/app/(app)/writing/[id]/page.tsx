@@ -4,26 +4,26 @@ import { WritingEditor } from "@/components/writing/writing-editor";
 import { getWritingExercise } from "@/server/services/writing.service";
 
 export default async function Page({
-    params,
+  params,
 }: {
-    params: Promise<{ id: string }>;
+  params: Promise<{ id: string }>;
 }) {
-    const currentUser = await getCurrentUser();
+  const currentUser = await getCurrentUser();
 
-    if (!currentUser) {
-        redirect("/login");
-    }
+  if (!currentUser) {
+    redirect("/login");
+  }
 
-    const { id } = await params;
-    let exercise;
+  const { id } = await params;
+  let exercise;
 
-    try {
-        ({ exercise } = await getWritingExercise(currentUser.userId, {
-            exerciseId: id,
-        }));
-    } catch {
-        redirect("/writing");
-    }
+  try {
+    ({ exercise } = await getWritingExercise(currentUser.userId, {
+      exerciseId: id,
+    }));
+  } catch {
+    redirect("/writing");
+  }
 
-    return <WritingEditor exercise={exercise} />;
+  return <WritingEditor exercise={exercise} />;
 }

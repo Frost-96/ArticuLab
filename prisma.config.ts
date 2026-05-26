@@ -4,12 +4,12 @@ import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
 export default defineConfig({
-    schema: "prisma/schema.prisma",
-    migrations: {
-        path: "prisma/migrations",
-        seed: "node .\\node_modules\\.pnpm\\jiti@2.6.1\\node_modules\\jiti\\lib\\jiti-cli.mjs prisma\\seed.ts",
-    },
-    datasource: {
-        url: process.env["DATABASE_URL"],
-    },
+  schema: "prisma/schema.prisma",
+  migrations: {
+    path: "prisma/migrations",
+    seed: "node .\\node_modules\\.pnpm\\jiti@2.6.1\\node_modules\\jiti\\lib\\jiti-cli.mjs prisma\\seed.ts",
+  },
+  datasource: {
+    url: process.env["DATABASE_URL"],
+  },
 });

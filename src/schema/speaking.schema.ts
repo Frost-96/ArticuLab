@@ -58,7 +58,7 @@ export const speakingChatSchema = z.object({
     .string()
     .min(1, "Message cannot be empty")
     .max(5000, "Message must not exceed 5000 characters"),
-  audioUrl: z.string().url("Invalid audio URL").optional(),
+  audioUrl: z.string().optional(),
 });
 
 // 结束口语练习
@@ -229,6 +229,36 @@ export const pronunciationResultSchema = z.object({
   words: z.array(pronunciationWordResultSchema),
 });
 
+// ==================== Lite 版发音评估（phonemes 可选，用于 AI Review） ====================
+
+/** 发音评估逐词结果（Lite 版，phonemes 可选） */
+export const pronunciationWordResultLiteSchema = z.object({
+  word: z.string(),
+  accuracyScore: z.number(),
+  errorType: z.string(),
+  phonemes: z.array(pronunciationPhonemeResultSchema).optional(),
+});
+
+/** 发音评估完整结果（Lite 版，用于 AI Review 解析） */
+export const pronunciationResultLiteSchema = z.object({
+  pronunciationScore: z.number().min(0).max(100),
+  accuracyScore: z.number().min(0).max(100),
+  fluencyScore: z.number().min(0).max(100),
+  completenessScore: z.number().min(0).max(100),
+  prosodyScore: z.number().min(0).max(100),
+  words: z.array(pronunciationWordResultLiteSchema),
+});
+
+// ==================== AI Review 请求 ====================
+
+// POST /api/speaking/review 请求体
+export const speakingReviewRequestSchema = z.object({
+  exerciseId: idSchema,
+  score: z.boolean().default(true),
+  words: z.boolean().default(false),
+  phonemes: z.boolean().default(false),
+});
+
 // ==================== 类型导出 ====================
 
 export type StartSpeakingInput = z.infer<typeof startSpeakingSchema>;
@@ -264,4 +294,17 @@ export type PronunciationPhonemeResult = z.infer<
 export type PronunciationResult = z.infer<typeof pronunciationResultSchema>;
 export type PronunciationRequestInput = z.infer<
   typeof pronunciationRequestSchema
+>;
+
+// Lite 版发音评估类型（phonemes 可选，用于 AI Review）
+export type PronunciationWordResultLite = z.infer<
+  typeof pronunciationWordResultLiteSchema
+>;
+export type PronunciationResultLite = z.infer<
+  typeof pronunciationResultLiteSchema
+>;
+
+// AI Review 请求类型
+export type SpeakingReviewRequestInput = z.infer<
+  typeof speakingReviewRequestSchema
 >;

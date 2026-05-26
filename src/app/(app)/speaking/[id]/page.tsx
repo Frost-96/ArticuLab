@@ -4,24 +4,24 @@ import { SpeakingSession } from "@/components/speaking/speaking-session";
 import { getSpeakingExercise } from "@/server/services/speaking.service";
 
 export default async function Page({
-    params,
+  params,
 }: {
-    params: Promise<{ id: string }>;
+  params: Promise<{ id: string }>;
 }) {
-    const currentUser = await getCurrentUser();
+  const currentUser = await getCurrentUser();
 
-    if (!currentUser) {
-        redirect("/login");
-    }
+  if (!currentUser) {
+    redirect("/login");
+  }
 
-    const { id } = await params;
-    let exercise;
+  const { id } = await params;
+  let exercise;
 
-    try {
-        ({ exercise } = await getSpeakingExercise(currentUser.userId, { id }));
-    } catch {
-        redirect("/speaking");
-    }
+  try {
+    ({ exercise } = await getSpeakingExercise(currentUser.userId, { id }));
+  } catch {
+    redirect("/speaking");
+  }
 
-    return <SpeakingSession exercise={exercise} />;
+  return <SpeakingSession exercise={exercise} />;
 }

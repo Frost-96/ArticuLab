@@ -6,23 +6,23 @@ import type { WritingExerciseStatus } from "@/schema/enums";
 
 // Select 模板定义 - 控制返回字段
 const writingExerciseSelect = {
-    id: true,
-    userId: true,
-    scenarioId: true,
-    scenarioType: true,
-    prompt: true,
-    isCustomPrompt: true,
-    content: true,
-    wordCount: true,
-    status: true,
-    overallScore: true,
-    grammarScore: true,
-    vocabularyScore: true,
-    coherenceScore: true,
-    taskScore: true,
-    feedback: true,
-    createdAt: true,
-    updatedAt: true,
+  id: true,
+  userId: true,
+  scenarioId: true,
+  scenarioType: true,
+  prompt: true,
+  isCustomPrompt: true,
+  content: true,
+  wordCount: true,
+  status: true,
+  overallScore: true,
+  grammarScore: true,
+  vocabularyScore: true,
+  coherenceScore: true,
+  taskScore: true,
+  feedback: true,
+  createdAt: true,
+  updatedAt: true,
 } satisfies Prisma.WritingExerciseSelect;
 
 // ==================== 查询写作练习列表 ====================
@@ -38,39 +38,39 @@ const writingExerciseSelect = {
  * @returns { rows: 练习列表，total: 总数 }
  */
 export async function findWritingExercises(params: {
-    userId: string;
-    scenarioType?: string;
-    status?: WritingExerciseStatus;
-    skip?: number;
-    take?: number;
+  userId: string;
+  scenarioType?: string;
+  status?: WritingExerciseStatus;
+  skip?: number;
+  take?: number;
 }) {
-    const { userId, scenarioType, status, skip = 0, take = 10 } = params;
+  const { userId, scenarioType, status, skip = 0, take = 10 } = params;
 
-    const where: Prisma.WritingExerciseWhereInput = {
-        userId,
-        isDeleted: false,
-        ...(scenarioType ? { scenarioType } : {}),
-    };
+  const where: Prisma.WritingExerciseWhereInput = {
+    userId,
+    isDeleted: false,
+    ...(scenarioType ? { scenarioType } : {}),
+  };
 
-    // 状态筛选：draft 表示未批改（overallScore 为 null），completed 表示已批改
-    if (status === "draft") {
-        where.overallScore = null;
-    } else if (status === "completed") {
-        where.overallScore = { not: null };
-    }
+  // 状态筛选：draft 表示未批改（overallScore 为 null），completed 表示已批改
+  if (status === "draft") {
+    where.overallScore = null;
+  } else if (status === "completed") {
+    where.overallScore = { not: null };
+  }
 
-    const [rows, total] = await prisma.$transaction([
-        prisma.writingExercise.findMany({
-            where,
-            orderBy: { createdAt: "desc" },
-            skip,
-            take,
-            select: writingExerciseSelect,
-        }),
-        prisma.writingExercise.count({ where }),
-    ]);
+  const [rows, total] = await prisma.$transaction([
+    prisma.writingExercise.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take,
+      select: writingExerciseSelect,
+    }),
+    prisma.writingExercise.count({ where }),
+  ]);
 
-    return { rows, total };
+  return { rows, total };
 }
 
 // ==================== 统计已完成练习 ====================
@@ -81,20 +81,20 @@ export async function findWritingExercises(params: {
  * @returns 统计信息
  */
 export async function countCompletedExercises(userId: string) {
-    const aggregate = await prisma.writingExercise.aggregate({
-        where: { userId, isDeleted: false, overallScore: { not: null } },
-        _count: { overallScore: true },
-        _avg: { overallScore: true },
-        _min: { overallScore: true },
-        _max: { overallScore: true },
-    });
+  const aggregate = await prisma.writingExercise.aggregate({
+    where: { userId, isDeleted: false, overallScore: { not: null } },
+    _count: { overallScore: true },
+    _avg: { overallScore: true },
+    _min: { overallScore: true },
+    _max: { overallScore: true },
+  });
 
-    return {
-        count: aggregate._count.overallScore,
-        average: aggregate._avg.overallScore,
-        min: aggregate._min.overallScore,
-        max: aggregate._max.overallScore,
-    };
+  return {
+    count: aggregate._count.overallScore,
+    average: aggregate._avg.overallScore,
+    min: aggregate._min.overallScore,
+    max: aggregate._max.overallScore,
+  };
 }
 
 // ==================== 按 ID 查询写作练习 ====================
@@ -105,14 +105,11 @@ export async function countCompletedExercises(userId: string) {
  * @param userId - 用户 ID（用于权限校验）
  * @returns WritingExercise | null
  */
-export async function findWritingExerciseById(
-    id: string,
-    userId: string
-) {
-    return prisma.writingExercise.findFirst({
-        where: { id, userId, isDeleted: false },
-        select: writingExerciseSelect,
-    });
+export async function findWritingExerciseById(id: string, userId: string) {
+  return prisma.writingExercise.findFirst({
+    where: { id, userId, isDeleted: false },
+    select: writingExerciseSelect,
+  });
 }
 
 // ==================== 创建写作练习 ====================
@@ -123,27 +120,28 @@ export async function findWritingExerciseById(
  * @returns 创建的练习
  */
 export async function createWritingExercise(data: {
-    userId: string;
-    scenarioType: string;
-    prompt: string;
-    isCustomPrompt: boolean;
-    content?: string;
-    wordCount?: number;
-    scenarioId?: string | null;
+  userId: string;
+  scenarioType: string;
+  prompt: string;
+  isCustomPrompt: boolean;
+  content?: string;
+  wordCount?: number;
+  scenarioId?: string | null;
 }) {
-    return prisma.writingExercise.create({
-        data: {
-            userId: data.userId,
-            scenarioType: data.scenarioType as Prisma.WritingExerciseCreateInput["scenarioType"],
-            prompt: data.prompt,
-            isCustomPrompt: data.isCustomPrompt,
-            content: data.content ?? "",
-            wordCount: data.wordCount ?? 0,
-            scenarioId: data.scenarioId,
-            status: "draft",
-        },
-        select: writingExerciseSelect,
-    });
+  return prisma.writingExercise.create({
+    data: {
+      userId: data.userId,
+      scenarioType:
+        data.scenarioType as Prisma.WritingExerciseCreateInput["scenarioType"],
+      prompt: data.prompt,
+      isCustomPrompt: data.isCustomPrompt,
+      content: data.content ?? "",
+      wordCount: data.wordCount ?? 0,
+      scenarioId: data.scenarioId,
+      status: "draft",
+    },
+    select: writingExerciseSelect,
+  });
 }
 
 // ==================== 更新写作练习 ====================
@@ -155,25 +153,25 @@ export async function createWritingExercise(data: {
  * @returns 更新后的练习
  */
 export async function updateWritingExercise(
-    id: string,
-    data: Partial<{
-        prompt: string;
-        content: string;
-        wordCount: number;
-        status: string;
-        feedback: object;
-        overallScore: number | null;
-        grammarScore: number | null;
-        vocabularyScore: number | null;
-        coherenceScore: number | null;
-        taskScore: number | null;
-    }>
+  id: string,
+  data: Partial<{
+    prompt: string;
+    content: string;
+    wordCount: number;
+    status: string;
+    feedback: object;
+    overallScore: number | null;
+    grammarScore: number | null;
+    vocabularyScore: number | null;
+    coherenceScore: number | null;
+    taskScore: number | null;
+  }>,
 ) {
-    return prisma.writingExercise.update({
-        where: { id },
-        data,
-        select: writingExerciseSelect,
-    });
+  return prisma.writingExercise.update({
+    where: { id },
+    data,
+    select: writingExerciseSelect,
+  });
 }
 
 // ==================== 删除写作练习 ====================
@@ -184,11 +182,11 @@ export async function updateWritingExercise(
  * @returns 删除的练习
  */
 export async function deleteWritingExercise(id: string) {
-    return prisma.writingExercise.update({
-        where: { id },
-        data: {
-            isDeleted: true as unknown as boolean,
-        },
-        select: { id: true },
-    });
+  return prisma.writingExercise.update({
+    where: { id },
+    data: {
+      isDeleted: true as unknown as boolean,
+    },
+    select: { id: true },
+  });
 }
