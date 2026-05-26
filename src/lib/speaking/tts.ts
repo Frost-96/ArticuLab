@@ -16,14 +16,16 @@ export type TtsResult =
  * 音频数据以 Base64 编码返回在 completion.choices[0].message.audio.data 中。
  *
  * @param text - 要转换的文本内容
- * @param voice - 语音类型，默认 "mimo_default"
+ * @param voice - 语音类型，默认 "Mia"
  * @param speed - 语速，默认 1.0（MiMo 暂不支持自定义语速，保留参数）
- * @returns TTS 结果，成功时包含音频 Buffer（WAV 格式）
+ * @param format - 音频格式，默认 "wav"（可选: wav, mp3, pcm, pcm16）
+ * @returns TTS 结果，成功时包含音频 Buffer
  */
 export async function textToSpeech(
   text: string,
-  voice: string = "mimo_default",
+  voice: string = "Mia",
   speed: number = 1.0,
+  format: "wav" | "mp3" | "pcm16" = "wav",
 ): Promise<TtsResult> {
   const client = getTtsClient();
   if (!client) {
@@ -42,7 +44,7 @@ export async function textToSpeech(
         { role: "assistant", content: text },
       ],
       audio: {
-        format: "wav",
+        format,
         voice,
       },
     });

@@ -1,39 +1,79 @@
 // src/lib/speaking/audioStorage.ts
-// 音频存储接口（现阶段返回 Base64，后续接入 Supabase Storage）
+// 音频存储接口 — 基于 Supabase Storage
 
+import { getSupabase } from "@/lib/supabase";
 import type { AudioStorageResult } from "@/schema/speaking.schema";
 
-/**
- * 上传音频并返回访问信息
- *
- * 现阶段实现：直接返回 Base64 data URL
- * 后续实现：上传到 Supabase Storage，返回公开访问 URL
- *
- * @param audioBuffer - 音频二进制数据
- * @param filename - 文件名（用于存储路径）
- * @param contentType - MIME 类型，默认 "audio/wav"
- * @returns 音频访问 URL 和存储标识
- */
-export async function storeAudio(
-  audioBuffer: Buffer,
-  filename: string,
-  contentType: string = "audio/wav",
-): Promise<AudioStorageResult> {
-  // TODO: 后续替换为 Supabase Storage 实现
-  void filename;
-  void contentType;
+/** 允许的 bucket 名称 */
+export type AudioBucket = "user-audio" | "ai-audio";
 
-  const base64 = audioBuffer.toString("base64");
-  const dataUrl = `data:audio/wav;base64,${base64}`;
-  return { ok: true, url: dataUrl, storageId: "local" };
+/**
+ * 上传音频文件到 Supabase Storage
+ *
+ * @param bucket - 目标 bucket
+ * @param path - 存储路径（如 "userId/convId/msgId.webm"）
+ * @param audioBuffer - 音频二进制数据
+ * @param contentType - MIME 类型
+ * @returns 上传结果
+ */
+export async function uploadAudio(
+  bucket: AudioBucket,
+  path: string,
+  audioBuffer: Buffer,
+  contentType: string,
+): Promise<AudioStorageResult> {
+  const { error } = await getSupabase()
+    .storage.from(bucket)
+    .upload(path, audioBuffer, {
+      contentType,
+      upsert: false,
+    });
+
+  if (error) {
+    console.error(`Supabase upload failed (${bucket}/${path}):`, error.message);
+    return { ok: false, error: error.message };
+  }
+
+  return { ok: true, url: path, storageId: `${bucket}/${path}` };
 }
 
 /**
- * 将音频 Buffer 转为 Base64 字符串
+ * 删除 Supabase Storage 中的音频文件
  *
- * @param buffer - 音频二进制数据
- * @returns Base64 编码字符串
+ * @param bucket - 目标 bucket
+ * @param path - 存储路径
  */
-export function audioBufferToBase64(buffer: Buffer): string {
-  return buffer.toString("base64");
+export async function deleteAudio(
+  bucket: AudioBucket,
+  path: string,
+): Promise<void> {
+  const { error } = await getSupabase().storage.from(bucket).remove([path]);
+
+  if (error) {
+    console.error(`Supabase delete failed (${bucket}/${path}):`, error.message);
+  }
+}
+
+/**
+ * 生成音频文件的签名 URL
+ *
+ * @param bucket - 目标 bucket
+ * @param path - 存储路径
+ * @param expiresIn - 有效期（秒），默认 3600
+ * @returns 签名 URL
+ */
+export async function getSignedUrl(
+  bucket: AudioBucket,
+  path: string,
+  expiresIn: number = 3600,
+): Promise<string> {
+  const { data, error } = await getSupabase()
+    .storage.from(bucket)
+    .createSignedUrl(path, expiresIn);
+
+  if (error) {
+    throw new Error(`Failed to generate signed URL: ${error.message}`);
+  }
+
+  return data.signedUrl;
 }

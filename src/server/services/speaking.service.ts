@@ -20,6 +20,7 @@ import {
   type SpeakingReviewResult,
   type SpeakingScenarioType,
   type UpdateSpeakingExerciseInput,
+  type PronunciationResultLite,
   idSchema,
 } from "@/schema";
 import { prisma } from "@/lib/prisma";
@@ -77,6 +78,8 @@ function mapSpeakingDetail(
       pronunciationFluency: message.pronunciationFluency,
       pronunciationCompleteness: message.pronunciationCompleteness,
       pronunciationProsody: message.pronunciationProsody,
+      pronunciationFeedback:
+        (message.pronunciationFeedback as PronunciationResultLite) ?? null,
       createdAt: message.createdAt.toISOString(),
     })),
   };
@@ -287,6 +290,22 @@ export async function saveUserMessage(
   };
 }
 
+/**
+ * 删除用户消息（软删除 + totalTurns 减 1）
+ *
+ * 用于客户端断开时回滚已保存的用户消息，保持对话数据一致性。
+ * 仅在消息尚未被 AI 回复时调用（即消息创建后、AI 生成前或生成中断时）。
+ *
+ * @param messageId - 要删除的消息 ID
+ * @param exerciseId - 所属口语练习 ID
+ */
+export async function deleteUserMessage(
+  messageId: string,
+  exerciseId: string,
+): Promise<void> {
+  await speakingRepo.deleteSpeakingMessage({ messageId, exerciseId });
+}
+
 export async function endSpeakingExercise(
   userId: string,
   input: EndSpeakingInput,
@@ -309,7 +328,6 @@ export async function endSpeakingExercise(
   if (!exercise) {
     throw new Error("Speaking exercise not found");
   }
-
   const totalTurns = exercise.conversation.messages.length;
   const durationSeconds = Math.max(
     0,
@@ -515,6 +533,19 @@ export async function saveAssistantMessage(
     },
     totalTurns,
   };
+}
+
+/**
+ * 更新消息的 audioUrl 字段
+ *
+ * @param messageId - 消息 ID
+ * @param audioUrl - 音频存储路径（非完整 URL）
+ */
+export async function updateMessageAudioUrl(
+  messageId: string,
+  audioUrl: string,
+): Promise<void> {
+  await speakingRepo.updateMessageAudioUrl(messageId, audioUrl);
 }
 
 // ==================== 发音评估 ====================

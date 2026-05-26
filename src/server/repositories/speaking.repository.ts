@@ -12,8 +12,32 @@ const speakingMessageSelect = {
   pronunciationFluency: true,
   pronunciationCompleteness: true,
   pronunciationProsody: true,
+  pronunciationFeedback: true,
   createdAt: true,
 } satisfies Prisma.MessageSelect;
+
+/** 轻量级练习存在性校验的 select（不加载消息） */
+const speakingExerciseVerifySelect = {
+  id: true,
+  conversationId: true,
+  scenarioType: true,
+  scenarioRole: true,
+  status: true,
+  createdAt: true,
+  scenario: {
+    select: {
+      title: true,
+      description: true,
+      prompt: true,
+      aiRole: true,
+    },
+  },
+  conversation: {
+    select: {
+      title: true,
+    },
+  },
+} satisfies Prisma.SpeakingExerciseSelect;
 
 const speakingExerciseListSelect = {
   id: true,
@@ -121,29 +145,6 @@ export async function findSpeakingExerciseById(id: string, userId: string) {
   });
 }
 
-/** 轻量级练习存在性校验的 select（不加载消息） */
-const speakingExerciseVerifySelect = {
-  id: true,
-  conversationId: true,
-  scenarioType: true,
-  scenarioRole: true,
-  status: true,
-  createdAt: true,
-  scenario: {
-    select: {
-      title: true,
-      description: true,
-      prompt: true,
-      aiRole: true,
-    },
-  },
-  conversation: {
-    select: {
-      title: true,
-    },
-  },
-} satisfies Prisma.SpeakingExerciseSelect;
-
 /**
  * 校验练习存在且属于用户，返回基础字段（不加载消息）
  *
@@ -239,6 +240,48 @@ export async function saveSpeakingMessage(data: {
     });
 
     return { message, totalTurns: updated.totalTurns ?? 1 };
+  });
+}
+
+/**
+ * 回滚已保存的消息（软删除 + totalTurns 减 1）
+ *
+ * 用于客户端断开时清理已保存的用户消息，
+ * 避免因 AI 无法回复而产生孤儿 message 记录。
+ */
+export async function deleteSpeakingMessage(data: {
+  messageId: string;
+  exerciseId: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    await tx.message.update({
+      where: { id: data.messageId },
+      data: { isDeleted: true },
+    });
+
+    const updated = await tx.speakingExercise.update({
+      where: { id: data.exerciseId },
+      data: { totalTurns: { decrement: 1 } },
+      select: { totalTurns: true },
+    });
+
+    return { totalTurns: updated.totalTurns ?? 0 };
+  });
+}
+
+/**
+ * 更新消息的 audioUrl 字段
+ *
+ * @param messageId - 消息 ID
+ * @param audioUrl - 音频存储路径（非完整 URL）
+ */
+export async function updateMessageAudioUrl(
+  messageId: string,
+  audioUrl: string,
+) {
+  return prisma.message.update({
+    where: { id: messageId },
+    data: { audioUrl },
   });
 }
 
