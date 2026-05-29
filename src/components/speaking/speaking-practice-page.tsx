@@ -19,6 +19,7 @@ import type { SpeakingHistoryResult } from "@/types/speaking/speakingTypes";
 type SpeakingPracticePageProps = {
   scenarios: ScenarioPrompt[];
   history: SpeakingHistoryResult;
+  loadError?: string | null;
 };
 
 const speakingScenarioLabelMap = {
@@ -40,6 +41,7 @@ function getScenarioLabel(category: string) {
 export function SpeakingPracticePage({
   scenarios,
   history,
+  loadError,
 }: SpeakingPracticePageProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -105,6 +107,14 @@ export function SpeakingPracticePage({
             </div>
           </div>
         </div>
+
+        {loadError ? (
+          <Card className="border-amber-200 bg-amber-50 shadow-sm">
+            <CardContent className="p-4 text-sm text-amber-800">
+              {loadError}
+            </CardContent>
+          </Card>
+        ) : null}
 
         {error ? (
           <Card className="border-red-200 bg-red-50 shadow-sm">

@@ -8,6 +8,18 @@ import * as speakingService from "@/server/services/speaking.service";
 import * as conversationService from "@/server/services/conversation.service";
 import type { MessageData } from "@/types/message/messageTypes";
 
+function getSpeakingAiFailureMessage(error: string) {
+  if (error.includes("not configured")) {
+    return "Speaking AI service is temporarily unavailable. Please try again later.";
+  }
+
+  if (error.includes("Empty AI response")) {
+    return "Speaking AI returned an empty response. Please try again.";
+  }
+
+  return "Speaking AI could not respond right now. Please try again.";
+}
+
 /**
  * POST /api/speaking/chat
  * 确认转写文本后，执行 AI 对话 + TTS 合成，返回完整结果
@@ -118,8 +130,13 @@ export async function POST(request: NextRequest) {
 
   if (!aiResult.ok) {
     console.error("AI response failed:", aiResult.error);
+    await speakingService
+      .deleteUserMessage(userMessageResult.message.id, exerciseId)
+      .catch((error) => {
+        console.error("Failed to roll back speaking user message:", error);
+      });
     return NextResponse.json(
-      { success: false, error: "AI response failed, please try again" },
+      { success: false, error: getSpeakingAiFailureMessage(aiResult.error) },
       { status: 502 },
     );
   }

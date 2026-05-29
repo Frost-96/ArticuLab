@@ -1,4 +1,8 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, MessageSquare, Mic, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +13,10 @@ import type { SpeakingExerciseDetail } from "@/types/speaking/speakingTypes";
 type SpeakingReviewProps = {
   exercise: SpeakingExerciseDetail;
 };
+
+type SpeakingReviewResponse =
+  | { success: true; data: unknown }
+  | { success: false; error: string };
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -27,7 +35,54 @@ function formatDuration(seconds: number) {
 }
 
 export function SpeakingReview({ exercise }: SpeakingReviewProps) {
+  const router = useRouter();
   const feedback = exercise.feedback;
+  const shouldGenerateReview = !feedback && exercise.status === "completed";
+  const hasRequestedReview = useRef(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+
+  const requestReview = useCallback(async () => {
+    if (!shouldGenerateReview || isGenerating) {
+      return;
+    }
+
+    setIsGenerating(true);
+    setReviewError(null);
+
+    try {
+      const response = await fetch("/api/speaking/review", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ exerciseId: exercise.id }),
+      });
+      const result = (await response.json()) as SpeakingReviewResponse;
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      router.refresh();
+    } catch (error) {
+      setReviewError(
+        error instanceof Error ? error.message : "Failed to generate review",
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [exercise.id, isGenerating, router, shouldGenerateReview]);
+
+  useEffect(() => {
+    if (!shouldGenerateReview || hasRequestedReview.current) {
+      return;
+    }
+
+    hasRequestedReview.current = true;
+    setIsGenerating(false);
+    void requestReview();
+  }, [requestReview, shouldGenerateReview]);
 
   return (
     <div className="page-container space-y-6">
@@ -236,15 +291,30 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
         <Card className="border-dashed bg-white shadow-sm">
           <CardContent className="space-y-3 p-6">
             <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-100">
-              <Mic className="h-6 w-6 text-slate-500" />
+              {isGenerating ? (
+                <TrendingUp className="h-6 w-6 animate-pulse text-sky-600" />
+              ) : (
+                <Mic className="h-6 w-6 text-slate-500" />
+              )}
             </div>
             <h2 className="text-lg font-semibold text-slate-900">
-              Review not ready yet
+              {isGenerating ? "Generating review" : "Review not ready yet"}
             </h2>
             <p className="text-sm leading-6 text-slate-500">
-              Your transcript is ready. Fluency, accuracy, and expression
-              feedback will appear here once the review is available.
+              {isGenerating
+                ? "Your transcript is ready. Fluency, accuracy, and expression feedback are being generated now."
+                : "Your transcript is ready. Fluency, accuracy, and expression feedback will appear here once the review is available."}
             </p>
+            {reviewError ? (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {reviewError}
+              </div>
+            ) : null}
+            {shouldGenerateReview && !isGenerating ? (
+              <Button onClick={() => void requestReview()}>
+                Retry review
+              </Button>
+            ) : null}
           </CardContent>
         </Card>
       )}

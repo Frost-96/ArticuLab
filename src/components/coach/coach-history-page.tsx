@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
   Loader2,
   MessageSquarePlus,
   Mic,
+  Pause,
   Send,
   Sparkles,
 } from "lucide-react";
@@ -18,10 +19,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  createConversationAction,
-  saveMessageAction,
-} from "@/server/actions/conversation.action";
 import { cn } from "@/lib/utils";
 import type { CoachPageData } from "@/types/coach/coachTypes";
 
@@ -37,6 +34,31 @@ type LocalCoachMessage = {
   pending?: boolean;
 };
 
+type CoachApiMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
+};
+
+type CoachChatResponse =
+  | {
+      success: true;
+      data: {
+        conversationId: string;
+        userMessage: CoachApiMessage;
+        assistantMessage: CoachApiMessage;
+      };
+    }
+  | {
+      success: false;
+      error: string;
+    };
+
+type SpeechToTextResponse =
+  | { success: true; data: { text: string } }
+  | { success: false; error: string };
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -46,18 +68,14 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function buildCoachReply(input: string) {
-  const trimmed = input.trim();
+function createAudioRecorder(stream: MediaStream) {
+  const preferredMimeType = "audio/webm;codecs=opus";
 
-  if (/he go/i.test(trimmed)) {
-    return "Try: He goes for a habit, or He went for a past event. The verb form should match the tense and subject.";
+  if (MediaRecorder.isTypeSupported(preferredMimeType)) {
+    return new MediaRecorder(stream, { mimeType: preferredMimeType });
   }
 
-  if (/essay|ielts|toefl|paragraph/i.test(trimmed)) {
-    return "A strong next step is to check the thesis, paragraph topic sentences, and examples. I would revise one sentence at a time, then compare the improved version with your original.";
-  }
-
-  return "Good prompt. I would first identify one grammar point, one vocabulary upgrade, and one clearer way to express the idea. Share a sentence when you want line-by-line feedback.";
+  return new MediaRecorder(stream);
 }
 
 function HighlightedCoachText({ content }: { content: string }) {
@@ -148,12 +166,24 @@ function CoachMessageBubble({ message }: { message: LocalCoachMessage }) {
 export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const activeConversationId = data.activeConversation?.id ?? null;
   const [draft, setDraft] = useState("");
   const [isComposing, setIsComposing] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [localMessages, setLocalMessages] = useState<LocalCoachMessage[]>([]);
   const messages = useMemo(
-    () => [...(data.activeConversation?.messages ?? []), ...localMessages],
+    () => {
+      const serverMessages = data.activeConversation?.messages ?? [];
+      const seen = new Set(serverMessages.map((message) => message.id));
+      return [
+        ...serverMessages,
+        ...localMessages.filter((message) => !seen.has(message.id)),
+      ];
+    },
     [data.activeConversation?.messages, localMessages],
   );
   const latestMessageId = messages[messages.length - 1]?.id;
@@ -170,101 +200,199 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
     });
   }, [latestMessageId]);
 
+  const handleTranscribe = useCallback(
+    async (audioBlob: Blob) => {
+      setIsTranscribing(true);
+      setErrorMessage(null);
+
+      try {
+        const formData = new FormData();
+        formData.append("audio", audioBlob, "recording.webm");
+        formData.append("language", "en");
+        if (activeConversationId) {
+          formData.append("conversationId", activeConversationId);
+        }
+
+        const response = await fetch("/api/speaking/stt", {
+          method: "POST",
+          body: formData,
+        });
+        let result: SpeechToTextResponse;
+        try {
+          result = (await response.json()) as SpeechToTextResponse;
+        } catch {
+          result = {
+            success: false,
+            error: response.ok
+              ? "Speech recognition failed."
+              : "Speech recognition service is temporarily unavailable.",
+          };
+        }
+
+        if (result.success) {
+          if (!response.ok) {
+            setErrorMessage("Speech recognition failed.");
+            return;
+          }
+
+          setDraft(result.data.text);
+          return;
+        }
+
+        setErrorMessage(result.error || "Speech recognition failed.");
+      } catch {
+        setErrorMessage("Network error: Failed to transcribe audio.");
+      } finally {
+        setIsTranscribing(false);
+      }
+    },
+    [activeConversationId],
+  );
+
+  const handleStartRecording = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      setErrorMessage("Voice recording is not supported in this browser.");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = createAudioRecorder(stream);
+
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        mediaRecorderRef.current = null;
+        setIsRecording(false);
+
+        if (audioChunksRef.current.length === 0) {
+          return;
+        }
+
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        audioChunksRef.current = [];
+        void handleTranscribe(blob);
+      };
+
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+      setErrorMessage(null);
+    } catch {
+      setErrorMessage(
+        "Microphone access denied. Please allow microphone permission.",
+      );
+    }
+  }, [handleTranscribe]);
+
+  const handleStopRecording = useCallback(() => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === "inactive") {
+      setIsRecording(false);
+      return;
+    }
+
+    recorder.stop();
+    setIsRecording(false);
+  }, []);
+
   async function handleSend() {
     const content = draft.trim();
-    if (!content || isComposing) {
+    if (!content || isComposing || isRecording || isTranscribing) {
       return;
     }
 
     const now = new Date().toISOString();
+    const localUserId = `local-user-${now}`;
+    const localAssistantId = `local-ai-${now}`;
     const userMessage: LocalCoachMessage = {
-      id: `local-user-${now}`,
+      id: localUserId,
       role: "user",
       content,
       createdAt: now,
+      pending: true,
     };
     const assistantMessage: LocalCoachMessage = {
-      id: `local-ai-${now}`,
+      id: localAssistantId,
       role: "assistant",
-      content: buildCoachReply(content),
+      content: "Thinking...",
       createdAt: now,
       pending: true,
     };
 
     setDraft("");
+    setErrorMessage(null);
     setIsComposing(true);
     setLocalMessages((current) => [...current, userMessage, assistantMessage]);
 
-    const conversationId = await resolveConversationId(content);
-    if (!conversationId) {
+    try {
+      const response = await fetch("/api/coach/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          conversationId: activeConversationId ?? undefined,
+          message: content,
+        }),
+      });
+      let result: CoachChatResponse;
+      try {
+        result = (await response.json()) as CoachChatResponse;
+      } catch {
+        result = {
+          success: false,
+          error: response.ok
+            ? "AI Coach could not respond right now. Please try again."
+            : "AI Coach service is temporarily unavailable. Please try again.",
+        };
+      }
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      setLocalMessages((current) =>
+        current.map((message) => {
+          if (message.id === localUserId) {
+            return { ...result.data.userMessage, pending: false };
+          }
+          if (message.id === localAssistantId) {
+            return { ...result.data.assistantMessage, pending: false };
+          }
+          return message;
+        }),
+      );
+
+      if (!activeConversationId) {
+        router.replace(`/coach?id=${result.data.conversationId}`);
+      }
+      router.refresh();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to send message";
+      setErrorMessage(message);
+      setDraft(content);
       setLocalMessages((current) =>
         current.filter(
-          (message) =>
-            message.id !== userMessage.id && message.id !== assistantMessage.id,
+          (item) => item.id !== localUserId && item.id !== localAssistantId,
         ),
       );
+    } finally {
       setIsComposing(false);
-      return;
     }
-
-    const savedUser = await saveMessageAction({
-      conversationId,
-      role: "user",
-      content,
-    });
-    if (!savedUser.success) {
-      window.alert(savedUser.error);
-      setIsComposing(false);
-      return;
-    }
-
-    const savedAssistant = await saveMessageAction({
-      conversationId,
-      role: "assistant",
-      content: assistantMessage.content,
-    });
-    if (!savedAssistant.success) {
-      window.alert(savedAssistant.error);
-      setIsComposing(false);
-      return;
-    }
-
-    setLocalMessages((current) =>
-      current.map((message) =>
-        message.id === assistantMessage.id
-          ? { ...message, pending: false }
-          : message,
-      ),
-    );
-    setIsComposing(false);
-
-    if (!activeConversationId) {
-      router.push(`/coach?id=${conversationId}`);
-    }
-    router.refresh();
   }
 
-  async function resolveConversationId(firstMessage: string) {
-    if (activeConversationId) {
-      return activeConversationId;
-    }
-
-    const title =
-      firstMessage.length > 80
-        ? `${firstMessage.slice(0, 77).trim()}...`
-        : firstMessage;
-    const result = await createConversationAction({
-      type: "coach",
-      title,
-    });
-
-    if (!result.success) {
-      window.alert(result.error);
-      return null;
-    }
-
-    return result.data.conversation.id;
-  }
+  const isBusy = isComposing || isTranscribing;
+  const canSend =
+    Boolean(draft.trim()) && !isComposing && !isRecording && !isTranscribing;
 
   return (
     <TooltipProvider>
@@ -315,6 +443,11 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
 
         <footer className="shrink-0 bg-white px-3 pb-4 sm:px-4">
           <div className="mx-auto max-w-4xl">
+            {errorMessage ? (
+              <div className="mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {errorMessage}
+              </div>
+            ) : null}
             {messages.length ? (
               <div className="mb-2 flex flex-wrap gap-2 px-1">
                 {quickPrompts.map((suggestion) => (
@@ -333,6 +466,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
               <div className="flex items-end gap-2">
                 <Textarea
                   value={draft}
+                  disabled={isBusy || isRecording}
                   onChange={(event) => setDraft(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" && !event.shiftKey) {
@@ -349,19 +483,43 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-11 w-11 rounded-full border-teal-200 text-teal-700 hover:bg-teal-50 hover:text-teal-800"
-                      aria-label="Voice input"
+                      className={cn(
+                        "h-11 w-11 rounded-full border-teal-200 text-teal-700 hover:bg-teal-50 hover:text-teal-800",
+                        isRecording &&
+                          "border-red-300 bg-red-500 text-white hover:bg-red-600 hover:text-white",
+                      )}
+                      disabled={!isRecording && (isComposing || isTranscribing)}
+                      onClick={
+                        isRecording
+                          ? () => handleStopRecording()
+                          : () => void handleStartRecording()
+                      }
+                      aria-label={
+                        isRecording ? "Stop recording" : "Start voice input"
+                      }
                     >
-                      <Mic className="h-4 w-4" />
+                      {isTranscribing ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : isRecording ? (
+                        <Pause className="h-4 w-4" />
+                      ) : (
+                        <Mic className="h-4 w-4" />
+                      )}
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Voice input</TooltipContent>
+                  <TooltipContent>
+                    {isRecording
+                      ? "Stop recording"
+                      : isTranscribing
+                        ? "Transcribing..."
+                        : "Voice input"}
+                  </TooltipContent>
                 </Tooltip>
                 <Button
                   size="icon"
                   className="h-11 w-11 rounded-full bg-teal-600 text-white hover:bg-teal-700"
                   onClick={() => void handleSend()}
-                  disabled={!draft.trim() || isComposing}
+                  disabled={!canSend}
                   aria-label="Send message"
                 >
                   {isComposing ? (

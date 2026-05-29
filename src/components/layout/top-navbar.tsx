@@ -8,7 +8,6 @@ import {
   Mic,
   MessageSquare,
   LayoutDashboard,
-  Bell,
   Menu,
   Flame,
 } from "lucide-react";
@@ -111,16 +110,6 @@ export function TopNavbar({ userSummary }: TopNavbarProps) {
               </span>
             </div>
           ) : null}
-
-          {/* Notifications */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative text-slate-600"
-          >
-            <Bell className="h-5 w-5 text-slate-600" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
-          </Button>
 
           {/* User Menu */}
           <UserNav userSummary={userSummary} />

@@ -28,6 +28,14 @@ import type {
 } from "@/types/speaking/speakingTypes";
 import type { SpeakingChatResponse } from "@/schema/speaking.schema";
 
+type SpeechToTextResult =
+  | { success: true; data: { text: string } }
+  | { success: false; error: string };
+
+type SpeakingChatResult =
+  | { success: true; data: SpeakingChatResponse }
+  | { success: false; error: string };
+
 type SpeakingSessionProps = {
   exercise: SpeakingExerciseDetail;
 };
@@ -53,6 +61,44 @@ async function playAudioFromBase64(base64: string) {
   } catch (error) {
     console.error("Failed to play audio:", error);
   }
+}
+
+async function playAudioFromUrl(audioUrl: string) {
+  const playableUrl = audioUrl.startsWith("http")
+    ? audioUrl
+    : await fetch(
+        `/api/speaking/getAudioURL?${new URLSearchParams({
+          bucket: "ai-audio",
+          path: audioUrl,
+        })}`,
+      )
+        .then((response) => response.json())
+        .then(
+          (
+            result:
+              | { success: true; data: { url: string } }
+              | { success: false; error: string },
+          ) => {
+            if (!result.success) {
+              throw new Error(result.error);
+            }
+
+            return result.data.url;
+          },
+        );
+
+  const audio = new Audio(playableUrl);
+  await audio.play();
+}
+
+function createAudioRecorder(stream: MediaStream) {
+  const preferredMimeType = "audio/webm;codecs=opus";
+
+  if (MediaRecorder.isTypeSupported(preferredMimeType)) {
+    return new MediaRecorder(stream, { mimeType: preferredMimeType });
+  }
+
+  return new MediaRecorder(stream);
 }
 
 export function SpeakingSession({ exercise }: SpeakingSessionProps) {
@@ -82,12 +128,15 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
   }, [latestMessageId]);
 
   /** 开始录音 */
-  const handleStartRecording = useCallback(async () => {
+  async function handleStartRecording() {
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      setError("Voice recording is not supported in this browser.");
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream, {
-        mimeType: "audio/webm;codecs=opus",
-      });
+      const recorder = createAudioRecorder(stream);
 
       audioChunksRef.current = [];
 
@@ -99,8 +148,12 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
 
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
+        mediaRecorderRef.current = null;
+        setIsRecording(false);
+
         if (audioChunksRef.current.length === 0) return;
         const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        audioChunksRef.current = [];
         await handleTranscribe(blob);
       };
 
@@ -111,11 +164,17 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     } catch {
       setError("Microphone access denied. Please allow microphone permission.");
     }
-  }, []);
+  }
 
   /** 停止录音 */
   const handleStopRecording = useCallback(() => {
-    mediaRecorderRef.current?.stop();
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === "inactive") {
+      setIsRecording(false);
+      return;
+    }
+
+    recorder.stop();
     setIsRecording(false);
   }, []);
 
@@ -133,10 +192,24 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
         method: "POST",
         body: formData,
       });
-      const result = await res.json();
+      let result: SpeechToTextResult;
+      try {
+        result = (await res.json()) as SpeechToTextResult;
+      } catch {
+        result = {
+          success: false,
+          error: res.ok
+            ? "Speech recognition failed."
+            : "Speech recognition service is temporarily unavailable.",
+        };
+      }
 
       if (result.success) {
-        setInput(result.data.text);
+        if (res.ok) {
+          setInput(result.data.text);
+        } else {
+          setError("Speech recognition failed.");
+        }
       } else {
         setError(result.error || "Speech recognition failed.");
       }
@@ -149,7 +222,8 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
 
   /** 发送消息（调用 Chat API：AI + TTS） */
   const handleSend = useCallback(async () => {
-    if (!input.trim() || readOnly) return;
+    const content = input.trim();
+    if (!content || readOnly || isRecording || isTranscribing) return;
 
     setIsSending(true);
     setError(null);
@@ -161,16 +235,22 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
         body: JSON.stringify({
           exerciseId: exercise.id,
           conversationId: exercise.conversationId,
-          message: input.trim(),
+          message: content,
         }),
       });
-      const result: {
-        success: boolean;
-        data?: SpeakingChatResponse;
-        error?: string;
-      } = await res.json();
+      let result: SpeakingChatResult;
+      try {
+        result = (await res.json()) as SpeakingChatResult;
+      } catch {
+        result = {
+          success: false,
+          error: res.ok
+            ? "Speaking AI could not respond right now. Please try again."
+            : "Speaking AI service is temporarily unavailable. Please try again.",
+        };
+      }
 
-      if (result.success && result.data) {
+      if (result.success) {
         const { userMessage, aiMessage, audioBase64 } = result.data;
 
         setMessages((prev) => [
@@ -206,7 +286,15 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     } finally {
       setIsSending(false);
     }
-  }, [input, readOnly, exercise.id, exercise.conversationId, router]);
+  }, [
+    input,
+    readOnly,
+    isRecording,
+    isTranscribing,
+    exercise.id,
+    exercise.conversationId,
+    router,
+  ]);
 
   /** 结束练习 */
   async function handleFinish() {
@@ -225,6 +313,16 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     }
 
     router.push(`/speaking/${exercise.id}/review`);
+  }
+
+  async function handlePlayAudio(audioUrl: string) {
+    setError(null);
+
+    try {
+      await playAudioFromUrl(audioUrl);
+    } catch {
+      setError("Unable to play this audio. Please try again.");
+    }
   }
 
   /** 是否正在处理中 */
@@ -320,6 +418,16 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                           size="sm"
                           className="h-8 gap-1 rounded-full px-2 text-xs text-slate-600 hover:text-slate-900"
                           disabled={!message.audioUrl}
+                          title={
+                            message.audioUrl
+                              ? "Play audio"
+                              : "Audio is not available for this message"
+                          }
+                          onClick={() => {
+                            if (message.audioUrl) {
+                              void handlePlayAudio(message.audioUrl);
+                            }
+                          }}
                         >
                           <Volume2 className="h-3.5 w-3.5" />
                           Audio

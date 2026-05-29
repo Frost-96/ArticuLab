@@ -44,6 +44,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/uiStore";
+import toast, { Toaster } from "react-hot-toast";
 import {
   deleteConversationAction,
   updateConversationTitleAction,
@@ -361,7 +362,7 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
         setMutatingId(null);
 
         if (!result.success) {
-          window.alert(result.error);
+          toast.error(result.error);
           return;
         }
 
@@ -401,7 +402,7 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
         setMutatingId(null);
 
         if (!result.success) {
-          window.alert(result.error);
+          toast.error(result.error);
           return;
         }
 
@@ -417,6 +418,7 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
   if (sidebarCollapsed) {
     return (
       <aside className="relative hidden w-14 shrink-0 flex-col items-center gap-2 border-r border-slate-200/70 bg-slate-100/90 px-1.5 py-2 transition-[width] duration-200 ease-out lg:flex">
+        <Toaster />
         <Button
           variant="ghost"
           size="icon"
@@ -496,6 +498,7 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
 
   return (
     <aside className="hidden h-full w-[304px] shrink-0 border-r border-slate-200/70 bg-slate-100/90 transition-[width] duration-200 ease-out lg:block">
+      <Toaster />
       <ScrollArea className="h-full">
         <div className="p-2">
           <div className="sidebar-content-enter">

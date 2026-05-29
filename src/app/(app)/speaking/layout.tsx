@@ -14,7 +14,12 @@ export default async function SpeakingLayout({
     redirect("/login");
   }
 
-  const items = await getSpeakingSidebarItems(currentUser.userId);
+  const items = await getSpeakingSidebarItems(currentUser.userId).catch(
+    (error) => {
+      console.error("Failed to load speaking sidebar:", error);
+      return [];
+    },
+  );
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
