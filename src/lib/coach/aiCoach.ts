@@ -1,4 +1,6 @@
 import type { MessageData } from "@/types/message/messageTypes";
+import type { ChatCompletionChunk } from "openai/resources/chat/completions";
+import { Stream } from "openai/streaming";
 import { getCoachLlmClient, getCoachLlmModel } from "./coachLlmClient";
 
 type CoachChatMessage = {
@@ -11,12 +13,7 @@ export type CoachChatResult =
   | { ok: false; error: string };
 
 export type CoachChatStreamResult =
-  | {
-      ok: true;
-      stream: AsyncIterable<{
-        choices: Array<{ delta?: { content?: string | null } }>;
-      }>;
-    }
+  | { ok: true; stream: Stream<ChatCompletionChunk> }
   | { ok: false; error: string };
 
 const COACH_SYSTEM_PROMPT = `You are an English coach for language learners.
@@ -120,6 +117,9 @@ export async function generateCoachResponseStream(
 
     return { ok: true, stream };
   } catch (error) {
+    if (signal?.aborted) {
+      return { ok: false, error: "Streaming aborted by client" };
+    }
     const message = error instanceof Error ? error.message : String(error);
     return { ok: false, error: `AI Coach request failed: ${message}` };
   }
