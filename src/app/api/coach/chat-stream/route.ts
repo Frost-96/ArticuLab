@@ -158,7 +158,25 @@ export async function POST(request: NextRequest) {
     return jsonError("Failed to prepare coach chat", 500);
   }
 
-  // =========== 4. 保存用户消息 ===========
+  // =========== 4. 加载历史消息（必须在保存用户消息之前，避免当前消息重复） ===========
+
+  let historyMessages: Awaited<
+    ReturnType<typeof conversationService.getLatestConversationMessages>
+  >["messages"];
+  try {
+    ({ messages: historyMessages } =
+      await conversationService.getLatestConversationMessages(
+        user.userId,
+        conversationId,
+        MAX_HISTORY_MESSAGES,
+      ));
+  } catch (error) {
+    const msg =
+      error instanceof Error ? error.message : "Failed to load coach history";
+    return jsonError(msg, 500);
+  }
+
+  // =========== 5. 保存用户消息 ===========
 
   let userMessage: Awaited<
     ReturnType<typeof conversationService.saveMessage>
@@ -175,29 +193,6 @@ export async function POST(request: NextRequest) {
     });
     const msg =
       error instanceof Error ? error.message : "Failed to save user message";
-    return jsonError(msg, 500);
-  }
-
-  // =========== 5. 加载历史消息 ===========
-
-  let historyMessages: Awaited<
-    ReturnType<typeof conversationService.getLatestConversationMessages>
-  >["messages"];
-  try {
-    ({ messages: historyMessages } =
-      await conversationService.getLatestConversationMessages(
-        user.userId,
-        conversationId,
-        MAX_HISTORY_MESSAGES,
-      ));
-  } catch (error) {
-    await rollbackCoachWrite(user.userId, {
-      messageId: userMessage.id,
-      conversationId,
-      createdConversation,
-    });
-    const msg =
-      error instanceof Error ? error.message : "Failed to load coach history";
     return jsonError(msg, 500);
   }
 
