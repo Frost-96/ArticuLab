@@ -311,9 +311,7 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
               </div>
             ) : null}
             {shouldGenerateReview && !isGenerating ? (
-              <Button onClick={() => void requestReview()}>
-                Retry review
-              </Button>
+              <Button onClick={() => void requestReview()}>Retry review</Button>
             ) : null}
           </CardContent>
         </Card>

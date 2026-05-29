@@ -17,6 +17,7 @@ type AuthUser = {
   name: string | null;
   englishLevel: string | null;
   learningGoal: string | null;
+  preferredLocale: string | null;
   membershipTier: string;
 };
 
@@ -68,6 +69,7 @@ export async function loginUser(input: {
     name: user.name,
     englishLevel: user.englishLevel,
     learningGoal: user.learningGoal,
+    preferredLocale: user.preferredLocale,
     membershipTier: user.membershipTier,
   };
 }

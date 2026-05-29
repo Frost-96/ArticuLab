@@ -1,11 +1,10 @@
-"use client";
+﻿"use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   type FormEvent,
   useMemo,
   useState,
-  useSyncExternalStore,
   useTransition,
 } from "react";
 import {
@@ -26,22 +25,12 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/uiStore";
 import toast, { Toaster } from "react-hot-toast";
@@ -55,6 +44,8 @@ import {
   renameWritingExerciseAction,
 } from "@/server/actions/writing.action";
 import type { SidebarHistoryItem } from "@/types/navigation/sidebarTypes";
+import { DeleteDialog, RenameDialog } from "./sidebar-dialogs";
+import { usePinnedSidebarItems } from "./use-pinned-sidebar-items";
 
 export type SidebarType = "coach" | "writing" | "speaking";
 
@@ -165,50 +156,6 @@ const META_BADGE_STYLES = [
   "bg-slate-100 text-slate-600 ring-1 ring-slate-200/70",
 ];
 
-const PINNED_SIDEBAR_EVENT = "articulab-sidebar-pinned-change";
-
-function readPinnedSnapshot(storageKey: string) {
-  if (typeof window === "undefined") {
-    return "[]";
-  }
-
-  try {
-    return window.localStorage.getItem(storageKey) ?? "[]";
-  } catch {
-    return "[]";
-  }
-}
-
-function parsePinnedIds(snapshot: string) {
-  try {
-    const parsedPinnedIds = JSON.parse(snapshot);
-
-    if (!Array.isArray(parsedPinnedIds)) {
-      return [];
-    }
-
-    return parsedPinnedIds.filter(
-      (value): value is string => typeof value === "string",
-    );
-  } catch {
-    return [];
-  }
-}
-
-function subscribeToPinnedIds(onStoreChange: () => void) {
-  if (typeof window === "undefined") {
-    return () => {};
-  }
-
-  window.addEventListener("storage", onStoreChange);
-  window.addEventListener(PINNED_SIDEBAR_EVENT, onStoreChange);
-
-  return () => {
-    window.removeEventListener("storage", onStoreChange);
-    window.removeEventListener(PINNED_SIDEBAR_EVENT, onStoreChange);
-  };
-}
-
 export function LeftSidebar({ type, items }: LeftSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -228,16 +175,8 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
   const currentHref = query ? `${pathname}?${query}` : pathname;
   const theme = getSidebarTheme(type);
   const pinnedStorageKey = `articulab.sidebar.${type}.pinned`;
-  const pinnedSnapshot = useSyncExternalStore(
-    subscribeToPinnedIds,
-    () => readPinnedSnapshot(pinnedStorageKey),
-    () => "[]",
-  );
-  const pinnedIds = useMemo(
-    () => parsePinnedIds(pinnedSnapshot),
-    [pinnedSnapshot],
-  );
-  const pinnedIdSet = useMemo(() => new Set(pinnedIds), [pinnedIds]);
+  const { pinnedIdSet, togglePinnedId } =
+    usePinnedSidebarItems(pinnedStorageKey);
   const orderedItems = useMemo(() => {
     return [...items].sort((a, b) => {
       const aPinned = pinnedIdSet.has(a.id);
@@ -272,7 +211,7 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
   }[type];
 
   const newLabel = {
-    coach: "View History",
+    coach: "New Conversation",
     writing: "New Essay",
     speaking: "New Practice",
   }[type];
@@ -289,16 +228,7 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
   const collapsedRecentLabel = "\u6700\u8fd1\u804a\u5929";
 
   function togglePinnedItem(item: SidebarHistoryItem) {
-    const next = pinnedIds.includes(item.id)
-      ? pinnedIds.filter((id) => id !== item.id)
-      : [item.id, ...pinnedIds];
-
-    try {
-      window.localStorage.setItem(pinnedStorageKey, JSON.stringify(next));
-      window.dispatchEvent(new Event(PINNED_SIDEBAR_EVENT));
-    } catch {
-      window.dispatchEvent(new Event(PINNED_SIDEBAR_EVENT));
-    }
+    togglePinnedId(item.id);
   }
 
   function getRenameConversationId(item: SidebarHistoryItem) {
@@ -733,136 +663,3 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
   );
 }
 
-function RenameDialog({
-  open,
-  title,
-  itemTitle,
-  isPending,
-  onOpenChange,
-  onTitleChange,
-  onSubmit,
-}: {
-  open: boolean;
-  title: string;
-  itemTitle: string;
-  isPending: boolean;
-  onOpenChange: (open: boolean) => void;
-  onTitleChange: (title: string) => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-}) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <DialogHeader>
-            <DialogTitle>Rename</DialogTitle>
-            <DialogDescription>
-              Update the title shown in the sidebar.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-2">
-            <Label htmlFor="sidebar-rename-title">Title</Label>
-            <Input
-              id="sidebar-rename-title"
-              value={title}
-              onChange={(event) => onTitleChange(event.target.value)}
-              placeholder={itemTitle || "Untitled"}
-              autoFocus
-              disabled={isPending}
-            />
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isPending}
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={!title.trim() || isPending}
-              className="bg-slate-900 hover:bg-slate-800"
-            >
-              {isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving
-                </>
-              ) : (
-                "Save"
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function DeleteDialog({
-  open,
-  title,
-  type,
-  isPending,
-  onOpenChange,
-  onConfirm,
-}: {
-  open: boolean;
-  title: string;
-  type: SidebarType;
-  isPending: boolean;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
-}) {
-  const noun =
-    type === "coach"
-      ? "conversation"
-      : type === "writing"
-        ? "writing session"
-        : "speaking session";
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Delete {noun}?</DialogTitle>
-          <DialogDescription>
-            This will remove{" "}
-            <span className="font-medium">{title || "Untitled"}</span> from your
-            history. This action cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
-
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isPending}
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            disabled={isPending}
-            onClick={onConfirm}
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Deleting
-              </>
-            ) : (
-              "Delete"
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}

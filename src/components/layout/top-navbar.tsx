@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   Sparkles,
   PenLine,
@@ -19,22 +20,22 @@ import { UserNav } from "./user-nav";
 
 const navItems = [
   {
-    title: "Writing",
+    titleKey: "writing",
     href: "/writing",
     icon: PenLine,
   },
   {
-    title: "Speaking",
+    titleKey: "speaking",
     href: "/speaking",
     icon: Mic,
   },
   {
-    title: "Coach",
+    titleKey: "coach",
     href: "/coach",
     icon: MessageSquare,
   },
   {
-    title: "Dashboard",
+    titleKey: "dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
   },
@@ -46,9 +47,10 @@ type TopNavbarProps = {
 
 export function TopNavbar({ userSummary }: TopNavbarProps) {
   const pathname = usePathname();
+  const t = useTranslations("nav");
   const { toggleSidebar } = useUIStore();
   const streakLabel = userSummary
-    ? `${userSummary.streak} day${userSummary.streak === 1 ? "" : "s"}`
+    ? t("streak", { count: userSummary.streak })
     : null;
 
   return (
@@ -91,8 +93,8 @@ export function TopNavbar({ userSummary }: TopNavbarProps) {
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-50",
                   )}
                 >
-                  <item.icon className="h-4 w-4" />
-                  {item.title}
+              <item.icon className="h-4 w-4" />
+                  {t(item.titleKey)}
                 </Link>
               );
             })}

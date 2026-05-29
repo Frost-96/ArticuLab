@@ -52,11 +52,13 @@ export async function findWritingExercises(params: {
     ...(scenarioType ? { scenarioType } : {}),
   };
 
-  // 状态筛选：draft 表示未批改（overallScore 为 null），completed 表示已批改
   if (status === "draft") {
     where.overallScore = null;
-  } else if (status === "completed") {
+  } else if (status === "reviewed") {
     where.overallScore = { not: null };
+    where.status = "reviewed";
+  } else if (status) {
+    where.status = status;
   }
 
   const [rows, total] = await prisma.$transaction([

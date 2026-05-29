@@ -5,6 +5,42 @@ import {
   getDefaultAuthenticatedRedirectPath,
   verifyToken,
 } from "@/lib/auth-core";
+import {
+  defaultLocale,
+  localeCookieMaxAgeSeconds,
+  localeCookieName,
+  parseAppLocale,
+  resolveLocaleFromAcceptLanguage,
+} from "@/i18n/locales";
+
+function resolveRequestLocale(request: NextRequest) {
+  return (
+    parseAppLocale(request.cookies.get(localeCookieName)?.value) ??
+    resolveLocaleFromAcceptLanguage(request.headers.get("accept-language")) ??
+    defaultLocale
+  );
+}
+
+function withLocaleCookie(
+  request: NextRequest,
+  response: NextResponse,
+): NextResponse {
+  const locale = resolveRequestLocale(request);
+
+  response.headers.set("x-articulab-locale", locale);
+
+  if (!request.cookies.has(localeCookieName)) {
+    response.cookies.set({
+      name: localeCookieName,
+      value: locale,
+      maxAge: localeCookieMaxAgeSeconds,
+      path: "/",
+      sameSite: "lax",
+    });
+  }
+
+  return response;
+}
 
 function clearAuthCookie(response: NextResponse): NextResponse {
   response.cookies.set({
@@ -47,32 +83,38 @@ export async function proxy(request: NextRequest) {
   if (isAuthRoute || isOnboardingRoute) {
     if (user) {
       if (isOnboardingRoute && !user.hasCompletedOnboarding) {
-        return NextResponse.next();
+        return withLocaleCookie(request, NextResponse.next());
       }
 
-      return NextResponse.redirect(
-        new URL(getDefaultAuthenticatedRedirectPath(user), request.url),
+      return withLocaleCookie(
+        request,
+        NextResponse.redirect(
+          new URL(getDefaultAuthenticatedRedirectPath(user), request.url),
+        ),
       );
     }
 
-    const response = NextResponse.next();
+    const response = withLocaleCookie(request, NextResponse.next());
     return hasInvalidToken ? clearAuthCookie(response) : response;
   }
 
   if (pathname === "/") {
-    const response = NextResponse.next();
+    const response = withLocaleCookie(request, NextResponse.next());
     return hasInvalidToken ? clearAuthCookie(response) : response;
   }
 
   if (user) {
     if (!user.hasCompletedOnboarding) {
-      return NextResponse.redirect(new URL("/onboarding", request.url));
+      return withLocaleCookie(
+        request,
+        NextResponse.redirect(new URL("/onboarding", request.url)),
+      );
     }
 
-    return NextResponse.next();
+    return withLocaleCookie(request, NextResponse.next());
   }
 
-  const response = buildLoginRedirect(request, true);
+  const response = withLocaleCookie(request, buildLoginRedirect(request, true));
   return hasInvalidToken ? clearAuthCookie(response) : response;
 }
 

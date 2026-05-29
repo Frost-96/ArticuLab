@@ -26,41 +26,95 @@ import type {
   SpeakingExerciseDetail,
   SpeakingMessage,
 } from "@/types/speaking/speakingTypes";
-import type { SpeakingChatResponse } from "@/schema/speaking.schema";
 
 type SpeechToTextResult =
   | { success: true; data: { text: string } }
   | { success: false; error: string };
 
-type SpeakingChatResult =
-  | { success: true; data: SpeakingChatResponse }
-  | { success: false; error: string };
+type SpeakingStreamEvent =
+  | { type: "text_delta"; data: { delta: string } }
+  | { type: "sentence"; data: { index: number; text: string } }
+  | {
+      type: "audio_chunk";
+      data: { index: number; audioBase64: string; format: "mp3" };
+    }
+  | { type: "message_saved"; data: { messageId: string; totalTurns: number } }
+  | { type: "done"; data: { fullText: string } }
+  | { type: "error"; data: { error: string } };
+
+type ParsedSSEEvent = {
+  type: string;
+  data: unknown;
+};
 
 type SpeakingSessionProps = {
   exercise: SpeakingExerciseDetail;
 };
 
-/** 格式化秒数为 mm:ss */
+/** 鏍煎紡鍖栫鏁颁负 mm:ss */
 function formatDuration(seconds: number) {
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
   return `${minutes}:${String(rest).padStart(2, "0")}`;
 }
 
-/** 将 Base64 音频数据播放为 Audio */
-async function playAudioFromBase64(base64: string) {
-  try {
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    const blob = new Blob([bytes], { type: "audio/wav" });
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.onended = () => URL.revokeObjectURL(url);
-    await audio.play();
-  } catch (error) {
-    console.error("Failed to play audio:", error);
+/** 灏?Base64 闊抽鏁版嵁鎾斁涓?Audio */
+function parseSSEEvent(raw: string): ParsedSSEEvent | null {
+  let type = "";
+  let data = "";
+
+  for (const line of raw.split("\n")) {
+    if (line.startsWith(":")) continue;
+    if (line.startsWith("event: ")) {
+      type = line.slice(7);
+      continue;
+    }
+    if (line.startsWith("data: ")) {
+      data += (data ? "\n" : "") + line.slice(6);
+    }
   }
+
+  if (!type || !data) return null;
+
+  return {
+    type,
+    data: JSON.parse(data),
+  };
+}
+
+async function parseErrorResponse(response: Response) {
+  try {
+    const result = (await response.json()) as { error?: string };
+    return result.error || "Speaking AI service is temporarily unavailable.";
+  } catch {
+    return "Speaking AI service is temporarily unavailable.";
+  }
+}
+
+function createLocalSpeakingMessage(
+  id: string,
+  role: SpeakingMessage["role"],
+  content: string,
+): SpeakingMessage {
+  return {
+    id,
+    role,
+    content,
+    audioUrl: null,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+function audioBase64ToUrl(base64: string, format: "mp3" | "wav") {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  const mimeType = format === "mp3" ? "audio/mpeg" : "audio/wav";
+  const blob = new Blob([bytes], { type: mimeType });
+  return URL.createObjectURL(blob);
 }
 
 async function playAudioFromUrl(audioUrl: string) {
@@ -106,6 +160,11 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const streamAbortRef = useRef<AbortController | null>(null);
+  const streamAudioQueueRef = useRef<
+    Array<{ index: number; audioBase64: string; format: "mp3" }>
+  >([]);
+  const isPlayingStreamAudioRef = useRef(false);
 
   const [messages, setMessages] = useState<SpeakingMessage[]>(
     exercise.messages,
@@ -127,7 +186,50 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     });
   }, [latestMessageId]);
 
-  /** 开始录音 */
+  useEffect(() => {
+    return () => {
+      streamAbortRef.current?.abort();
+    };
+  }, []);
+
+  const playNextStreamAudio = useCallback(() => {
+    if (isPlayingStreamAudioRef.current) return;
+
+    const nextAudio = streamAudioQueueRef.current.shift();
+    if (!nextAudio) return;
+
+    isPlayingStreamAudioRef.current = true;
+
+    try {
+      const url = audioBase64ToUrl(nextAudio.audioBase64, nextAudio.format);
+      const audio = new Audio(url);
+
+      const release = () => {
+        URL.revokeObjectURL(url);
+        isPlayingStreamAudioRef.current = false;
+        playNextStreamAudio();
+      };
+
+      audio.onended = release;
+      audio.onerror = release;
+      void audio.play().catch(release);
+    } catch {
+      isPlayingStreamAudioRef.current = false;
+      playNextStreamAudio();
+    }
+  }, []);
+
+  function enqueueStreamAudio(data: {
+    index: number;
+    audioBase64: string;
+    format: "mp3";
+  }) {
+    streamAudioQueueRef.current.push(data);
+    streamAudioQueueRef.current.sort((a, b) => a.index - b.index);
+    playNextStreamAudio();
+  }
+
+  /** 寮€濮嬪綍闊?*/
   async function handleStartRecording() {
     if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
       setError("Voice recording is not supported in this browser.");
@@ -166,7 +268,7 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     }
   }
 
-  /** 停止录音 */
+  /** 鍋滄褰曢煶 */
   const handleStopRecording = useCallback(() => {
     const recorder = mediaRecorderRef.current;
     if (!recorder || recorder.state === "inactive") {
@@ -178,7 +280,7 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     setIsRecording(false);
   }, []);
 
-  /** 调用 STT API 转写音频 */
+  /** 璋冪敤 STT API 杞啓闊抽 */
   const handleTranscribe = useCallback(async (audioBlob: Blob) => {
     setIsTranscribing(true);
     setError(null);
@@ -220,70 +322,134 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     }
   }, []);
 
-  /** 发送消息（调用 Chat API：AI + TTS） */
+  /** 发送消息（流式 Chat API：AI + TTS） */
   const handleSend = useCallback(async () => {
     const content = input.trim();
     if (!content || readOnly || isRecording || isTranscribing) return;
 
+    const controller = new AbortController();
+    const timestamp = Date.now();
+    const localUserId = `local-user-${timestamp}`;
+    const localAssistantId = `local-assistant-${timestamp}`;
+    let streamError: string | null = null;
+
+    streamAbortRef.current?.abort();
+    streamAbortRef.current = controller;
+    streamAudioQueueRef.current = [];
+    isPlayingStreamAudioRef.current = false;
+
     setIsSending(true);
     setError(null);
+    setInput("");
+    setMessages((prev) => [
+      ...prev,
+      createLocalSpeakingMessage(localUserId, "user", content),
+      createLocalSpeakingMessage(localAssistantId, "assistant", ""),
+    ]);
 
     try {
-      const res = await fetch("/api/speaking/chat", {
+      const formData = new FormData();
+      formData.append("exerciseId", exercise.id);
+      formData.append("conversationId", exercise.conversationId);
+      formData.append("message", content);
+
+      const res = await fetch("/api/speaking/chat-stream", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          exerciseId: exercise.id,
-          conversationId: exercise.conversationId,
-          message: content,
-        }),
+        body: formData,
+        signal: controller.signal,
       });
-      let result: SpeakingChatResult;
-      try {
-        result = (await res.json()) as SpeakingChatResult;
-      } catch {
-        result = {
-          success: false,
-          error: res.ok
-            ? "Speaking AI could not respond right now. Please try again."
-            : "Speaking AI service is temporarily unavailable. Please try again.",
-        };
+
+      if (!res.ok || !res.body) {
+        throw new Error(await parseErrorResponse(res));
       }
 
-      if (result.success) {
-        const { userMessage, aiMessage, audioBase64 } = result.data;
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let isDone = false;
 
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: userMessage.id,
-            role: "user",
-            content: userMessage.content,
-            audioUrl: null,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: aiMessage.id,
-            role: "assistant",
-            content: aiMessage.content,
-            audioUrl: aiMessage.audioUrl,
-            createdAt: new Date().toISOString(),
-          },
-        ]);
-        setTotalTurns(result.data.totalTurns);
-        setInput("");
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-        if (audioBase64) {
-          playAudioFromBase64(audioBase64);
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() ?? "";
+
+        for (const part of parts) {
+          if (!part.trim()) continue;
+
+          const parsed = parseSSEEvent(part) as SpeakingStreamEvent | null;
+          if (!parsed) continue;
+
+          switch (parsed.type) {
+            case "text_delta":
+              setMessages((prev) =>
+                prev.map((message) =>
+                  message.id === localAssistantId
+                    ? {
+                        ...message,
+                        content: message.content + parsed.data.delta,
+                      }
+                    : message,
+                ),
+              );
+              break;
+            case "audio_chunk":
+              enqueueStreamAudio(parsed.data);
+              break;
+            case "message_saved":
+              setTotalTurns(parsed.data.totalTurns);
+              setMessages((prev) =>
+                prev.map((message) =>
+                  message.id === localAssistantId
+                    ? { ...message, id: parsed.data.messageId }
+                    : message,
+                ),
+              );
+              break;
+            case "done":
+              isDone = true;
+              setIsSending(false);
+              break;
+            case "error":
+              streamError = parsed.data.error;
+              setError(parsed.data.error);
+              break;
+            case "sentence":
+              break;
+          }
         }
-
-        startTransition(() => router.refresh());
-      } else {
-        setError(result.error || "Failed to send message.");
       }
-    } catch {
-      setError("Network error: Failed to send message.");
+
+      if (streamError) {
+        throw new Error(streamError);
+      }
+
+      if (!isDone) {
+        throw new Error("Stream ended before the response was complete.");
+      }
+
+      startTransition(() => router.refresh());
+    } catch (error) {
+      if (controller.signal.aborted) return;
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Network error: Failed to send message.";
+      setError(message);
+      setInput(content);
+      setMessages((prev) =>
+        prev.filter(
+          (message) =>
+            message.id !== localUserId && message.id !== localAssistantId,
+        ),
+      );
     } finally {
+      if (streamAbortRef.current === controller) {
+        streamAbortRef.current = null;
+      }
       setIsSending(false);
     }
   }, [
@@ -293,10 +459,11 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     isTranscribing,
     exercise.id,
     exercise.conversationId,
+    playNextStreamAudio,
     router,
   ]);
 
-  /** 结束练习 */
+  /** 缁撴潫缁冧範 */
   async function handleFinish() {
     setIsFinishing(true);
     setError(null);
@@ -325,7 +492,7 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     }
   }
 
-  /** 是否正在处理中 */
+  /** 鏄惁姝ｅ湪澶勭悊涓?*/
   const isBusy = isSending || isFinishing || isTranscribing;
 
   return (

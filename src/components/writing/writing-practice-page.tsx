@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ArrowRight, FileText, PenLine, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,17 +19,15 @@ type WritingPracticePageProps = {
   history: WritingHistoryResult;
 };
 
-const scenarioTypeLabelMap: Record<WritingScenarioType, string> = {
-  daily: "Daily",
-  ielts_task1: "IELTS Task 1",
-  ielts_task2: "IELTS Task 2",
-  toefl: "TOEFL",
-  cet4: "CET-4",
-  cet6: "CET-6",
-};
-
 const customScenarioTypes = Object.keys(
-  scenarioTypeLabelMap,
+  {
+    daily: true,
+    ielts_task1: true,
+    ielts_task2: true,
+    toefl: true,
+    cet4: true,
+    cet6: true,
+  },
 ) as WritingScenarioType[];
 
 const writingSectionIconClass =
@@ -62,6 +61,7 @@ export function WritingPracticePage({
   history,
 }: WritingPracticePageProps) {
   const router = useRouter();
+  const t = useTranslations("writing");
   const [customPrompt, setCustomPrompt] = useState("");
   const [customScenarioType, setCustomScenarioType] =
     useState<WritingScenarioType>("daily");
@@ -74,6 +74,9 @@ export function WritingPracticePage({
   const examScenarios = scenarios.filter(
     (scenario) => scenario.category !== "daily",
   );
+  const continueExercises = history.exercises
+    .filter((exercise) => exercise.status !== "reviewed")
+    .slice(0, 3);
 
   async function startExercise(input: {
     key: string;
@@ -94,7 +97,7 @@ export function WritingPracticePage({
 
     if (!result.success || !result.data) {
       setError(
-        !result.success ? result.error : "Failed to start writing exercise.",
+        !result.success ? result.error : t("failedStart"),
       );
       setPendingKey(null);
       return;
@@ -113,36 +116,35 @@ export function WritingPracticePage({
                 variant="outline"
                 className="rounded-full border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold uppercase text-sky-700"
               >
-                Writing workspace
+                {t("workspace")}
               </Badge>
               <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
-                Start a focused writing session
+                {t("title")}
               </h1>
               <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
-                Choose a prompt, write with minimal distraction, then review
-                annotations and concrete rewrites.
+                {t("description")}
               </p>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:min-w-[430px]">
               {[
                 {
-                  label: "Sessions",
+                  label: t("sessions"),
                   value: String(history.summary.totalExercises),
                   tone: "text-slate-950",
-                  note: "Total practice",
+                  note: t("totalPractice"),
                 },
                 {
-                  label: "Reviewed",
+                  label: t("reviewed"),
                   value: String(history.summary.completedExercises),
                   tone: "text-sky-700",
-                  note: "Ready for analysis",
+                  note: t("readyForAnalysis"),
                 },
                 {
-                  label: "Average",
+                  label: t("average"),
                   value: history.summary.averageScore?.toFixed(1) ?? "--",
                   tone: "text-slate-950",
-                  note: "Across reviewed work",
+                  note: t("acrossReviewed"),
                 },
               ].map((item) => (
                 <div
@@ -173,14 +175,55 @@ export function WritingPracticePage({
           </Card>
         ) : null}
 
+        {continueExercises.length > 0 ? (
+          <Card className="border-slate-200 bg-white shadow-sm">
+            <CardContent className="p-6">
+              <SectionHeader
+                icon={<FileText className="h-4 w-4" />}
+                title={t("continueTitle")}
+                description={t("continueDescription")}
+              />
+              <div className="grid gap-3 md:grid-cols-3">
+                {continueExercises.map((exercise) => (
+                  <button
+                    key={exercise.id}
+                    type="button"
+                    onClick={() => router.push(`/writing/${exercise.id}`)}
+                    className="group rounded-lg border border-slate-200 bg-white p-4 text-left transition-colors hover:border-sky-200 hover:bg-slate-50"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <Badge
+                        variant="outline"
+                        className="border-sky-200 bg-sky-50 text-sky-700"
+                      >
+                        {t(exercise.scenarioType)}
+                      </Badge>
+                      <ArrowRight className="h-4 w-4 text-slate-300 transition-colors group-hover:text-sky-600" />
+                    </div>
+                    <p className="mt-3 line-clamp-2 text-sm font-semibold leading-5 text-slate-900">
+                      {exercise.prompt}
+                    </p>
+                    <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
+                      <span>{t("words", { count: exercise.wordCount })}</span>
+                      <span className="font-medium capitalize">
+                        {exercise.status.replace("_", " ")}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
         <div className="grid gap-6 xl:grid-cols-[1.3fr_0.8fr]">
           <div className="space-y-6">
             <Card className="border-slate-200 bg-white shadow-sm">
               <CardContent className="p-6">
                 <SectionHeader
                   icon={<PenLine className="h-4 w-4" />}
-                  title="Daily prompts"
-                  description="Low-friction prompts for regular reflection and concise writing practice."
+                  title={t("dailyPrompts")}
+                  description={t("dailyDescription")}
                 />
 
                 <div className="space-y-3">
@@ -205,7 +248,7 @@ export function WritingPracticePage({
                           <div className="space-y-3">
                             <div className="flex flex-wrap items-center gap-2">
                               <Badge className="rounded-full bg-sky-600 px-2.5 text-white">
-                                Daily
+                                {t("daily")}
                               </Badge>
                               <Badge
                                 variant="outline"
@@ -231,7 +274,7 @@ export function WritingPracticePage({
                     ))
                   ) : (
                     <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-sm leading-6 text-slate-500">
-                      No daily prompts are available right now.
+                      {t("noDaily")}
                     </div>
                   )}
                 </div>
@@ -242,8 +285,8 @@ export function WritingPracticePage({
               <CardContent className="p-6">
                 <SectionHeader
                   icon={<FileText className="h-4 w-4" />}
-                  title="Exam scenarios"
-                  description="Structured tasks with clearer metadata and a stronger task-library feel."
+                  title={t("examScenarios")}
+                  description={t("examDescription")}
                 />
 
                 <div className="space-y-3">
@@ -272,9 +315,7 @@ export function WritingPracticePage({
                                 className="rounded-full border-sky-200 bg-sky-50 px-2.5 text-sky-700"
                               >
                                 {
-                                  scenarioTypeLabelMap[
-                                    scenario.category as WritingScenarioType
-                                  ]
+                                  t(scenario.category as WritingScenarioType)
                                 }
                               </Badge>
                               <span className="text-xs font-medium text-slate-400">
@@ -298,7 +339,7 @@ export function WritingPracticePage({
                     ))
                   ) : (
                     <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-sm leading-6 text-slate-500">
-                      No exam scenarios are available right now.
+                      {t("noExam")}
                     </div>
                   )}
                 </div>
@@ -311,8 +352,8 @@ export function WritingPracticePage({
               <CardContent className="p-6">
                 <SectionHeader
                   icon={<Plus className="h-4 w-4" />}
-                  title="Custom prompt"
-                  description="Turn your own question into a clean writing session without leaving the workspace."
+                  title={t("customPrompt")}
+                  description={t("customDescription")}
                 />
 
                 <div className="space-y-4">
@@ -329,7 +370,7 @@ export function WritingPracticePage({
                             : "border-white/60 bg-white/80 text-slate-600 hover:border-sky-200 hover:text-sky-700",
                         )}
                       >
-                        {scenarioTypeLabelMap[type]}
+                        {t(type)}
                       </button>
                     ))}
                   </div>
@@ -338,7 +379,7 @@ export function WritingPracticePage({
                     rows={8}
                     value={customPrompt}
                     onChange={(event) => setCustomPrompt(event.target.value)}
-                    placeholder="Paste or write your own prompt here."
+                    placeholder={t("placeholder")}
                     className="rounded-lg border-white/60 bg-white/90 px-4 py-3 font-mono text-sm leading-7 shadow-sm focus-visible:ring-sky-500"
                   />
 
@@ -354,7 +395,7 @@ export function WritingPracticePage({
                       })
                     }
                   >
-                    Start writing
+                    {t("startWriting")}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>

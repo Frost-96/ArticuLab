@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { EnglishLevel, LearningGoal } from "@/schema";
+import type { AppLocale, EnglishLevel, LearningGoal } from "@/schema";
 import { Prisma } from "../../../generated/prisma/client";
 
 const userAuthSelect = {
@@ -9,6 +9,7 @@ const userAuthSelect = {
   password: true,
   englishLevel: true,
   learningGoal: true,
+  preferredLocale: true,
   membershipTier: true,
 } satisfies Prisma.UserSelect;
 
@@ -19,6 +20,7 @@ const userProfileSelect = {
   avatar: true,
   englishLevel: true,
   learningGoal: true,
+  preferredLocale: true,
   membershipTier: true,
   membershipExpiry: true,
   createdAt: true,
@@ -44,6 +46,7 @@ export async function createUser(data: {
       name: true,
       englishLevel: true,
       learningGoal: true,
+      preferredLocale: true,
       membershipTier: true,
     },
   });
@@ -99,6 +102,7 @@ export async function updateUser(
     password?: string | null;
     englishLevel?: EnglishLevel | null;
     learningGoal?: string | null;
+    preferredLocale?: AppLocale | null;
   },
 ) {
   return prisma.user.update({
@@ -113,8 +117,26 @@ export async function updateUser(
       ...(data.learningGoal !== undefined && {
         learningGoal: data.learningGoal,
       }),
+      ...(data.preferredLocale !== undefined && {
+        preferredLocale: data.preferredLocale,
+      }),
     },
     select: userProfileSelect,
+  });
+}
+
+export async function updateUserPreferredLocale(data: {
+  userId: string;
+  preferredLocale: AppLocale;
+}) {
+  return prisma.user.update({
+    where: {
+      id: data.userId,
+    },
+    data: {
+      preferredLocale: data.preferredLocale,
+    },
+    select: userAuthSelect,
   });
 }
 
@@ -137,6 +159,7 @@ export async function updateUserOnboarding(data: {
       name: true,
       englishLevel: true,
       learningGoal: true,
+      preferredLocale: true,
       membershipTier: true,
     },
   });

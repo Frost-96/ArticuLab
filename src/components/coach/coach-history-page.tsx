@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import {
   CheckCircle2,
+  ArrowRight,
   Loader2,
   MessageSquarePlus,
   Mic,
@@ -41,26 +43,30 @@ type CoachApiMessage = {
   createdAt: string;
 };
 
-type CoachChatResponse =
+type CoachStreamEvent =
+  | { type: "text_delta"; data: { delta: string } }
   | {
-      success: true;
+      type: "message_saved";
       data: {
         conversationId: string;
         userMessage: CoachApiMessage;
         assistantMessage: CoachApiMessage;
       };
     }
-  | {
-      success: false;
-      error: string;
-    };
+  | { type: "done"; data: { fullText: string } }
+  | { type: "error"; data: { error: string } };
+
+type ParsedSSEEvent = {
+  type: string;
+  data: unknown;
+};
 
 type SpeechToTextResponse =
   | { success: true; data: { text: string } }
   | { success: false; error: string };
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+function formatDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -68,6 +74,37 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function parseSSEEvent(raw: string): ParsedSSEEvent | null {
+  let type = "";
+  let data = "";
+
+  for (const line of raw.split("\n")) {
+    if (line.startsWith(":")) continue;
+    if (line.startsWith("event: ")) {
+      type = line.slice(7);
+      continue;
+    }
+    if (line.startsWith("data: ")) {
+      data += (data ? "\n" : "") + line.slice(6);
+    }
+  }
+
+  if (!type || !data) return null;
+
+  return {
+    type,
+    data: JSON.parse(data),
+  };
+}
+
+async function parseErrorResponse(response: Response, fallbackMessage: string) {
+  try {
+    const result = (await response.json()) as { error?: string };
+    return result.error || fallbackMessage;
+  } catch {
+    return fallbackMessage;
+  }
+}
 function createAudioRecorder(stream: MediaStream) {
   const preferredMimeType = "audio/webm;codecs=opus";
 
@@ -117,7 +154,15 @@ function HighlightedCoachText({ content }: { content: string }) {
   );
 }
 
-function CoachMessageBubble({ message }: { message: LocalCoachMessage }) {
+function CoachMessageBubble({
+  message,
+  locale,
+  thinkingLabel,
+}: {
+  message: LocalCoachMessage;
+  locale: string;
+  thinkingLabel: string;
+}) {
   const isAssistant = message.role === "assistant";
 
   return (
@@ -140,24 +185,21 @@ function CoachMessageBubble({ message }: { message: LocalCoachMessage }) {
         ) : (
           <p className="whitespace-pre-wrap">{message.content}</p>
         )}
-        <div
-          className={cn(
-            "mt-2 flex items-center gap-2 text-xs text-slate-400",
-            !isAssistant && "justify-end",
-          )}
-        >
-          {message.pending ? (
-            <>
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Thinking
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="h-3 w-3" />
-              {formatDate(message.createdAt)}
-            </>
-          )}
-        </div>
+        {isAssistant ? (
+          <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
+            {message.pending ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" />
+                {thinkingLabel}
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-3 w-3" />
+                {formatDate(message.createdAt, locale)}
+              </>
+            )}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -165,32 +207,33 @@ function CoachMessageBubble({ message }: { message: LocalCoachMessage }) {
 
 export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations("coach");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const streamAbortRef = useRef<AbortController | null>(null);
   const activeConversationId = data.activeConversation?.id ?? null;
+  const latestConversation = data.conversations[0] ?? null;
   const [draft, setDraft] = useState("");
   const [isComposing, setIsComposing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [localMessages, setLocalMessages] = useState<LocalCoachMessage[]>([]);
-  const messages = useMemo(
-    () => {
-      const serverMessages = data.activeConversation?.messages ?? [];
-      const seen = new Set(serverMessages.map((message) => message.id));
-      return [
-        ...serverMessages,
-        ...localMessages.filter((message) => !seen.has(message.id)),
-      ];
-    },
-    [data.activeConversation?.messages, localMessages],
-  );
+  const messages = useMemo(() => {
+    const serverMessages = data.activeConversation?.messages ?? [];
+    const seen = new Set(serverMessages.map((message) => message.id));
+    return [
+      ...serverMessages,
+      ...localMessages.filter((message) => !seen.has(message.id)),
+    ];
+  }, [data.activeConversation?.messages, localMessages]);
   const latestMessageId = messages[messages.length - 1]?.id;
   const quickPrompts = [
-    "Highlight my grammar mistakes",
-    "Make this sentence more academic",
-    "Explain why this sounds unnatural",
+    t("quickGrammar"),
+    t("quickAcademic"),
+    t("quickNatural"),
   ];
 
   useEffect(() => {
@@ -199,6 +242,12 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
       block: "end",
     });
   }, [latestMessageId]);
+
+  useEffect(() => {
+    return () => {
+      streamAbortRef.current?.abort();
+    };
+  }, []);
 
   const handleTranscribe = useCallback(
     async (audioBlob: Blob) => {
@@ -224,14 +273,14 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
           result = {
             success: false,
             error: response.ok
-              ? "Speech recognition failed."
-              : "Speech recognition service is temporarily unavailable.",
+              ? t("speechFailed")
+              : t("speechUnavailable"),
           };
         }
 
         if (result.success) {
           if (!response.ok) {
-            setErrorMessage("Speech recognition failed.");
+            setErrorMessage(t("speechFailed"));
             return;
           }
 
@@ -239,19 +288,19 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
           return;
         }
 
-        setErrorMessage(result.error || "Speech recognition failed.");
+        setErrorMessage(result.error || t("speechFailed"));
       } catch {
-        setErrorMessage("Network error: Failed to transcribe audio.");
+        setErrorMessage(t("networkTranscribe"));
       } finally {
         setIsTranscribing(false);
       }
     },
-    [activeConversationId],
+    [activeConversationId, t],
   );
 
   const handleStartRecording = useCallback(async () => {
     if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-      setErrorMessage("Voice recording is not supported in this browser.");
+      setErrorMessage(t("recordingUnsupported"));
       return;
     }
 
@@ -287,10 +336,10 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
       setErrorMessage(null);
     } catch {
       setErrorMessage(
-        "Microphone access denied. Please allow microphone permission.",
+        t("micDenied"),
       );
     }
-  }, [handleTranscribe]);
+  }, [handleTranscribe, t]);
 
   const handleStopRecording = useCallback(() => {
     const recorder = mediaRecorderRef.current;
@@ -309,9 +358,12 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
       return;
     }
 
+    const controller = new AbortController();
     const now = new Date().toISOString();
     const localUserId = `local-user-${now}`;
     const localAssistantId = `local-ai-${now}`;
+    let streamError: string | null = null;
+
     const userMessage: LocalCoachMessage = {
       id: localUserId,
       role: "user",
@@ -322,10 +374,13 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
     const assistantMessage: LocalCoachMessage = {
       id: localAssistantId,
       role: "assistant",
-      content: "Thinking...",
+      content: "",
       createdAt: now,
       pending: true,
     };
+
+    streamAbortRef.current?.abort();
+    streamAbortRef.current = controller;
 
     setDraft("");
     setErrorMessage(null);
@@ -333,7 +388,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
     setLocalMessages((current) => [...current, userMessage, assistantMessage]);
 
     try {
-      const response = await fetch("/api/coach/chat", {
+      const response = await fetch("/api/coach/chat-stream", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -342,42 +397,89 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
           conversationId: activeConversationId ?? undefined,
           message: content,
         }),
+        signal: controller.signal,
       });
-      let result: CoachChatResponse;
-      try {
-        result = (await response.json()) as CoachChatResponse;
-      } catch {
-        result = {
-          success: false,
-          error: response.ok
-            ? "AI Coach could not respond right now. Please try again."
-            : "AI Coach service is temporarily unavailable. Please try again.",
-        };
+
+      if (!response.ok || !response.body) {
+        throw new Error(await parseErrorResponse(response, t("serviceUnavailable")));
       }
 
-      if (!result.success) {
-        throw new Error(result.error);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let isDone = false;
+      let resolvedConversationId = activeConversationId;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() ?? "";
+
+        for (const part of parts) {
+          if (!part.trim()) continue;
+
+          const parsed = parseSSEEvent(part) as CoachStreamEvent | null;
+          if (!parsed) continue;
+
+          switch (parsed.type) {
+            case "text_delta":
+              setLocalMessages((current) =>
+                current.map((message) =>
+                  message.id === localAssistantId
+                    ? {
+                        ...message,
+                        content: message.content + parsed.data.delta,
+                      }
+                    : message,
+                ),
+              );
+              break;
+            case "message_saved":
+              resolvedConversationId = parsed.data.conversationId;
+              setLocalMessages((current) =>
+                current.map((message) => {
+                  if (message.id === localUserId) {
+                    return { ...parsed.data.userMessage, pending: false };
+                  }
+                  if (message.id === localAssistantId) {
+                    return { ...parsed.data.assistantMessage, pending: false };
+                  }
+                  return message;
+                }),
+              );
+              break;
+            case "done":
+              isDone = true;
+              setIsComposing(false);
+              break;
+            case "error":
+              streamError = parsed.data.error;
+              setErrorMessage(parsed.data.error);
+              break;
+          }
+        }
       }
 
-      setLocalMessages((current) =>
-        current.map((message) => {
-          if (message.id === localUserId) {
-            return { ...result.data.userMessage, pending: false };
-          }
-          if (message.id === localAssistantId) {
-            return { ...result.data.assistantMessage, pending: false };
-          }
-          return message;
-        }),
-      );
+      if (streamError) {
+        throw new Error(streamError);
+      }
 
-      if (!activeConversationId) {
-        router.replace(`/coach?id=${result.data.conversationId}`);
+      if (!isDone) {
+        throw new Error(t("streamIncomplete"));
+      }
+
+      if (!activeConversationId && resolvedConversationId) {
+        router.replace(`/coach?id=${resolvedConversationId}`);
       }
       router.refresh();
     } catch (error) {
+      if (controller.signal.aborted) return;
+
       const message =
-        error instanceof Error ? error.message : "Failed to send message";
+        error instanceof Error ? error.message : t("sendFailed");
       setErrorMessage(message);
       setDraft(content);
       setLocalMessages((current) =>
@@ -386,6 +488,9 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
         ),
       );
     } finally {
+      if (streamAbortRef.current === controller) {
+        streamAbortRef.current = null;
+      }
       setIsComposing(false);
     }
   }
@@ -402,7 +507,12 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
             {messages.length ? (
               <div className="flex-1 space-y-7 pb-6">
                 {messages.map((message) => (
-                  <CoachMessageBubble key={message.id} message={message} />
+                  <CoachMessageBubble
+                    key={message.id}
+                    message={message}
+                    locale={locale}
+                    thinkingLabel={t("thinking")}
+                  />
                 ))}
                 <div ref={messagesEndRef} />
               </div>
@@ -417,11 +527,10 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                     )}
                   </div>
                   <h1 className="text-2xl font-semibold text-slate-950">
-                    How can I help with your English today?
+                    {t("title")}
                   </h1>
                   <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-                    Ask for grammar feedback, a rewrite, pronunciation phrasing,
-                    or a quick explanation.
+                    {t("description")}
                   </p>
                   <div className="mt-6 grid gap-2 sm:grid-cols-3">
                     {quickPrompts.map((item) => (
@@ -435,6 +544,37 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                       </button>
                     ))}
                   </div>
+                  {latestConversation ? (
+                    <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          router.push(`/coach?id=${latestConversation.id}`)
+                        }
+                        className="group rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-left text-sm leading-5 text-teal-800 transition hover:bg-teal-100"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-semibold">
+                            {t("continueLatest")}
+                          </span>
+                          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                        </div>
+                        <p className="mt-1 truncate text-xs text-teal-700/80">
+                          {latestConversation.title}
+                        </p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => router.push("/coach")}
+                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm leading-5 text-slate-700 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800"
+                      >
+                        <span className="font-semibold">{t("startNew")}</span>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {t("newDescription")}
+                        </p>
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             )}
@@ -474,7 +614,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                       void handleSend();
                     }
                   }}
-                  placeholder="Message your coach..."
+                  placeholder={t("placeholder")}
                   className="max-h-36 min-h-11 resize-none border-0 bg-transparent px-2 py-2.5 text-sm leading-6 shadow-none focus-visible:ring-0"
                   rows={1}
                 />
@@ -495,7 +635,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                           : () => void handleStartRecording()
                       }
                       aria-label={
-                        isRecording ? "Stop recording" : "Start voice input"
+                        isRecording ? t("stopRecording") : t("startVoice")
                       }
                     >
                       {isTranscribing ? (
@@ -509,10 +649,10 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                   </TooltipTrigger>
                   <TooltipContent>
                     {isRecording
-                      ? "Stop recording"
+                      ? t("stopRecording")
                       : isTranscribing
-                        ? "Transcribing..."
-                        : "Voice input"}
+                        ? t("transcribing")
+                        : t("voiceInput")}
                   </TooltipContent>
                 </Tooltip>
                 <Button
@@ -520,7 +660,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                   className="h-11 w-11 rounded-full bg-teal-600 text-white hover:bg-teal-700"
                   onClick={() => void handleSend()}
                   disabled={!canSend}
-                  aria-label="Send message"
+                  aria-label={t("send")}
                 >
                   {isComposing ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

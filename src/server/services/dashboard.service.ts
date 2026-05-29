@@ -100,6 +100,11 @@ export async function getDashboardData(
     source.recentCoachConversations,
     resolvedOptions.recentActivityLimit,
   );
+  const continueItems = buildContinueItems(
+    source.recentWritingExercises,
+    source.recentSpeakingExercises,
+    source.recentCoachConversations,
+  );
 
   return dashboardDataSchema.parse({
     header: {
@@ -125,6 +130,7 @@ export async function getDashboardData(
     trend,
     weaknesses,
     recentActivities,
+    continueItems,
     emptyStates: {
       hasAnyActivity:
         source.writingCount > 0 ||
@@ -314,6 +320,7 @@ function buildRecentActivities(
   coachConversations: Array<{
     id: string;
     title: string | null;
+    updatedAt: Date;
     createdAt: Date;
   }>,
   limit: number,
@@ -379,6 +386,88 @@ function buildRecentActivities(
         addSuffix: true,
       }),
       href: activity.href,
+    }));
+}
+
+function buildContinueItems(
+  writingRecords: Array<{
+    id: string;
+    prompt: string;
+    wordCount: number;
+    overallScore: number | null;
+    updatedAt?: Date;
+    createdAt: Date;
+    scenario: { title: string } | null;
+    status: string;
+  }>,
+  speakingRecords: Array<{
+    id: string;
+    scenarioRole: string;
+    status: string;
+    totalTurns: number | null;
+    updatedAt?: Date;
+    createdAt: Date;
+    scenario: { title: string } | null;
+    conversation: { title: string | null } | null;
+  }>,
+  coachConversations: Array<{
+    id: string;
+    title: string | null;
+    updatedAt: Date;
+    createdAt: Date;
+  }>,
+) {
+  const writingItems = writingRecords
+    .filter((record) => record.status !== "reviewed")
+    .map((record) => ({
+      id: record.id,
+      type: "writing" as const,
+      title:
+        record.scenario?.title ??
+        truncate(record.prompt, 56) ??
+        "Writing Draft",
+      subtitle: `${record.wordCount} words`,
+      statusLabel: formatStatusLabel(record.status),
+      date: record.updatedAt ?? record.createdAt,
+      href: `/writing/${record.id}`,
+    }));
+
+  const speakingItems = speakingRecords
+    .filter((record) => record.status === "in_progress")
+    .map((record) => ({
+      id: record.id,
+      type: "speaking" as const,
+      title:
+        record.conversation?.title ??
+        record.scenario?.title ??
+        record.scenarioRole,
+      subtitle: `${record.totalTurns ?? 0} turns`,
+      statusLabel: "In progress",
+      date: record.updatedAt ?? record.createdAt,
+      href: `/speaking/${record.id}`,
+    }));
+
+  const coachItems = coachConversations.slice(0, 1).map((record) => ({
+    id: record.id,
+    type: "coach" as const,
+    title: record.title?.trim() || "AI Coach Session",
+    subtitle: "Continue the conversation",
+    statusLabel: "Recent coach chat",
+    date: record.updatedAt,
+    href: `/coach?id=${record.id}`,
+  }));
+
+  return [...writingItems, ...speakingItems, ...coachItems]
+    .sort((left, right) => right.date.getTime() - left.date.getTime())
+    .slice(0, 3)
+    .map((item) => ({
+      id: item.id,
+      type: item.type,
+      title: item.title,
+      subtitle: item.subtitle,
+      statusLabel: item.statusLabel,
+      timeLabel: formatDistanceToNow(item.date, { addSuffix: true }),
+      href: item.href,
     }));
 }
 
@@ -474,4 +563,12 @@ function truncate(
   }
 
   return `${trimmed.slice(0, length - 1)}...`;
+}
+
+function formatStatusLabel(value: string): string {
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }

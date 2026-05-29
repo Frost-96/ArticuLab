@@ -3,6 +3,7 @@ import type { ChatCompletionChunk } from "openai/resources/chat/completions";
 import { Stream } from "openai/streaming";
 import { getCoachLlmClient, getCoachLlmModel } from "./coachLlmClient";
 
+
 type CoachChatMessage = {
   role: "system" | "user" | "assistant";
   content: string;
@@ -12,8 +13,12 @@ export type CoachChatResult =
   | { ok: true; text: string }
   | { ok: false; error: string };
 
-export type CoachChatStreamResult =
-  | { ok: true; stream: Stream<ChatCompletionChunk> }
+export type CoachStreamResult =
+  | {
+      ok: true;
+      stream: Stream<ChatCompletionChunk>;
+      model: string;
+    }
   | { ok: false; error: string };
 
 const COACH_SYSTEM_PROMPT = `You are an English coach for language learners.
@@ -74,25 +79,10 @@ export async function generateCoachResponse(
   }
 }
 
-// ==================== 流式 ====================
-
-/**
- * 流式 AI 教练对话，逐 token 返回 ChatCompletionChunk stream
- *
- * 复用 COACH_SYSTEM_PROMPT、buildCoachMessages、客户端和模型配置。
- * 与 generateCoachResponse 的区别：
- * - stream: true，逐 token 返回
- * - 接受 AbortSignal 支持客户端中断
- * - 不设 max_tokens，由前端控制阅读节奏
- *
- * @param conversationHistory - 完整对话历史（含最新用户消息）
- * @param signal - 可选 AbortSignal，客户端断开时取消 LLM 请求
- * @returns ok:true 带 Stream，ok:false 带 error 描述
- */
 export async function generateCoachResponseStream(
   conversationHistory: MessageData[],
-  signal?: AbortSignal,
-): Promise<CoachChatStreamResult> {
+  signal: AbortSignal,
+): Promise<CoachStreamResult> {
   const client = getCoachLlmClient();
   if (!client) {
     return {
@@ -103,24 +93,27 @@ export async function generateCoachResponseStream(
   }
 
   try {
+    const model = getCoachLlmModel();
     const stream = await client.chat.completions.create(
       {
-        model: getCoachLlmModel(),
+        model,
         messages: buildCoachMessages(conversationHistory),
-        temperature: 0.4,
         stream: true,
+        temperature: 0.4,
+        max_tokens: 220,
         presence_penalty: 0.2,
         frequency_penalty: 0.2,
       },
       { signal },
     );
 
-    return { ok: true, stream };
+    return { ok: true, stream, model };
   } catch (error) {
-    if (signal?.aborted) {
+    if (signal.aborted) {
       return { ok: false, error: "Streaming aborted by client" };
     }
+
     const message = error instanceof Error ? error.message : String(error);
-    return { ok: false, error: `AI Coach request failed: ${message}` };
+    return { ok: false, error: `AI Coach streaming failed: ${message}` };
   }
 }

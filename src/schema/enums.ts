@@ -23,6 +23,8 @@ export const learningGoalEnum = z.enum([
 
 export const membershipTierEnum = z.enum(["free", "pro"]);
 
+export const appLocaleEnum = z.enum(["en", "zh"]);
+
 export const scenarioTypeEnum = z.enum([
   "ielts_task1",
   "ielts_task2",
@@ -70,7 +72,13 @@ export const messageRoleEnum = z.enum(["user", "assistant"]);
 export const scenarioCategoryEnum = z.enum(["writing", "speaking"]);
 
 // 写作练习状态
-export const writingExerciseStatusEnum = z.enum(["draft", "completed"]);
+export const writingExerciseStatusEnum = z.enum([
+  "draft",
+  "submitted",
+  "reviewing",
+  "reviewed",
+  "failed",
+]);
 
 // 口语练习状态
 export const speakingExerciseStatusEnum = z.enum([
@@ -89,6 +97,7 @@ export type ConversationType = z.infer<typeof conversationTypeEnum>;
 export type EnglishLevel = z.infer<typeof englishLevelEnum>;
 export type LearningGoal = z.infer<typeof learningGoalEnum>;
 export type MembershipTier = z.infer<typeof membershipTierEnum>;
+export type AppLocale = z.infer<typeof appLocaleEnum>;
 export type ScenarioType = z.infer<typeof scenarioTypeEnum>;
 export type WritingScenarioType = z.infer<typeof writingScenarioTypeEnum>;
 export type SpeakingScenarioType = z.infer<typeof speakingScenarioTypeEnum>;

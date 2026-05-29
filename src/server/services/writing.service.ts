@@ -4,6 +4,7 @@ import { cache } from "react";
 import * as writingRepo from "@/server/repositories/writing.repository";
 import { prisma } from "@/lib/prisma";
 import { countWords } from "@/lib/writing/words";
+import { assessWriting } from "@/lib/writing/assessWriting";
 import { getFirstError } from "@/lib/error";
 import {
   type WritingExerciseStatus,
@@ -24,10 +25,10 @@ import {
   getWritingHistorySchema,
   getDraftSchema,
   saveDraftSchema,
+  submitWritingSchema,
   writingReviewResultSchema,
   idSchema,
 } from "@/schema";
-//import { writingErrorResponse } from "@/lib/writing/errors";
 import type {
   WritingResult,
   WritingExerciseSummary,
@@ -50,6 +51,58 @@ function normalizeUserId(userId: string) {
   }
 
   return parsedId.data;
+}
+
+type WritingExerciseRecord = Awaited<
+  ReturnType<typeof writingRepo.findWritingExerciseById>
+> extends infer T
+  ? NonNullable<T>
+  : never;
+
+function mapWritingExerciseDetail(
+  ex: WritingExerciseRecord,
+): WritingExerciseDetail {
+  const graded = isGraded(ex);
+
+  return {
+    id: ex.id,
+    userId: ex.userId,
+    scenarioType: ex.scenarioType as WritingScenarioType,
+    prompt: ex.prompt,
+    isCustomPrompt: ex.isCustomPrompt,
+    content: ex.content,
+    wordCount: ex.wordCount,
+    status: inferExerciseStatus(ex),
+    scores: graded
+      ? {
+          overall: ex.overallScore,
+          grammar: ex.grammarScore,
+          vocabulary: ex.vocabularyScore,
+          coherence: ex.coherenceScore,
+          taskCompletion: ex.taskScore,
+        }
+      : {
+          overall: null,
+          grammar: null,
+          vocabulary: null,
+          coherence: null,
+          taskCompletion: null,
+        },
+    feedback: getFeedback(ex),
+    scenarioId: ex.scenarioId,
+    createdAt: ex.createdAt.toISOString(),
+    evaluatedAt: graded ? ex.updatedAt.toISOString() : null,
+  };
+}
+
+function mapDraftData(ex: WritingExerciseRecord): DraftData {
+  return {
+    id: ex.id,
+    content: ex.content,
+    wordCount: ex.wordCount,
+    status: inferExerciseStatus(ex),
+    lastSavedAt: ex.updatedAt.toISOString(),
+  };
 }
 
 const loadWritingHistory = cache(
@@ -269,27 +322,7 @@ export async function createWritingExercise(
   });
 
   return {
-    exercise: {
-      id: created.id,
-      userId: created.userId,
-      scenarioType: created.scenarioType as WritingScenarioType,
-      prompt: created.prompt,
-      isCustomPrompt: created.isCustomPrompt,
-      content: created.content,
-      wordCount: created.wordCount,
-      status: "draft" as WritingExerciseStatus,
-      scores: {
-        overall: null,
-        grammar: null,
-        vocabulary: null,
-        coherence: null,
-        taskCompletion: null,
-      },
-      feedback: null,
-      scenarioId: created.scenarioId,
-      createdAt: created.createdAt.toISOString(),
-      evaluatedAt: null,
-    },
+    exercise: mapWritingExerciseDetail(created),
   };
 }
 
@@ -321,39 +354,8 @@ export async function getWritingExercise(
     throw new Error("写作练习记录不存在");
   }
 
-  const fb = getFeedback(ex);
-  const status = inferExerciseStatus(ex);
-
   return {
-    exercise: {
-      id: ex.id,
-      userId: ex.userId,
-      scenarioType: ex.scenarioType as WritingScenarioType,
-      prompt: ex.prompt,
-      isCustomPrompt: ex.isCustomPrompt,
-      content: ex.content,
-      wordCount: ex.wordCount,
-      status,
-      scores: isGraded(ex)
-        ? {
-            overall: ex.overallScore,
-            grammar: ex.grammarScore,
-            vocabulary: ex.vocabularyScore,
-            coherence: ex.coherenceScore,
-            taskCompletion: ex.taskScore,
-          }
-        : {
-            overall: null,
-            grammar: null,
-            vocabulary: null,
-            coherence: null,
-            taskCompletion: null,
-          },
-      feedback: fb ?? null,
-      scenarioId: ex.scenarioId,
-      createdAt: ex.createdAt.toISOString(),
-      evaluatedAt: isGraded(ex) ? (ex.updatedAt as Date).toISOString() : null,
-    },
+    exercise: mapWritingExerciseDetail(ex),
   };
 }
 
@@ -410,35 +412,7 @@ export async function renameWritingExercise(
   });
 
   return {
-    exercise: {
-      id: updated.id,
-      userId: updated.userId,
-      scenarioType: updated.scenarioType as WritingScenarioType,
-      prompt: updated.prompt,
-      isCustomPrompt: updated.isCustomPrompt,
-      content: updated.content,
-      wordCount: updated.wordCount,
-      status: inferExerciseStatus(updated),
-      scores: isGraded(updated)
-        ? {
-            overall: updated.overallScore,
-            grammar: updated.grammarScore,
-            vocabulary: updated.vocabularyScore,
-            coherence: updated.coherenceScore,
-            taskCompletion: updated.taskScore,
-          }
-        : {
-            overall: null,
-            grammar: null,
-            vocabulary: null,
-            coherence: null,
-            taskCompletion: null,
-          },
-      feedback: getFeedback(updated),
-      scenarioId: updated.scenarioId,
-      createdAt: updated.createdAt.toISOString(),
-      evaluatedAt: isGraded(updated) ? updated.updatedAt.toISOString() : null,
-    },
+    exercise: mapWritingExerciseDetail(updated),
   };
 }
 
@@ -469,17 +443,8 @@ export async function getDraft(
     throw new Error("写作练习记录不存在");
   }
 
-  //const fb = getFeedback(ex);
-  const lastSavedAt = (ex.updatedAt as Date).toISOString();
-
   return {
-    draft: {
-      id: ex.id,
-      content: ex.content,
-      wordCount: ex.wordCount,
-      status: inferExerciseStatus(ex),
-      lastSavedAt,
-    },
+    draft: mapDraftData(ex),
   };
 }
 
@@ -546,13 +511,7 @@ export async function saveDraft(
   });
 
   return {
-    draft: {
-      id: updated.id,
-      content: updated.content,
-      wordCount: updated.wordCount,
-      status: inferExerciseStatus(updated),
-      lastSavedAt: (updated.updatedAt as Date).toISOString(),
-    },
+    draft: mapDraftData(updated),
   };
 }
 
@@ -566,8 +525,7 @@ export async function findExerciseById(exerciseId: string, userId: string) {
 // ==================== 保存批改结果 ====================
 
 /**
- * 将 AI 批改结果持久化到数据库
- * 由 API route 在调用 assessWriting() 后调用，service 不负责调 AI
+ * Persist an already validated AI writing review.
  */
 export async function saveWritingReview(
   userId: string,
@@ -601,6 +559,7 @@ export async function saveWritingReview(
   const updated = await writingRepo.updateWritingExercise(exerciseId, {
     content,
     prompt,
+    status: "reviewed",
     overallScore: reviewResult.overallScore,
     grammarScore: reviewResult.grammarScore,
     vocabularyScore: reviewResult.vocabularyScore,
@@ -612,7 +571,7 @@ export async function saveWritingReview(
   return {
     result: {
       id: updated.id,
-      status: "completed",
+      status: "reviewed",
       message: "Review completed",
       estimatedWaitTime: processingTimeMs,
       submittedAt,
@@ -620,6 +579,57 @@ export async function saveWritingReview(
       data: reviewResult,
     },
   };
+}
+
+export async function submitWritingForReview(
+  userId: string,
+  params: SubmitWritingInput,
+): Promise<{ result: SubmitWritingResult }> {
+  const userID = normalizeUserId(userId);
+
+  const parsedParams = submitWritingSchema.safeParse(params);
+  if (!parsedParams.success) {
+    throw new Error(getFirstError(parsedParams.error));
+  }
+
+  const { exerciseId, scenarioType, prompt, content } = parsedParams.data;
+  const exercise = await writingRepo.findWritingExerciseById(
+    exerciseId,
+    userID,
+  );
+
+  if (!exercise) {
+    throw new Error("Writing exercise not found");
+  }
+
+  const scenario = exercise.scenarioId
+    ? await prisma.scenario.findUnique({ where: { id: exercise.scenarioId } })
+    : null;
+
+  const processingStartTime = Date.now();
+  const result = await assessWriting({
+    scenarioType,
+    prompt,
+    content,
+    wordCount: countWords(content),
+    description: scenario?.description,
+  });
+
+  if (!result.ok) {
+    throw new Error(`AI grading failed: ${result.error}`);
+  }
+
+  const reviewParsed = writingReviewResultSchema.safeParse(result.data);
+  if (!reviewParsed.success) {
+    throw new Error(`AI response format error: ${reviewParsed.error}`);
+  }
+
+  return saveWritingReview(
+    userID,
+    parsedParams.data,
+    reviewParsed.data,
+    Date.now() - processingStartTime,
+  );
 }
 
 // ==================== 获取批改结果 ====================
@@ -637,7 +647,7 @@ export async function getWritingResult(
   // ==================== 校验输入 ====================
   const userID = normalizeUserId(userId);
 
-  const parsedParams = getDraftSchema.safeParse(params);
+  const parsedParams = getWritingExerciseSchema.safeParse(params);
   if (!parsedParams.success) {
     throw new Error(getFirstError(parsedParams.error));
   }
@@ -663,7 +673,7 @@ export async function getWritingResult(
   }
   return {
     id: ex.id,
-    status: "completed",
+    status: "reviewed",
     feedback: fb.data,
     createdAt: ex.createdAt.toISOString(),
     submittedAt: ex.updatedAt.toISOString(),

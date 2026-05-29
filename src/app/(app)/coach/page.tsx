@@ -18,5 +18,10 @@ export default async function Page({
   const activeConversationId = Array.isArray(id) ? id[0] : id;
   const data = await getCoachPageData(currentUser.userId, activeConversationId);
 
-  return <CoachHistoryPage data={data} />;
+  return (
+    <CoachHistoryPage
+      key={data.activeConversation?.id ?? "new-conversation"}
+      data={data}
+    />
+  );
 }

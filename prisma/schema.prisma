@@ -25,6 +25,7 @@ model User {
   // Profile
   englishLevel     String?   @map("english_level") @db.VarChar(20)
   learningGoal     String?   @map("learning_goal") @db.Text
+  preferredLocale  String?   @map("preferred_locale") @db.VarChar(10)
 
   // Membership
   membershipTier   String    @default("free") @map("membership_tier") @db.VarChar(20)
