@@ -8,6 +8,8 @@ import {
   setAuthCookie,
   signToken,
 } from "@/lib/auth";
+import { parseAppLocale } from "@/i18n/locales";
+import { setLocaleCookie } from "@/i18n/server";
 import * as authService from "@/server/services/auth.service";
 import {
   onboardingSchema,
@@ -48,6 +50,10 @@ export async function signUp(
     });
 
     await setAuthCookie(token);
+    const preferredLocale = parseAppLocale(user.preferredLocale);
+    if (preferredLocale) {
+      await setLocaleCookie(preferredLocale);
+    }
 
     return {
       success: true,
@@ -101,6 +107,10 @@ export async function login(
     });
 
     await setAuthCookie(token);
+    const preferredLocale = parseAppLocale(user.preferredLocale);
+    if (preferredLocale) {
+      await setLocaleCookie(preferredLocale);
+    }
 
     const redirect = resolveAuthenticatedRedirect(
       {

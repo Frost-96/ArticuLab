@@ -8,6 +8,7 @@ const settingsUserSelect = {
   avatar: true,
   englishLevel: true,
   learningGoal: true,
+  preferredLocale: true,
   membershipTier: true,
 } satisfies Prisma.UserSelect;
 

@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ArrowRight, Mic } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,28 +23,13 @@ type SpeakingPracticePageProps = {
   loadError?: string | null;
 };
 
-const speakingScenarioLabelMap = {
-  daily: "Daily",
-  interview: "Interview",
-  travel: "Travel",
-  business: "Business",
-  free: "Free Talk",
-} as const;
-
-function getScenarioLabel(category: string) {
-  return (
-    speakingScenarioLabelMap[
-      category as keyof typeof speakingScenarioLabelMap
-    ] ?? category
-  );
-}
-
 export function SpeakingPracticePage({
   scenarios,
   history,
   loadError,
 }: SpeakingPracticePageProps) {
   const router = useRouter();
+  const t = useTranslations("speaking");
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
@@ -63,7 +49,7 @@ export function SpeakingPracticePage({
 
     if (!result.success || !result.data) {
       setError(
-        !result.success ? result.error : "Failed to start speaking practice.",
+        !result.success ? result.error : t("failedStart"),
       );
       setPendingId(null);
       return;
@@ -80,31 +66,30 @@ export function SpeakingPracticePage({
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-semibold text-slate-900">
-                  Speaking Practice
+                  {t("title")}
                 </h1>
                 <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
-                  Live scenarios
+                  {t("badge")}
                 </Badge>
               </div>
               <p className="mt-1 text-slate-500">
-                Pick a role-play scenario, speak, then review fluency, accuracy,
-                and better expressions.
+                {t("description")}
               </p>
             </div>
 
             <div className="grid grid-cols-3 gap-3 lg:w-[360px]">
               <SpeakingSummaryCard
-                label="Sessions"
+                label={t("sessions")}
                 value={String(history.pagination.total)}
                 tone="text-slate-900"
               />
               <SpeakingSummaryCard
-                label="Reviewed"
+                label={t("reviewed")}
                 value={String(reviewedCount)}
                 tone="text-blue-700"
               />
               <SpeakingSummaryCard
-                label="Scenarios"
+                label={t("scenarios")}
                 value={String(scenarios.length)}
                 tone="text-slate-900"
               />
@@ -131,9 +116,9 @@ export function SpeakingPracticePage({
         {continueExercises.length > 0 ? (
           <Card className="border-slate-200 bg-white shadow-sm">
             <CardHeader>
-              <CardTitle className="text-base">Continue practice</CardTitle>
+              <CardTitle className="text-base">{t("continueTitle")}</CardTitle>
               <CardDescription>
-                Resume active sessions or revisit recent reviewed practice.
+                {t("continueDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-3">
@@ -156,7 +141,7 @@ export function SpeakingPracticePage({
                             : "border-blue-200 bg-blue-50 text-blue-700"
                         }
                       >
-                        {isActive ? "In progress" : "Reviewed"}
+                        {isActive ? t("inProgress") : t("reviewedStatus")}
                       </Badge>
                       <ArrowRight className="size-4 text-slate-300 transition-colors group-hover:text-blue-600" />
                     </div>
@@ -164,9 +149,11 @@ export function SpeakingPracticePage({
                       {exercise.title}
                     </p>
                     <p className="mt-2 truncate text-xs text-slate-500">
-                      {exercise.totalTurns} turns
+                      {t("turns", { count: exercise.totalTurns ?? 0 })}
                       {exercise.fluencyScore !== null
-                        ? ` | ${exercise.fluencyScore.toFixed(1)} fluency`
+                        ? ` | ${t("fluency", {
+                            score: exercise.fluencyScore.toFixed(1),
+                          })}`
                         : ""}
                     </p>
                   </button>
@@ -181,11 +168,10 @@ export function SpeakingPracticePage({
             <CardHeader className="border-b border-slate-200 bg-blue-50/40">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Mic className="size-4 text-blue-600" />
-                Available Scenarios
+                {t("available")}
               </CardTitle>
               <CardDescription>
-                Pick a scenario and jump into practice without changing the page
-                rhythm.
+                {t("availableDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 p-4">
@@ -203,7 +189,7 @@ export function SpeakingPracticePage({
                             variant="outline"
                             className="border-blue-200 bg-blue-50 text-blue-700"
                           >
-                            {getScenarioLabel(scenario.category)}
+                            {t(scenario.category)}
                           </Badge>
                           <Badge variant="secondary">
                             {scenario.difficulty}
@@ -219,7 +205,9 @@ export function SpeakingPracticePage({
                           {scenario.description}
                         </p>
                         <p className="text-xs text-slate-400">
-                          Role: {scenario.aiRole ?? "Conversation partner"}
+                          {t("role", {
+                            role: scenario.aiRole ?? t("partner"),
+                          })}
                         </p>
                       </div>
 
@@ -229,7 +217,9 @@ export function SpeakingPracticePage({
                         disabled={pendingId === scenario.id}
                         onClick={() => void handleStart(scenario.id)}
                       >
-                        {pendingId === scenario.id ? "Starting..." : "Start"}
+                        {pendingId === scenario.id
+                          ? t("starting")
+                          : t("start")}
                         <ArrowRight className="ml-2 size-4" />
                       </Button>
                     </div>
@@ -239,8 +229,8 @@ export function SpeakingPracticePage({
                 <PageEmptyState
                   icon={<Mic className="size-5" />}
                   iconClassName="text-blue-600"
-                  title="No speaking scenarios found"
-                  description="No speaking scenarios are available right now."
+                  title={t("noScenarios")}
+                  description={t("noScenariosDescription")}
                 />
               )}
             </CardContent>

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  appLocaleEnum,
   englishLevelEnum,
   learningGoalEnum,
   membershipTierEnum,
@@ -16,6 +17,7 @@ export const settingsAccountSchema = z.object({
   englishLevelLabel: z.string().min(1).nullable(),
   learningGoal: learningGoalEnum.nullable(),
   learningGoalLabel: z.string().min(1).nullable(),
+  preferredLocale: appLocaleEnum,
 });
 
 export const settingsMembershipSchema = z.object({

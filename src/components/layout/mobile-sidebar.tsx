@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   ChevronRight,
   CreditCard,
@@ -31,15 +32,15 @@ import { logOut } from "@/server/actions/auth.action";
 import toast, { Toaster } from "react-hot-toast";
 
 const mainNavItems = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { title: "Writing Practice", href: "/writing", icon: PenLine },
-  { title: "Speaking Practice", href: "/speaking", icon: Mic },
-  { title: "AI Coach", href: "/coach", icon: MessageSquare },
+  { titleKey: "dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { titleKey: "writingPractice", href: "/writing", icon: PenLine },
+  { titleKey: "speakingPractice", href: "/speaking", icon: Mic },
+  { titleKey: "aiCoach", href: "/coach", icon: MessageSquare },
 ];
 
 const secondaryNavItems = [
-  { title: "Settings", href: "/settings", icon: Settings },
-  { title: "Billing", href: "/pricing", icon: CreditCard },
+  { titleKey: "settings", href: "/settings", icon: Settings },
+  { titleKey: "billing", href: "/pricing", icon: CreditCard },
 ];
 
 type MobileSidebarProps = {
@@ -49,8 +50,12 @@ type MobileSidebarProps = {
 export function MobileSidebar({ userSummary }: MobileSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const nav = useTranslations("nav");
+  const userMenu = useTranslations("userMenu");
+  const mobile = useTranslations("mobile");
+  const common = useTranslations("common");
   const { sidebarOpen, setSidebarOpen } = useUIStore();
-  const displayName = userSummary?.displayName ?? "Learner";
+  const displayName = userSummary?.displayName ?? userMenu("learner");
   const email = userSummary?.email ?? "";
   const membershipTier = userSummary?.membershipTier ?? "free";
   const streak = userSummary?.streak ?? 0;
@@ -59,7 +64,7 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
   async function handleLogout() {
     await logOut();
     setSidebarOpen(false);
-    toast.success("Logged out");
+    toast.success(userMenu("loggedOut"));
     router.push("/login");
     router.refresh();
   }
@@ -95,7 +100,7 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
                 variant={membershipTier === "pro" ? "default" : "secondary"}
                 className="shrink-0"
               >
-                {membershipTier === "pro" ? "Pro" : "Free"}
+                {membershipTier === "pro" ? common("pro") : common("free")}
               </Badge>
             </div>
 
@@ -104,9 +109,11 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
                 <Flame className="h-5 w-5 text-amber-500" />
                 <div>
                   <p className="text-sm font-medium text-amber-700">
-                    {streak} Day Streak
+                    {mobile("dayStreak", { count: streak })}
                   </p>
-                  <p className="text-xs text-amber-600">Keep it going!</p>
+                  <p className="text-xs text-amber-600">
+                    {mobile("keepGoing")}
+                  </p>
                 </div>
               </div>
             </div>
@@ -130,7 +137,7 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
                     )}
                   >
                     <item.icon className="h-5 w-5" />
-                    {item.title}
+                    {nav(item.titleKey)}
                     <ChevronRight
                       className={cn(
                         "ml-auto h-4 w-4 transition-transform",
@@ -161,7 +168,7 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
                     )}
                   >
                     <item.icon className="h-5 w-5" />
-                    {item.title}
+                    {nav(item.titleKey)}
                   </Link>
                 );
               })}
@@ -171,9 +178,9 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
           {membershipTier === "free" ? (
             <div className="border-t border-slate-200/70 p-3">
               <div className="rounded-xl bg-white/70 p-4 text-slate-900 ring-1 ring-slate-200/80">
-                <p className="text-sm font-medium">Upgrade to Pro</p>
+                <p className="text-sm font-medium">{mobile("upgrade")}</p>
                 <p className="mt-1 text-xs text-sky-700">
-                  Unlimited essays, speaking practice & more
+                  {mobile("upgradeDescription")}
                 </p>
                 <Button
                   size="sm"
@@ -182,7 +189,7 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
                   asChild
                 >
                   <Link href="/pricing" onClick={() => setSidebarOpen(false)}>
-                    View Plans
+                    {mobile("viewPlans")}
                   </Link>
                 </Button>
               </div>
@@ -195,7 +202,7 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
               onClick={handleLogout}
             >
               <LogOut className="h-5 w-5" />
-              Log out
+              {userMenu("logout")}
             </button>
           </div>
           <Toaster />

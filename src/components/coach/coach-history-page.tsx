@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import {
   CheckCircle2,
   ArrowRight,
@@ -64,8 +65,8 @@ type SpeechToTextResponse =
   | { success: true; data: { text: string } }
   | { success: false; error: string };
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+function formatDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -96,12 +97,12 @@ function parseSSEEvent(raw: string): ParsedSSEEvent | null {
   };
 }
 
-async function parseErrorResponse(response: Response) {
+async function parseErrorResponse(response: Response, fallbackMessage: string) {
   try {
     const result = (await response.json()) as { error?: string };
-    return result.error || "AI Coach service is temporarily unavailable.";
+    return result.error || fallbackMessage;
   } catch {
-    return "AI Coach service is temporarily unavailable.";
+    return fallbackMessage;
   }
 }
 function createAudioRecorder(stream: MediaStream) {
@@ -153,7 +154,15 @@ function HighlightedCoachText({ content }: { content: string }) {
   );
 }
 
-function CoachMessageBubble({ message }: { message: LocalCoachMessage }) {
+function CoachMessageBubble({
+  message,
+  locale,
+  thinkingLabel,
+}: {
+  message: LocalCoachMessage;
+  locale: string;
+  thinkingLabel: string;
+}) {
   const isAssistant = message.role === "assistant";
 
   return (
@@ -181,12 +190,12 @@ function CoachMessageBubble({ message }: { message: LocalCoachMessage }) {
             {message.pending ? (
               <>
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Thinking
+                {thinkingLabel}
               </>
             ) : (
               <>
                 <CheckCircle2 className="h-3 w-3" />
-                {formatDate(message.createdAt)}
+                {formatDate(message.createdAt, locale)}
               </>
             )}
           </div>
@@ -198,6 +207,8 @@ function CoachMessageBubble({ message }: { message: LocalCoachMessage }) {
 
 export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations("coach");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -223,9 +234,9 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
   );
   const latestMessageId = messages[messages.length - 1]?.id;
   const quickPrompts = [
-    "Highlight my grammar mistakes",
-    "Make this sentence more academic",
-    "Explain why this sounds unnatural",
+    t("quickGrammar"),
+    t("quickAcademic"),
+    t("quickNatural"),
   ];
 
   useEffect(() => {
@@ -265,14 +276,14 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
           result = {
             success: false,
             error: response.ok
-              ? "Speech recognition failed."
-              : "Speech recognition service is temporarily unavailable.",
+              ? t("speechFailed")
+              : t("speechUnavailable"),
           };
         }
 
         if (result.success) {
           if (!response.ok) {
-            setErrorMessage("Speech recognition failed.");
+            setErrorMessage(t("speechFailed"));
             return;
           }
 
@@ -280,19 +291,19 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
           return;
         }
 
-        setErrorMessage(result.error || "Speech recognition failed.");
+        setErrorMessage(result.error || t("speechFailed"));
       } catch {
-        setErrorMessage("Network error: Failed to transcribe audio.");
+        setErrorMessage(t("networkTranscribe"));
       } finally {
         setIsTranscribing(false);
       }
     },
-    [activeConversationId],
+    [activeConversationId, t],
   );
 
   const handleStartRecording = useCallback(async () => {
     if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-      setErrorMessage("Voice recording is not supported in this browser.");
+      setErrorMessage(t("recordingUnsupported"));
       return;
     }
 
@@ -328,10 +339,10 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
       setErrorMessage(null);
     } catch {
       setErrorMessage(
-        "Microphone access denied. Please allow microphone permission.",
+        t("micDenied"),
       );
     }
-  }, [handleTranscribe]);
+  }, [handleTranscribe, t]);
 
   const handleStopRecording = useCallback(() => {
     const recorder = mediaRecorderRef.current;
@@ -393,7 +404,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
       });
 
       if (!response.ok || !response.body) {
-        throw new Error(await parseErrorResponse(response));
+        throw new Error(await parseErrorResponse(response, t("serviceUnavailable")));
       }
 
       const reader = response.body.getReader();
@@ -460,7 +471,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
       }
 
       if (!isDone) {
-        throw new Error("Stream ended before the response was complete.");
+        throw new Error(t("streamIncomplete"));
       }
 
       if (!activeConversationId && resolvedConversationId) {
@@ -471,7 +482,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
       if (controller.signal.aborted) return;
 
       const message =
-        error instanceof Error ? error.message : "Failed to send message";
+        error instanceof Error ? error.message : t("sendFailed");
       setErrorMessage(message);
       setDraft(content);
       setLocalMessages((current) =>
@@ -499,7 +510,12 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
             {messages.length ? (
               <div className="flex-1 space-y-7 pb-6">
                 {messages.map((message) => (
-                  <CoachMessageBubble key={message.id} message={message} />
+                  <CoachMessageBubble
+                    key={message.id}
+                    message={message}
+                    locale={locale}
+                    thinkingLabel={t("thinking")}
+                  />
                 ))}
                 <div ref={messagesEndRef} />
               </div>
@@ -514,11 +530,10 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                     )}
                   </div>
                   <h1 className="text-2xl font-semibold text-slate-950">
-                    How can I help with your English today?
+                    {t("title")}
                   </h1>
                   <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-                    Ask for grammar feedback, a rewrite, pronunciation phrasing,
-                    or a quick explanation.
+                    {t("description")}
                   </p>
                   <div className="mt-6 grid gap-2 sm:grid-cols-3">
                     {quickPrompts.map((item) => (
@@ -543,7 +558,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                       >
                         <div className="flex items-center justify-between gap-3">
                           <span className="font-semibold">
-                            Continue latest chat
+                            {t("continueLatest")}
                           </span>
                           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                         </div>
@@ -556,9 +571,9 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                         onClick={() => router.push("/coach")}
                         className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm leading-5 text-slate-700 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800"
                       >
-                        <span className="font-semibold">Start new chat</span>
+                        <span className="font-semibold">{t("startNew")}</span>
                         <p className="mt-1 text-xs text-slate-500">
-                          Open a clean coach thread
+                          {t("newDescription")}
                         </p>
                       </button>
                     </div>
@@ -602,7 +617,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                       void handleSend();
                     }
                   }}
-                  placeholder="Message your coach..."
+                  placeholder={t("placeholder")}
                   className="max-h-36 min-h-11 resize-none border-0 bg-transparent px-2 py-2.5 text-sm leading-6 shadow-none focus-visible:ring-0"
                   rows={1}
                 />
@@ -623,7 +638,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                           : () => void handleStartRecording()
                       }
                       aria-label={
-                        isRecording ? "Stop recording" : "Start voice input"
+                        isRecording ? t("stopRecording") : t("startVoice")
                       }
                     >
                       {isTranscribing ? (
@@ -637,10 +652,10 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                   </TooltipTrigger>
                   <TooltipContent>
                     {isRecording
-                      ? "Stop recording"
+                      ? t("stopRecording")
                       : isTranscribing
-                        ? "Transcribing..."
-                        : "Voice input"}
+                        ? t("transcribing")
+                        : t("voiceInput")}
                   </TooltipContent>
                 </Tooltip>
                 <Button
@@ -648,7 +663,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                   className="h-11 w-11 rounded-full bg-teal-600 text-white hover:bg-teal-700"
                   onClick={() => void handleSend()}
                   disabled={!canSend}
-                  aria-label="Send message"
+                  aria-label={t("send")}
                 >
                   {isComposing ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

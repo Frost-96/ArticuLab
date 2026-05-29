@@ -8,7 +8,12 @@ import {
   subscriptionPlanEnum,
   subscriptionStatusEnum,
   type SettingsData,
+  type AppLocale,
 } from "@/schema";
+import {
+  defaultLocale,
+  parseAppLocale as parseLocaleValue,
+} from "@/i18n/locales";
 import {
   formatEnglishLevel,
   formatLearningGoal,
@@ -47,6 +52,7 @@ export async function getSettingsData(userId: string): Promise<SettingsData> {
       englishLevelLabel: formatEnglishLevel(englishLevel),
       learningGoal,
       learningGoalLabel: formatLearningGoal(learningGoal),
+      preferredLocale: parseAppLocale(source.user.preferredLocale),
     },
     membership: {
       membershipTier,
@@ -57,27 +63,22 @@ export async function getSettingsData(userId: string): Promise<SettingsData> {
     },
     readonlyModules: {
       notifications: {
-        title: "Notifications",
-        description:
-          "Email reminders and learning alerts are not configurable yet.",
-        detail:
-          "Notification preferences will be added once persistent user settings are available.",
-        statusLabel: "Coming soon",
+        title: "notifications",
+        description: "notificationsDescription",
+        detail: "notificationsDetail",
+        statusLabel: "comingSoon",
       },
       appearance: {
-        title: "Appearance",
-        description: "Theme preferences are not saved to your account yet.",
-        detail:
-          "Dark mode and appearance sync will ship with persistent UI preferences.",
-        statusLabel: "Local preference unavailable",
+        title: "appearance",
+        description: "appearanceDescription",
+        detail: "appearanceDetail",
+        statusLabel: "localPreferenceUnavailable",
       },
       language: {
-        title: "Language & Region",
-        description:
-          "Interface language settings are not connected to your profile yet.",
-        detail:
-          "English remains the default interface until localization settings are introduced.",
-        statusLabel: "Coming soon",
+        title: "language",
+        description: "languageDescription",
+        detail: "languageDetail",
+        statusLabel: "interfaceLanguage",
       },
     },
     dangerZone: {
@@ -106,6 +107,22 @@ export async function updateSettingsProfile(
   });
 }
 
+export async function updateSettingsLocale(
+  userId: string,
+  preferredLocale: AppLocale,
+) {
+  const existingUser = await userRepo.findUserById(userId);
+
+  if (!existingUser) {
+    throw new Error("User not found");
+  }
+
+  return userRepo.updateUserPreferredLocale({
+    userId,
+    preferredLocale,
+  });
+}
+
 function parseEnglishLevel(value: string | null | undefined) {
   const parsed = englishLevelEnum.safeParse(value);
   return parsed.success ? parsed.data : null;
@@ -119,6 +136,10 @@ function parseLearningGoal(value: string | null | undefined) {
 function parseMembershipTier(value: string | null | undefined) {
   const parsed = membershipTierEnum.safeParse(value);
   return parsed.success ? parsed.data : "free";
+}
+
+function parseAppLocale(value: string | null | undefined) {
+  return parseLocaleValue(value) ?? defaultLocale;
 }
 
 function parseSubscriptionPlan(value: string | null | undefined) {

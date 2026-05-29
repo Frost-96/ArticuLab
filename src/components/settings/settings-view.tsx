@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   Bell,
   CreditCard,
@@ -13,9 +14,17 @@ import {
   Trash2,
   User,
 } from "lucide-react";
-import type { EnglishLevel, LearningGoal, SettingsData } from "@/schema";
+import type {
+  AppLocale,
+  EnglishLevel,
+  LearningGoal,
+  SettingsData,
+} from "@/schema";
 import { getInitials } from "@/lib/user-display";
-import { saveSettingsProfile } from "@/server/actions/settings.action";
+import {
+  saveLocalePreference,
+  saveSettingsProfile,
+} from "@/server/actions/settings.action";
 import { deleteCurrentUserAction } from "@/server/actions/user.action";
 import { logOut } from "@/server/actions/auth.action";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -24,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import toast, { Toaster } from "react-hot-toast";
 
 type SettingsViewProps = {
@@ -39,32 +49,32 @@ type SettingsFormState = {
 
 const englishLevelOptions: Array<{
   value: EnglishLevel;
-  label: string;
+  labelKey: EnglishLevel;
 }> = [
-  { value: "beginner", label: "Beginner" },
-  { value: "elementary", label: "Elementary" },
-  { value: "intermediate", label: "Intermediate" },
-  { value: "upper-intermediate", label: "Upper Intermediate" },
-  { value: "advanced", label: "Advanced" },
-  { value: "not-sure", label: "Not Sure Yet" },
+  { value: "beginner", labelKey: "beginner" },
+  { value: "elementary", labelKey: "elementary" },
+  { value: "intermediate", labelKey: "intermediate" },
+  { value: "upper-intermediate", labelKey: "upper-intermediate" },
+  { value: "advanced", labelKey: "advanced" },
+  { value: "not-sure", labelKey: "not-sure" },
 ];
 
 const learningGoalOptions: Array<{
   value: LearningGoal;
-  label: string;
+  labelKey: LearningGoal;
 }> = [
-  { value: "exam-prep", label: "Exam Preparation" },
-  { value: "academic", label: "Academic English" },
-  { value: "career", label: "Career & Professional" },
-  { value: "daily", label: "Daily Communication" },
-  { value: "immigration", label: "Immigration" },
+  { value: "exam-prep", labelKey: "exam-prep" },
+  { value: "academic", labelKey: "academic" },
+  { value: "career", labelKey: "career" },
+  { value: "daily", labelKey: "daily" },
+  { value: "immigration", labelKey: "immigration" },
 ];
 
 const navItems = [
-  { href: "#account", label: "Account", icon: User },
-  { href: "#subscription", label: "Subscription", icon: CreditCard },
-  { href: "#personalization", label: "Personalization", icon: Moon },
-  { href: "#security", label: "Security", icon: Shield },
+  { href: "#account", labelKey: "account", icon: User },
+  { href: "#subscription", labelKey: "subscription", icon: CreditCard },
+  { href: "#personalization", labelKey: "personalization", icon: Moon },
+  { href: "#security", labelKey: "security", icon: Shield },
 ];
 
 const selectClassName =
@@ -72,7 +82,13 @@ const selectClassName =
 
 export function SettingsView({ data }: SettingsViewProps) {
   const router = useRouter();
+  const t = useTranslations("settings");
+  const nav = useTranslations("nav");
+  const common = useTranslations("common");
+  const levels = useTranslations("levels");
+  const goals = useTranslations("goals");
   const [isSaving, startSavingTransition] = useTransition();
+  const [isSavingLocale, startLocaleTransition] = useTransition();
   const [isLoggingOut, startLogoutTransition] = useTransition();
   const [isDeletingAccount, startDeleteAccountTransition] = useTransition();
   const [form, setForm] = useState<SettingsFormState>({
@@ -93,11 +109,6 @@ export function SettingsView({ data }: SettingsViewProps) {
       key: "appearance",
       icon: Moon,
       module: data.readonlyModules.appearance,
-    },
-    {
-      key: "language",
-      icon: Globe,
-      module: data.readonlyModules.language,
     },
   ];
 
@@ -141,7 +152,29 @@ export function SettingsView({ data }: SettingsViewProps) {
       return;
     }
 
-    toast.success(result.data.message);
+    toast.success(t("profileUpdated"));
+    router.refresh();
+  }
+
+  function handleLocaleChange(locale: AppLocale) {
+    if (locale === data.account.preferredLocale) {
+      return;
+    }
+
+    startLocaleTransition(() => {
+      void submitLocaleUpdate(locale);
+    });
+  }
+
+  async function submitLocaleUpdate(locale: AppLocale) {
+    const result = await saveLocalePreference(locale);
+
+    if (!result.success) {
+      toast.error(result.error || t("languageSaveFailed"));
+      return;
+    }
+
+    toast.success(t("languageSaved"));
     router.refresh();
   }
 
@@ -152,9 +185,7 @@ export function SettingsView({ data }: SettingsViewProps) {
   }
 
   function handleDeleteAccount() {
-    const confirmed = window.confirm(
-      "Delete your account? This will hide your profile and sign you out.",
-    );
+    const confirmed = window.confirm(t("deleteConfirm"));
     if (!confirmed) {
       return;
     }
@@ -166,7 +197,7 @@ export function SettingsView({ data }: SettingsViewProps) {
 
   async function performLogout() {
     await logOut();
-    toast.success("Logged out");
+    toast.success(t("loggingOut"));
     router.push("/login");
     router.refresh();
   }
@@ -178,7 +209,7 @@ export function SettingsView({ data }: SettingsViewProps) {
       return;
     }
 
-    toast.success("Account deleted");
+    toast.success(t("accountDeleted"));
     router.push("/signup");
     router.refresh();
   }
@@ -189,14 +220,14 @@ export function SettingsView({ data }: SettingsViewProps) {
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
-              Settings
+              {t("title")}
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              Manage your account, subscription, and learning preferences.
+              {t("description")}
             </p>
           </div>
           <Button variant="outline" asChild>
-            <Link href="/profile">View profile</Link>
+            <Link href="/profile">{t("viewProfile")}</Link>
           </Button>
         </div>
 
@@ -210,7 +241,7 @@ export function SettingsView({ data }: SettingsViewProps) {
                   className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950"
                 >
                   <item.icon className="size-4 text-slate-500" />
-                  {item.label}
+                  {t(`sections.${item.labelKey}`)}
                 </a>
               ))}
             </nav>
@@ -222,8 +253,8 @@ export function SettingsView({ data }: SettingsViewProps) {
           >
             <section id="account" className="scroll-mt-24">
               <SettingsSectionHeader
-                title="Account"
-                description="Basic information shown across ArticuLab."
+                title={t("sections.account")}
+                description={t("accountDescription")}
               />
               <div className="px-5">
                 <div className="flex flex-col gap-4 border-b border-slate-100 py-4 sm:flex-row sm:items-center">
@@ -243,8 +274,8 @@ export function SettingsView({ data }: SettingsViewProps) {
                       </p>
                       <Badge variant="secondary">
                         {data.membership.membershipTier === "pro"
-                          ? "Pro"
-                          : "Free"}
+                          ? common("pro")
+                          : common("free")}
                       </Badge>
                     </div>
                     <p className="mt-1 truncate text-sm text-slate-500">
@@ -254,8 +285,8 @@ export function SettingsView({ data }: SettingsViewProps) {
                 </div>
 
                 <SettingsRow
-                  title="Display name"
-                  description="This name appears in your navigation, profile, and dashboard."
+                  title={t("displayName")}
+                  description={t("displayNameDescription")}
                   control={
                     <Input
                       id="name"
@@ -263,7 +294,7 @@ export function SettingsView({ data }: SettingsViewProps) {
                       onChange={(event) =>
                         updateField("name", event.target.value)
                       }
-                      placeholder="Your name"
+                      placeholder={t("yourName")}
                       disabled={isSaving}
                       className="h-9"
                     />
@@ -271,8 +302,8 @@ export function SettingsView({ data }: SettingsViewProps) {
                 />
 
                 <SettingsRow
-                  title="Email address"
-                  description="Email changes are not available yet."
+                  title={t("email")}
+                  description={t("emailDescription")}
                   control={
                     <Input
                       id="email"
@@ -285,8 +316,8 @@ export function SettingsView({ data }: SettingsViewProps) {
                 />
 
                 <SettingsRow
-                  title="Avatar URL"
-                  description="Leave blank to use your initials."
+                  title={t("avatar")}
+                  description={t("avatarDescription")}
                   control={
                     <Input
                       id="avatar"
@@ -302,11 +333,11 @@ export function SettingsView({ data }: SettingsViewProps) {
                 />
 
                 <SettingsRow
-                  title="Password"
-                  description="Password updates are not available yet."
+                  title={t("password")}
+                  description={t("passwordDescription")}
                   control={
                     <Button type="button" variant="outline" disabled>
-                      Change password
+                      {t("changePassword")}
                     </Button>
                   }
                 />
@@ -315,46 +346,49 @@ export function SettingsView({ data }: SettingsViewProps) {
 
             <section id="subscription" className="scroll-mt-24">
               <SettingsSectionHeader
-                title="Subscription"
-                description={getMembershipDescription(data)}
+                title={t("sections.subscription")}
+                description={getMembershipDescription(data, t)}
               />
               <div className="px-5">
                 <InfoRow
-                  title="Plan"
+                  title={t("plan")}
                   value={
-                    data.membership.membershipTier === "pro" ? "Pro" : "Free"
+                    data.membership.membershipTier === "pro"
+                      ? common("pro")
+                      : common("free")
                   }
                 />
                 <InfoRow
-                  title="Billing status"
+                  title={t("billingStatus")}
                   value={
                     data.membership.hasActiveSubscription
-                      ? "Active"
-                      : "No active billing"
+                      ? t("active")
+                      : t("noActiveBilling")
                   }
                 />
                 <InfoRow
-                  title="Subscription plan"
+                  title={t("subscriptionPlan")}
                   value={formatSubscriptionPlan(
                     data.membership.subscriptionPlan,
+                    t,
                   )}
                 />
                 <InfoRow
-                  title="Billing period"
+                  title={t("billingPeriod")}
                   value={
                     data.membership.subscriptionPeriodLabel ??
-                    "No active subscription"
+                    t("noActiveSubscription")
                   }
                 />
                 <SettingsRow
-                  title="Billing"
-                  description="Manage plan details and upgrades from pricing."
+                  title={nav("billing")}
+                  description={t("billingDescription")}
                   control={
                     <Button variant="outline" asChild>
                       <Link href="/pricing">
                         {data.membership.membershipTier === "pro"
-                          ? "Manage billing"
-                          : "Upgrade"}
+                          ? t("manageBilling")
+                          : t("upgrade")}
                       </Link>
                     </Button>
                   }
@@ -364,17 +398,17 @@ export function SettingsView({ data }: SettingsViewProps) {
 
             <section id="personalization" className="scroll-mt-24">
               <SettingsSectionHeader
-                title="Personalization"
-                description="Tune the learning context attached to your account."
+                title={t("sections.personalization")}
+                description={t("personalizationDescription")}
               />
               <div className="px-5">
                 <SettingsRow
-                  title="English level"
-                  description="Used to tailor prompts and practice difficulty."
+                  title={t("englishLevel")}
+                  description={t("englishLevelDescription")}
                   control={
                     <div>
                       <Label htmlFor="englishLevel" className="sr-only">
-                        English level
+                        {t("englishLevel")}
                       </Label>
                       <select
                         id="englishLevel"
@@ -388,10 +422,10 @@ export function SettingsView({ data }: SettingsViewProps) {
                         }
                         disabled={isSaving}
                       >
-                        <option value="">Not set</option>
+                        <option value="">{common("notSet")}</option>
                         {englishLevelOptions.map((option) => (
                           <option key={option.value} value={option.value}>
-                            {option.label}
+                            {levels(option.labelKey)}
                           </option>
                         ))}
                       </select>
@@ -400,12 +434,12 @@ export function SettingsView({ data }: SettingsViewProps) {
                 />
 
                 <SettingsRow
-                  title="Learning goal"
-                  description="Helps the app focus feedback around your goal."
+                  title={t("learningGoal")}
+                  description={t("learningGoalDescription")}
                   control={
                     <div>
                       <Label htmlFor="learningGoal" className="sr-only">
-                        Learning goal
+                        {t("learningGoal")}
                       </Label>
                       <select
                         id="learningGoal"
@@ -419,10 +453,10 @@ export function SettingsView({ data }: SettingsViewProps) {
                         }
                         disabled={isSaving}
                       >
-                        <option value="">Not set</option>
+                        <option value="">{common("notSet")}</option>
                         {learningGoalOptions.map((option) => (
                           <option key={option.value} value={option.value}>
-                            {option.label}
+                            {goals(option.labelKey)}
                           </option>
                         ))}
                       </select>
@@ -433,39 +467,70 @@ export function SettingsView({ data }: SettingsViewProps) {
                 {readonlyRows.map((item) => (
                   <SettingsRow
                     key={item.key}
-                    title={item.module.title}
-                    description={item.module.description}
+                    title={t(item.module.title)}
+                    description={t(item.module.description)}
                     leading={<item.icon className="size-4 text-slate-400" />}
                     control={
                       <div className="flex items-center gap-3">
                         <span className="text-xs text-slate-400">
-                          {item.module.statusLabel}
+                          {t(item.module.statusLabel)}
                         </span>
                         <Switch
                           checked={false}
                           disabled
-                          aria-label={item.module.title}
+                          aria-label={t(item.module.title)}
                         />
                       </div>
                     }
                   >
                     <p className="mt-1 text-xs leading-5 text-slate-400">
-                      {item.module.detail}
+                      {t(item.module.detail)}
                     </p>
                   </SettingsRow>
                 ))}
+                <SettingsRow
+                  title={t("language")}
+                  description={t("languageDescription")}
+                  leading={<Globe className="size-4 text-slate-400" />}
+                  control={
+                    <div className="inline-flex rounded-md border border-slate-200 bg-slate-50 p-1">
+                      {(["en", "zh"] as const).map((locale) => (
+                        <button
+                          key={locale}
+                          type="button"
+                          disabled={isSavingLocale}
+                          onClick={() => handleLocaleChange(locale)}
+                          className={cn(
+                            "rounded px-3 py-1.5 text-sm font-medium transition-colors",
+                            data.account.preferredLocale === locale
+                              ? "bg-white text-slate-950 shadow-sm"
+                              : "text-slate-500 hover:text-slate-900",
+                          )}
+                        >
+                          {locale === "zh"
+                            ? common("chinese")
+                            : common("english")}
+                        </button>
+                      ))}
+                    </div>
+                  }
+                >
+                  <p className="mt-1 text-xs leading-5 text-slate-400">
+                    {t("languageDetail")}
+                  </p>
+                </SettingsRow>
               </div>
             </section>
 
             <section id="security" className="scroll-mt-24">
               <SettingsSectionHeader
-                title="Security"
-                description="Session controls and account removal."
+                title={t("sections.security")}
+                description={t("securityDescription")}
               />
               <div className="px-5">
                 <SettingsRow
-                  title="Log out"
-                  description="Log out of your account on this device."
+                  title={nav("logout")}
+                  description={t("logoutDescription")}
                   control={
                     <Button
                       type="button"
@@ -474,13 +539,13 @@ export function SettingsView({ data }: SettingsViewProps) {
                       disabled={!data.dangerZone.canLogout || isLoggingOut}
                     >
                       <LogOut className="size-4" />
-                      {isLoggingOut ? "Logging out..." : "Log out"}
+                      {isLoggingOut ? t("loggingOut") : nav("logout")}
                     </Button>
                   }
                 />
                 <SettingsRow
-                  title="Delete account"
-                  description="Soft delete your account and log out of this device."
+                  title={t("deleteAccount")}
+                  description={t("deleteAccountDescription")}
                   control={
                     <Button
                       type="button"
@@ -492,7 +557,7 @@ export function SettingsView({ data }: SettingsViewProps) {
                       onClick={handleDeleteAccount}
                     >
                       <Trash2 className="size-4" />
-                      {isDeletingAccount ? "Deleting..." : "Delete account"}
+                      {isDeletingAccount ? t("deleting") : t("deleteAccount")}
                     </Button>
                   }
                 />
@@ -506,10 +571,10 @@ export function SettingsView({ data }: SettingsViewProps) {
                 disabled={isSaving}
                 onClick={resetForm}
               >
-                Reset
+                {common("reset")}
               </Button>
               <Button type="submit" disabled={isSaving}>
-                {isSaving ? "Saving..." : "Save changes"}
+                {isSaving ? common("saving") : common("saveChanges")}
               </Button>
             </div>
           </form>
@@ -576,25 +641,31 @@ function InfoRow({ title, value }: { title: string; value: string }) {
 
 function formatSubscriptionPlan(
   plan: SettingsData["membership"]["subscriptionPlan"],
+  t: ReturnType<typeof useTranslations<"settings">>,
 ) {
   switch (plan) {
     case "monthly":
-      return "Monthly";
+      return t("monthly");
     case "yearly":
-      return "Yearly";
+      return t("yearly");
     default:
-      return "No active plan";
+      return t("noActivePlan");
   }
 }
 
-function getMembershipDescription(data: SettingsData) {
+function getMembershipDescription(
+  data: SettingsData,
+  t: ReturnType<typeof useTranslations<"settings">>,
+) {
   if (data.membership.hasActiveSubscription) {
-    return `Your ${formatSubscriptionPlan(data.membership.subscriptionPlan).toLowerCase()} subscription is active.`;
+    return t("subscriptionActiveDescription", {
+      plan: formatSubscriptionPlan(data.membership.subscriptionPlan, t),
+    });
   }
 
   if (data.membership.membershipTier === "pro") {
-    return "Pro access is enabled, but no active billing record is linked right now.";
+    return t("proNoBillingDescription");
   }
 
-  return "Upgrade to unlock unlimited sessions, AI feedback, and richer practice flows.";
+  return t("upgradeDescription");
 }

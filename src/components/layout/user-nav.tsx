@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Crown, CreditCard, LogOut, Settings, User } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { useTransition } from "react";
+import {
+  Crown,
+  CreditCard,
+  Languages,
+  LogOut,
+  Settings,
+  User,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +25,9 @@ import { Badge } from "@/components/ui/badge";
 import { getInitials } from "@/lib/user-display";
 import type { CurrentUserDisplaySummary } from "@/schema";
 import { logOut } from "@/server/actions/auth.action";
+import { saveLocalePreference } from "@/server/actions/settings.action";
 import toast, { Toaster } from "react-hot-toast";
+import type { AppLocale } from "@/i18n/locales";
 
 type UserNavProps = {
   userSummary: CurrentUserDisplaySummary | null;
@@ -24,16 +35,37 @@ type UserNavProps = {
 
 export function UserNav({ userSummary }: UserNavProps) {
   const router = useRouter();
-  const displayName = userSummary?.displayName ?? "Learner";
+  const locale = useLocale() as AppLocale;
+  const t = useTranslations("userMenu");
+  const nav = useTranslations("nav");
+  const common = useTranslations("common");
+  const [isSwitchingLocale, startLocaleTransition] = useTransition();
+  const displayName = userSummary?.displayName ?? t("learner");
   const email = userSummary?.email ?? "";
   const membershipTier = userSummary?.membershipTier ?? "free";
   const initials = getInitials(displayName);
+  const nextLocale: AppLocale = locale === "zh" ? "en" : "zh";
 
   async function handleLogout() {
     await logOut();
-    toast.success("Logged out");
+    toast.success(t("loggedOut"));
     router.push("/login");
     router.refresh();
+  }
+
+  function handleSwitchLocale() {
+    startLocaleTransition(() => {
+      void (async () => {
+        const result = await saveLocalePreference(nextLocale);
+
+        if (!result.success) {
+          toast.error(result.error);
+          return;
+        }
+
+        router.refresh();
+      })();
+    });
   }
 
   return (
@@ -58,12 +90,12 @@ export function UserNav({ userSummary }: UserNavProps) {
             <p className="text-xs text-slate-500">{email}</p>
             {membershipTier === "free" ? (
               <Badge variant="secondary" className="mt-1 w-fit text-xs">
-                Free Plan
+                {t("freePlan")}
               </Badge>
             ) : (
               <Badge className="mt-1 w-fit bg-amber-500 text-xs text-white">
                 <Crown className="mr-1 h-3 w-3" />
-                Pro
+                {common("pro")}
               </Badge>
             )}
           </div>
@@ -72,20 +104,31 @@ export function UserNav({ userSummary }: UserNavProps) {
         <DropdownMenuItem asChild>
           <Link href="/profile" className="cursor-pointer">
             <User className="mr-2 h-4 w-4" />
-            Profile
+            {nav("profile")}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/settings" className="cursor-pointer">
             <Settings className="mr-2 h-4 w-4" />
-            Settings
+            {nav("settings")}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/pricing" className="cursor-pointer">
             <CreditCard className="mr-2 h-4 w-4" />
-            Billing
+            {nav("billing")}
           </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="cursor-pointer"
+          disabled={isSwitchingLocale}
+          onClick={handleSwitchLocale}
+        >
+          <Languages className="mr-2 h-4 w-4" />
+          {t("switchTo", {
+            locale:
+              nextLocale === "zh" ? common("chinese") : common("english"),
+          })}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {membershipTier === "free" ? (
@@ -96,7 +139,7 @@ export function UserNav({ userSummary }: UserNavProps) {
                 className="cursor-pointer text-sky-600 focus:text-sky-600"
               >
                 <Crown className="mr-2 h-4 w-4" />
-                Upgrade to Pro
+                {t("upgrade")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -107,7 +150,7 @@ export function UserNav({ userSummary }: UserNavProps) {
           onClick={handleLogout}
         >
           <LogOut className="mr-2 h-4 w-4" />
-          Log out
+          {t("logout")}
         </DropdownMenuItem>
         <Toaster />
       </DropdownMenuContent>

@@ -9,12 +9,18 @@ import {
 import { getFirstError } from "@/lib/error";
 import {
   updateProfileSchema,
+  appLocaleEnum,
+  type AppLocale,
   type EnglishLevel,
   type MembershipTier,
   type UpdateProfileInput,
 } from "@/schema";
 import type { ActionResult } from "@/schema/shared.schema";
-import { updateSettingsProfile } from "@/server/services/settings.service";
+import { setLocaleCookie } from "@/i18n/server";
+import {
+  updateSettingsLocale,
+  updateSettingsProfile,
+} from "@/server/services/settings.service";
 
 export async function saveSettingsProfile(
   input: UpdateProfileInput,
@@ -67,6 +73,51 @@ export async function saveSettingsProfile(
         error instanceof Error
           ? error.message
           : "Failed to update your profile",
+    };
+  }
+}
+
+export async function saveLocalePreference(
+  locale: AppLocale,
+): Promise<ActionResult<{ message: string; locale: AppLocale }>> {
+  const parsed = appLocaleEnum.safeParse(locale);
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: "Unsupported language",
+    };
+  }
+
+  await setLocaleCookie(parsed.data);
+
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser) {
+    return {
+      success: true,
+      data: {
+        message: "Language updated",
+        locale: parsed.data,
+      },
+    };
+  }
+
+  try {
+    await updateSettingsLocale(currentUser.userId, parsed.data);
+
+    return {
+      success: true,
+      data: {
+        message: "Language updated",
+        locale: parsed.data,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to update language",
     };
   }
 }
