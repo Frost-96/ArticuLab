@@ -2,7 +2,6 @@ import {
   type WritingExerciseStatus,
   type WritingReviewResult,
   type WritingScenarioType,
-  writingReviewResultSchema,
 } from "@/schema";
 
 // ==================== 类型定义 ====================
@@ -80,7 +79,7 @@ export type WritingHistoryResult = {
 
 export type SubmitWritingResult = {
   id: string;
-  status: "completed";
+  status: "reviewed";
   message: string;
   estimatedWaitTime: number;
   submittedAt: string;
@@ -90,7 +89,7 @@ export type SubmitWritingResult = {
 
 export type WritingResult = {
   id: string;
-  status: "completed";
+  status: "reviewed";
   feedback: WritingReviewResult;
   createdAt: string;
   submittedAt: string | null;

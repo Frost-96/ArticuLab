@@ -22,6 +22,7 @@ const writingExerciseSelect = {
   taskScore: true,
   feedback: true,
   createdAt: true,
+  updatedAt: true,
   scenario: {
     select: {
       title: true,
@@ -40,6 +41,7 @@ const speakingExerciseSelect = {
   accuracyScore: true,
   feedback: true,
   createdAt: true,
+  updatedAt: true,
   scenario: {
     select: {
       title: true,

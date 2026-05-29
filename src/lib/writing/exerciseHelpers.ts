@@ -1,28 +1,10 @@
-import { prisma } from "@/lib/prisma";
-import type { WritingExercise } from "../../../generated/prisma/client";
-import type { WritingReviewResult, WritingExerciseStatus } from "@/schema";
-/**
- * 按练习 id 与用户 id 查询一条 WritingExercise（用于鉴权后读写）
- *
- * 输入格式：
- * - id：string，练习 cuid
- * - userId：string，当前登录用户 id
- *
- * 输出格式：
- * - Promise<WritingExercise | null>；无记录或越权时 null
- */
-/* export async function findExerciseForUser(
-  id: string,
-  userId: string
-): Promise<WritingExercise | null> {
-  return prisma.writingExercise.findFirst({
-    where: { id, userId },
-  });
-} */
+import type { WritingExerciseStatus, WritingReviewResult } from "@/schema";
+
 export function parseFeedback(raw: unknown): WritingReviewResult | null {
   if (raw && typeof raw === "object" && !Array.isArray(raw)) {
     return raw as WritingReviewResult;
   }
+
   return null;
 }
 
@@ -41,8 +23,18 @@ export function inferExerciseStatus(ex: {
   status?: string | null;
 }): WritingExerciseStatus {
   if (ex.status === "completed") {
-    return "completed";
+    return "reviewed";
   }
 
-  return isGraded(ex) ? "completed" : "draft";
+  if (
+    ex.status === "draft" ||
+    ex.status === "submitted" ||
+    ex.status === "reviewing" ||
+    ex.status === "reviewed" ||
+    ex.status === "failed"
+  ) {
+    return ex.status;
+  }
+
+  return isGraded(ex) ? "reviewed" : "draft";
 }

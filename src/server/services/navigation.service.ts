@@ -79,7 +79,10 @@ export async function getWritingSidebarItems(
   return history.exercises.map((exercise) => ({
     id: exercise.id,
     title: truncate(exercise.prompt, 48),
-    href: `/writing/${exercise.id}`,
+    href:
+      exercise.status === "reviewed"
+        ? `/writing/${exercise.id}/review`
+        : `/writing/${exercise.id}`,
     date: exercise.createdAt,
     badge:
       exercise.overallScore === null

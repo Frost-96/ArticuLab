@@ -74,6 +74,16 @@ export const dashboardActivitySchema = z.object({
   href: z.string().min(1),
 });
 
+export const dashboardContinueItemSchema = z.object({
+  id: z.string().min(1),
+  type: conversationTypeEnum,
+  title: z.string().min(1),
+  subtitle: z.string().nullable(),
+  statusLabel: z.string().min(1),
+  timeLabel: z.string().min(1),
+  href: z.string().min(1),
+});
+
 export const dashboardWeaknessSchema = z.object({
   category: z.string().min(1),
   description: z.string().min(1),
@@ -98,6 +108,7 @@ export const dashboardDataSchema = z.object({
   trend: z.array(dashboardTrendPointSchema),
   weaknesses: z.array(dashboardWeaknessSchema),
   recentActivities: z.array(dashboardActivitySchema),
+  continueItems: z.array(dashboardContinueItemSchema),
   emptyStates: dashboardEmptyStatesSchema,
 });
 
@@ -124,6 +135,9 @@ export type DashboardStats = z.infer<typeof dashboardStatsSchema>;
 export type DashboardRadarItem = z.infer<typeof dashboardRadarItemSchema>;
 export type DashboardTrendPoint = z.infer<typeof dashboardTrendPointSchema>;
 export type DashboardActivity = z.infer<typeof dashboardActivitySchema>;
+export type DashboardContinueItem = z.infer<
+  typeof dashboardContinueItemSchema
+>;
 export type DashboardWeakness = z.infer<typeof dashboardWeaknessSchema>;
 export type DashboardEmptyStates = z.infer<typeof dashboardEmptyStatesSchema>;
 export type DashboardData = z.infer<typeof dashboardDataSchema>;

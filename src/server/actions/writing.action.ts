@@ -1,4 +1,4 @@
-// src/server/actions/writing.action.ts
+﻿// src/server/actions/writing.action.ts
 "use server";
 
 import * as writingService from "@/server/services/writing.service";
@@ -11,7 +11,6 @@ import {
   getDraftSchema,
   saveDraftSchema,
   submitWritingSchema,
-  writingReviewResultSchema,
   type CreateWritingExerciseInput,
   type GetWritingHistoryInput,
   type GetWritingExerciseInput,
@@ -24,8 +23,6 @@ import {
 import type { ActionResult } from "@/schema/shared.schema";
 import { getFirstError } from "@/lib/error";
 import { getCurrentUser } from "@/lib/auth";
-import { assessWriting } from "@/lib/writing/assessWriting";
-import { prisma } from "@/lib/prisma";
 import type {
   WritingResult,
   WritingExerciseDetail,
@@ -34,31 +31,31 @@ import type {
   SubmitWritingResult,
 } from "@/types/writing/writingTypes";
 
-// ==================== 获取写作练习列表 ====================
+// ==================== 鑾峰彇鍐欎綔缁冧範鍒楄〃 ====================
 
 /**
- * 获取写作练习历史（带分页和统计）
- * @param input - 筛选和分页参数
+ * 鑾峰彇鍐欎綔缁冧範鍘嗗彶锛堝甫鍒嗛〉鍜岀粺璁★級
+ * @param input - 绛涢€夊拰鍒嗛〉鍙傛暟
  * @returns ActionResult<WritingHistoryResult>
  */
 export async function getWritingHistoryAction(
   input: GetWritingHistoryInput,
 ): Promise<ActionResult<WritingHistoryResult>> {
   try {
-    // 1. 鉴权：获取当前登录用户
+    // 1. 閴存潈锛氳幏鍙栧綋鍓嶇櫥褰曠敤鎴?
     const user = await getCurrentUser();
 
     if (!user) {
       return { success: false, error: "Unauthorized: Please login first" };
     }
 
-    // 2. zod 校验
+    // 2. zod 鏍￠獙
     const parsed = getWritingHistorySchema.safeParse(input);
     if (!parsed.success) {
       return { success: false, error: getFirstError(parsed.error) };
     }
 
-    // 3. 使用从 Session 中获取的真实 userId
+    // 3. 浣跨敤浠?Session 涓幏鍙栫殑鐪熷疄 userId
     const result = await writingService.getWritingHistory(
       user.userId,
       parsed.data,
@@ -76,11 +73,11 @@ export async function getWritingHistoryAction(
   }
 }
 
-// ==================== 创建写作练习 ====================
+// ==================== 鍒涘缓鍐欎綔缁冧範 ====================
 
 /**
- * 创建写作练习
- * @param input - 创建参数
+ * 鍒涘缓鍐欎綔缁冧範
+ * @param input - 鍒涘缓鍙傛暟
  * @returns ActionResult<WritingExerciseDetail>
  */
 export async function createWritingExerciseAction(
@@ -91,20 +88,20 @@ export async function createWritingExerciseAction(
   }>
 > {
   try {
-    // 1. 鉴权：获取当前登录用户
+    // 1. 閴存潈锛氳幏鍙栧綋鍓嶇櫥褰曠敤鎴?
     const user = await getCurrentUser();
 
     if (!user) {
       return { success: false, error: "Unauthorized: Please login first" };
     }
 
-    // 2. zod 校验
+    // 2. zod 鏍￠獙
     const parsed = createWritingExerciseSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false, error: getFirstError(parsed.error) };
     }
 
-    // 3.调用service层
+    // 3.璋冪敤service灞?
     const result = await writingService.createWritingExercise(
       user.userId,
       parsed.data,
@@ -122,11 +119,11 @@ export async function createWritingExerciseAction(
   }
 }
 
-// ==================== 获取写作练习详情 ====================
+// ==================== 鑾峰彇鍐欎綔缁冧範璇︽儏 ====================
 
 /**
- * 获取写作练习详情
- * @param input - 练习 ID
+ * 鑾峰彇鍐欎綔缁冧範璇︽儏
+ * @param input - 缁冧範 ID
  * @returns ActionResult<WritingExerciseDetail>
  */
 export async function getWritingExerciseAction(
@@ -137,20 +134,20 @@ export async function getWritingExerciseAction(
   }>
 > {
   try {
-    // 1. 鉴权：获取当前登录用户
+    // 1. 閴存潈锛氳幏鍙栧綋鍓嶇櫥褰曠敤鎴?
     const user = await getCurrentUser();
 
     if (!user) {
       return { success: false, error: "Unauthorized: Please login first" };
     }
 
-    // 2. zod 校验
+    // 2. zod 鏍￠獙
     const parsed = getWritingExerciseSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false, error: getFirstError(parsed.error) };
     }
 
-    // 3. 使用从 Session 中获取的真实 userId
+    // 3. 浣跨敤浠?Session 涓幏鍙栫殑鐪熷疄 userId
     const result = await writingService.getWritingExercise(
       user.userId,
       parsed.data,
@@ -167,31 +164,31 @@ export async function getWritingExerciseAction(
   }
 }
 
-// ==================== 删除写作练习 ====================
+// ==================== 鍒犻櫎鍐欎綔缁冧範 ====================
 
 /**
- * 删除写作练习
- * @param input - 练习 ID
+ * 鍒犻櫎鍐欎綔缁冧範
+ * @param input - 缁冧範 ID
  * @returns ActionResult<{ id: string }>
  */
 export async function deleteWritingExerciseAction(
   input: DeleteWritingExerciseInput,
 ): Promise<ActionResult<{ id: string }>> {
   try {
-    // 1. 鉴权：获取当前登录用户
+    // 1. 閴存潈锛氳幏鍙栧綋鍓嶇櫥褰曠敤鎴?
     const user = await getCurrentUser();
 
     if (!user) {
       return { success: false, error: "Unauthorized: Please login first" };
     }
 
-    // 2. zod 校验
+    // 2. zod 鏍￠獙
     const parsed = deleteWritingExerciseSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false, error: getFirstError(parsed.error) };
     }
 
-    // 3. 使用从 Session 中获取的真实 userId
+    // 3. 浣跨敤浠?Session 涓幏鍙栫殑鐪熷疄 userId
     const result = await writingService.deleteWritingExercise(
       user.userId,
       parsed.data,
@@ -208,31 +205,31 @@ export async function deleteWritingExerciseAction(
   }
 }
 
-// ==================== 获取草稿 ====================
+// ==================== 鑾峰彇鑽夌 ====================
 
 /**
- * 获取写作草稿
- * @param input - 练习 ID
+ * 鑾峰彇鍐欎綔鑽夌
+ * @param input - 缁冧範 ID
  * @returns ActionResult<DraftData>
  */
 export async function getDraftAction(
   input: GetDraftInput,
 ): Promise<ActionResult<{ draft: DraftData }>> {
   try {
-    // 1. 鉴权：获取当前登录用户
+    // 1. 閴存潈锛氳幏鍙栧綋鍓嶇櫥褰曠敤鎴?
     const user = await getCurrentUser();
 
     if (!user) {
       return { success: false, error: "Unauthorized: Please login first" };
     }
 
-    // 2. zod 校验
+    // 2. zod 鏍￠獙
     const parsed = getDraftSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false, error: getFirstError(parsed.error) };
     }
 
-    // 3. 使用从 Session 中获取的真实 userId
+    // 3. 浣跨敤浠?Session 涓幏鍙栫殑鐪熷疄 userId
     const result = await writingService.getDraft(user.userId, parsed.data);
     return { success: true, data: result };
   } catch (error) {
@@ -243,31 +240,31 @@ export async function getDraftAction(
   }
 }
 
-// ==================== 保存草稿 ====================
+// ==================== 淇濆瓨鑽夌 ====================
 
 /**
- * 保存写作草稿
- * @param input - 草稿数据
+ * 淇濆瓨鍐欎綔鑽夌
+ * @param input - 鑽夌鏁版嵁
  * @returns ActionResult<DraftData>
  */
 export async function saveDraftAction(
   input: SaveDraftInput,
 ): Promise<ActionResult<{ draft: DraftData }>> {
   try {
-    // 1. 鉴权：获取当前登录用户
+    // 1. 閴存潈锛氳幏鍙栧綋鍓嶇櫥褰曠敤鎴?
     const user = await getCurrentUser();
 
     if (!user) {
       return { success: false, error: "Unauthorized: Please login first" };
     }
 
-    // 2. zod 校验
+    // 2. zod 鏍￠獙
     const parsed = saveDraftSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false, error: getFirstError(parsed.error) };
     }
 
-    // 3. 使用从 Session 中获取的真实 userId
+    // 3. 浣跨敤浠?Session 涓幏鍙栫殑鐪熷疄 userId
     const result = await writingService.saveDraft(user.userId, parsed.data);
 
     return { success: true, data: result };
@@ -310,10 +307,8 @@ export async function renameWritingExerciseAction(
   }
 }
 
-/**
- * @deprecated Use POST /api/writing/submit instead.
- * Kept for backward compatibility with test page.
- */
+// Deprecated: use POST /api/writing/submit instead.
+// Kept for backward compatibility with the test page.
 export async function submitWritingAction(
   input: SubmitWritingInput,
 ): Promise<ActionResult<{ result: SubmitWritingResult }>> {
@@ -329,51 +324,9 @@ export async function submitWritingAction(
       return { success: false, error: getFirstError(parsed.error) };
     }
 
-    const { exerciseId, scenarioType, prompt, content } = parsed.data;
-
-    // 获取 scenario description
-    const exercise = await writingService.findExerciseById(
-      exerciseId,
-      user.userId,
-    );
-    if (!exercise) {
-      return { success: false, error: "Writing exercise not found" };
-    }
-
-    const scenario = exercise.scenarioId
-      ? await prisma.scenario.findUnique({ where: { id: exercise.scenarioId } })
-      : null;
-
-    // 调用 AI 批改
-    const processingStartTime = Date.now();
-    const result = await assessWriting({
-      scenarioType,
-      prompt,
-      content,
-      wordCount: content.trim().split(/\s+/).length,
-      description: scenario?.description,
-    });
-
-    if (!result.ok) {
-      return { success: false, error: `AI grading failed: ${result.error}` };
-    }
-
-    const reviewParsed = writingReviewResultSchema.safeParse(result.data);
-    if (!reviewParsed.success) {
-      return {
-        success: false,
-        error: `AI response format error: ${reviewParsed.error}`,
-      };
-    }
-
-    const actualWaitTimeMs = Date.now() - processingStartTime;
-
-    // 持久化批改结果
-    const saveResult = await writingService.saveWritingReview(
+    const saveResult = await writingService.submitWritingForReview(
       user.userId,
       parsed.data,
-      reviewParsed.data,
-      actualWaitTimeMs,
     );
 
     return { success: true, data: saveResult };
@@ -386,31 +339,31 @@ export async function submitWritingAction(
   }
 }
 
-// ==================== 获取批改结果 ====================
+// ==================== 鑾峰彇鎵规敼缁撴灉 ====================
 
 /**
- * 获取 AI 批改结果
- * @param input - 练习 ID
+ * 鑾峰彇 AI 鎵规敼缁撴灉
+ * @param input - 缁冧範 ID
  * @returns ActionResult<WritingResult>
  */
 export async function getWritingResultAction(
   input: GetWritingExerciseInput,
 ): Promise<ActionResult<WritingResult>> {
   try {
-    // 1. 鉴权：获取当前登录用户
+    // 1. 閴存潈锛氳幏鍙栧綋鍓嶇櫥褰曠敤鎴?
     const user = await getCurrentUser();
 
     if (!user) {
       return { success: false, error: "Unauthorized: Please login first" };
     }
 
-    // 2. zod 校验
+    // 2. zod 鏍￠獙
     const parsed = getWritingExerciseSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false, error: getFirstError(parsed.error) };
     }
 
-    // 3. 使用从 Session 中获取的真实 userId
+    // 3. 浣跨敤浠?Session 涓幏鍙栫殑鐪熷疄 userId
     const result = await writingService.getWritingResult(
       user.userId,
       parsed.data,
@@ -425,11 +378,11 @@ export async function getWritingResultAction(
   }
 }
 
-// ==================== 获取改进建议 ====================
+// ==================== 鑾峰彇鏀硅繘寤鸿 ====================
 
 /**
- * 获取批改生成的改进建议与参考范文
- * @param input - 练习 ID
+ * 鑾峰彇鎵规敼鐢熸垚鐨勬敼杩涘缓璁笌鍙傝€冭寖鏂?
+ * @param input - 缁冧範 ID
  * @returns ActionResult<WritingSuggestions>
  */
 /* export async function getWritingSuggestionsAction(
@@ -438,20 +391,20 @@ export async function getWritingResultAction(
     ActionResult<Awaited<ReturnType<typeof writingService.getWritingSuggestions>>>
 > {
     try {
-        // 1. 鉴权：获取当前登录用户
+        // 1. 閴存潈锛氳幏鍙栧綋鍓嶇櫥褰曠敤鎴?
         const user = await getCurrentUser();
         
         if (!user) {
             return { success: false, error: "Unauthorized: Please login first" };
         }
 
-        // 2. zod 校验
+        // 2. zod 鏍￠獙
         const parsed = getWritingExerciseSchema.safeParse(input);
         if (!parsed.success) {
             return { success: false, error: getFirstError(parsed.error) };
         }
 
-        // 3. 使用从 Session 中获取的真实 userId
+        // 3. 浣跨敤浠?Session 涓幏鍙栫殑鐪熷疄 userId
         const result = await writingService.getWritingSuggestions(user.userId, parsed.data.exerciseId);
         return { success: true, data: result };
     } catch (error) {

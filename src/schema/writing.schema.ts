@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { writingScenarioTypeEnum, writingExerciseStatusEnum } from "./enums";
 import { idSchema, paginationSchema } from "./shared.schema";
-import { use } from "react";
 
 // ==================== 写作练习 ====================
 

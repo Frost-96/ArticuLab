@@ -98,6 +98,29 @@ export function DashboardView({ data }: DashboardViewProps) {
       iconClassName: "bg-emerald-100 text-emerald-600",
     },
   ];
+  const quickActions = [
+    {
+      label: "Writing",
+      description: "Draft and review essays",
+      href: "/writing",
+      icon: PenLine,
+      className: "bg-sky-100 text-sky-700",
+    },
+    {
+      label: "Speaking",
+      description: "Practice live scenarios",
+      href: "/speaking",
+      icon: Mic,
+      className: "bg-blue-100 text-blue-700",
+    },
+    {
+      label: "Coach",
+      description: "Ask for focused feedback",
+      href: "/coach",
+      icon: MessageSquare,
+      className: "bg-emerald-100 text-emerald-700",
+    },
+  ];
 
   return (
     <div className="app-shell-page">
@@ -127,19 +150,70 @@ export function DashboardView({ data }: DashboardViewProps) {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
               <Calendar className="size-4 text-slate-500" />
               Last 8 weeks
             </div>
-            <Button asChild className="bg-sky-600 hover:bg-sky-700">
-              <Link href="/writing">
-                Start Learning
-                <ArrowRight className="ml-2 size-4" />
-              </Link>
-            </Button>
+            {quickActions.map((action) => (
+              <Button key={action.href} variant="outline" asChild>
+                <Link href={action.href}>
+                  <action.icon className="mr-2 size-4" />
+                  {action.label}
+                </Link>
+              </Button>
+            ))}
           </div>
         </div>
+
+        {data.continueItems.length > 0 ? (
+          <Card className="bg-white shadow-sm">
+            <CardHeader>
+              <CardTitle>Continue where you left off</CardTitle>
+              <CardDescription>
+                Jump back into unfinished work or your latest coach thread.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-3">
+              {data.continueItems.map((item) => {
+                const ItemIcon = activityIconMap[item.type];
+                const colorClass = activityColorMap[item.type];
+
+                return (
+                  <Link
+                    key={`${item.type}-${item.id}`}
+                    href={item.href}
+                    className="group rounded-md border border-slate-200 p-4 transition-colors hover:border-sky-200 hover:bg-slate-50"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div
+                        className={cn(
+                          "flex size-9 shrink-0 items-center justify-center rounded-md",
+                          colorClass,
+                        )}
+                      >
+                        <ItemIcon className="size-4" />
+                      </div>
+                      <ArrowRight className="mt-1 size-4 text-slate-300 transition-colors group-hover:text-sky-600" />
+                    </div>
+                    <p className="mt-4 truncate text-sm font-semibold text-slate-900">
+                      {item.title}
+                    </p>
+                    <p className="mt-1 truncate text-xs text-slate-500">
+                      {item.subtitle}
+                    </p>
+                    <div className="mt-3 flex items-center justify-between gap-2 text-xs">
+                      <span className="font-medium text-slate-600">
+                        {item.statusLabel}
+                      </span>
+                      <span className="text-slate-400">{item.timeLabel}</span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </CardContent>
+          </Card>
+        ) : null}
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {statsCards.map((card) => (

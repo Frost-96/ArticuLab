@@ -50,6 +50,10 @@ export function SpeakingPracticePage({
   const reviewedCount = history.exercises.filter(
     (exercise) => exercise.fluencyScore !== null,
   ).length;
+  const continueExercises = [
+    ...history.exercises.filter((exercise) => exercise.status === "in_progress"),
+    ...history.exercises.filter((exercise) => exercise.status === "reviewed"),
+  ].slice(0, 3);
 
   async function handleStart(scenarioId: string) {
     setPendingId(scenarioId);
@@ -120,6 +124,54 @@ export function SpeakingPracticePage({
           <Card className="border-red-200 bg-red-50 shadow-sm">
             <CardContent className="p-4 text-sm text-red-700">
               {error}
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {continueExercises.length > 0 ? (
+          <Card className="border-slate-200 bg-white shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base">Continue practice</CardTitle>
+              <CardDescription>
+                Resume active sessions or revisit recent reviewed practice.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-3">
+              {continueExercises.map((exercise) => {
+                const isActive = exercise.status === "in_progress";
+
+                return (
+                  <button
+                    key={exercise.id}
+                    type="button"
+                    onClick={() => router.push(`/speaking/${exercise.id}`)}
+                    className="group rounded-lg border border-slate-200 bg-white p-4 text-left transition-colors hover:border-blue-200 hover:bg-slate-50"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <Badge
+                        variant={isActive ? "default" : "outline"}
+                        className={
+                          isActive
+                            ? "bg-blue-600 text-white"
+                            : "border-blue-200 bg-blue-50 text-blue-700"
+                        }
+                      >
+                        {isActive ? "In progress" : "Reviewed"}
+                      </Badge>
+                      <ArrowRight className="size-4 text-slate-300 transition-colors group-hover:text-blue-600" />
+                    </div>
+                    <p className="mt-3 line-clamp-2 text-sm font-semibold leading-5 text-slate-900">
+                      {exercise.title}
+                    </p>
+                    <p className="mt-2 truncate text-xs text-slate-500">
+                      {exercise.totalTurns} turns
+                      {exercise.fluencyScore !== null
+                        ? ` | ${exercise.fluencyScore.toFixed(1)} fluency`
+                        : ""}
+                    </p>
+                  </button>
+                );
+              })}
             </CardContent>
           </Card>
         ) : null}

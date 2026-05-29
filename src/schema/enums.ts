@@ -70,7 +70,13 @@ export const messageRoleEnum = z.enum(["user", "assistant"]);
 export const scenarioCategoryEnum = z.enum(["writing", "speaking"]);
 
 // 写作练习状态
-export const writingExerciseStatusEnum = z.enum(["draft", "completed"]);
+export const writingExerciseStatusEnum = z.enum([
+  "draft",
+  "submitted",
+  "reviewing",
+  "reviewed",
+  "failed",
+]);
 
 // 口语练习状态
 export const speakingExerciseStatusEnum = z.enum([

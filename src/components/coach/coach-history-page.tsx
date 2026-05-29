@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
+  ArrowRight,
   Loader2,
   MessageSquarePlus,
   Mic,
@@ -202,6 +203,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
   const audioChunksRef = useRef<Blob[]>([]);
   const streamAbortRef = useRef<AbortController | null>(null);
   const activeConversationId = data.activeConversation?.id ?? null;
+  const latestConversation = data.conversations[0] ?? null;
   const [draft, setDraft] = useState("");
   const [isComposing, setIsComposing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -530,6 +532,37 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                       </button>
                     ))}
                   </div>
+                  {latestConversation ? (
+                    <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          router.push(`/coach?id=${latestConversation.id}`)
+                        }
+                        className="group rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-left text-sm leading-5 text-teal-800 transition hover:bg-teal-100"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-semibold">
+                            Continue latest chat
+                          </span>
+                          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                        </div>
+                        <p className="mt-1 truncate text-xs text-teal-700/80">
+                          {latestConversation.title}
+                        </p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => router.push("/coach")}
+                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm leading-5 text-slate-700 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800"
+                      >
+                        <span className="font-semibold">Start new chat</span>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Open a clean coach thread
+                        </p>
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             )}

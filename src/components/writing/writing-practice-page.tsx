@@ -74,6 +74,9 @@ export function WritingPracticePage({
   const examScenarios = scenarios.filter(
     (scenario) => scenario.category !== "daily",
   );
+  const continueExercises = history.exercises
+    .filter((exercise) => exercise.status !== "reviewed")
+    .slice(0, 3);
 
   async function startExercise(input: {
     key: string;
@@ -170,6 +173,47 @@ export function WritingPracticePage({
         {error ? (
           <Card className="border-red-200 bg-red-50 text-red-700 shadow-sm">
             <CardContent className="p-4 text-sm">{error}</CardContent>
+          </Card>
+        ) : null}
+
+        {continueExercises.length > 0 ? (
+          <Card className="border-slate-200 bg-white shadow-sm">
+            <CardContent className="p-6">
+              <SectionHeader
+                icon={<FileText className="h-4 w-4" />}
+                title="Continue writing"
+                description="Resume recent drafts and submit them when you are ready for review."
+              />
+              <div className="grid gap-3 md:grid-cols-3">
+                {continueExercises.map((exercise) => (
+                  <button
+                    key={exercise.id}
+                    type="button"
+                    onClick={() => router.push(`/writing/${exercise.id}`)}
+                    className="group rounded-lg border border-slate-200 bg-white p-4 text-left transition-colors hover:border-sky-200 hover:bg-slate-50"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <Badge
+                        variant="outline"
+                        className="border-sky-200 bg-sky-50 text-sky-700"
+                      >
+                        {scenarioTypeLabelMap[exercise.scenarioType]}
+                      </Badge>
+                      <ArrowRight className="h-4 w-4 text-slate-300 transition-colors group-hover:text-sky-600" />
+                    </div>
+                    <p className="mt-3 line-clamp-2 text-sm font-semibold leading-5 text-slate-900">
+                      {exercise.prompt}
+                    </p>
+                    <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
+                      <span>{exercise.wordCount} words</span>
+                      <span className="font-medium capitalize">
+                        {exercise.status.replace("_", " ")}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
           </Card>
         ) : null}
 
