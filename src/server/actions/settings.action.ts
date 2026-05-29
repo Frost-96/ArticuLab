@@ -89,9 +89,9 @@ export async function saveLocalePreference(
     };
   }
 
-  await setLocaleCookie(parsed.data);
-
   const currentUser = await getCurrentUser();
+
+  await setLocaleCookie(parsed.data);
 
   if (!currentUser) {
     return {
@@ -105,19 +105,15 @@ export async function saveLocalePreference(
 
   try {
     await updateSettingsLocale(currentUser.userId, parsed.data);
-
-    return {
-      success: true,
-      data: {
-        message: "Language updated",
-        locale: parsed.data,
-      },
-    };
   } catch (error) {
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to update language",
-    };
+    console.warn("Failed to persist locale preference", error);
   }
+
+  return {
+    success: true,
+    data: {
+      message: "Language updated",
+      locale: parsed.data,
+    },
+  };
 }

@@ -1,9 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition, type FormEvent, type ReactNode } from "react";
+import {
+  useState,
+  useTransition,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Bell,
   CreditCard,
@@ -34,6 +39,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { setLocaleCookieOnClient } from "@/i18n/client";
 import toast, { Toaster } from "react-hot-toast";
 
 type SettingsViewProps = {
@@ -82,6 +88,7 @@ const selectClassName =
 
 export function SettingsView({ data }: SettingsViewProps) {
   const router = useRouter();
+  const activeLocale = useLocale() as AppLocale;
   const t = useTranslations("settings");
   const nav = useTranslations("nav");
   const common = useTranslations("common");
@@ -157,9 +164,11 @@ export function SettingsView({ data }: SettingsViewProps) {
   }
 
   function handleLocaleChange(locale: AppLocale) {
-    if (locale === data.account.preferredLocale) {
+    if (locale === activeLocale) {
       return;
     }
+
+    setLocaleCookieOnClient(locale);
 
     startLocaleTransition(() => {
       void submitLocaleUpdate(locale);
@@ -502,7 +511,7 @@ export function SettingsView({ data }: SettingsViewProps) {
                           onClick={() => handleLocaleChange(locale)}
                           className={cn(
                             "rounded px-3 py-1.5 text-sm font-medium transition-colors",
-                            data.account.preferredLocale === locale
+                            activeLocale === locale
                               ? "bg-white text-slate-950 shadow-sm"
                               : "text-slate-500 hover:text-slate-900",
                           )}

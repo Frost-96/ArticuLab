@@ -10,8 +10,8 @@ import {
 export default getRequestConfig(async () => {
   const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
   const locale =
-    parseAppLocale(headerStore.get("x-articulab-locale")) ??
     parseAppLocale(cookieStore.get(localeCookieName)?.value) ??
+    parseAppLocale(headerStore.get("x-articulab-locale")) ??
     resolveLocaleFromAcceptLanguage(headerStore.get("accept-language")) ??
     defaultLocale;
 

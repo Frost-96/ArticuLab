@@ -28,6 +28,7 @@ import { logOut } from "@/server/actions/auth.action";
 import { saveLocalePreference } from "@/server/actions/settings.action";
 import toast, { Toaster } from "react-hot-toast";
 import type { AppLocale } from "@/i18n/locales";
+import { setLocaleCookieOnClient } from "@/i18n/client";
 
 type UserNavProps = {
   userSummary: CurrentUserDisplaySummary | null;
@@ -54,6 +55,8 @@ export function UserNav({ userSummary }: UserNavProps) {
   }
 
   function handleSwitchLocale() {
+    setLocaleCookieOnClient(nextLocale);
+
     startLocaleTransition(() => {
       void (async () => {
         const result = await saveLocalePreference(nextLocale);
