@@ -62,7 +62,7 @@ async function llmEssayDetection(message: string): Promise<boolean> {
     const result = completion.choices[0]?.message?.content
       ?.trim()
       .toUpperCase();
-    return result === "ESSAY";
+    return result?.startsWith("ESSAY") ?? false;
   } catch {
     return false;
   }
