@@ -41,19 +41,23 @@ type CoachApiMessage = {
   createdAt: string;
 };
 
-type CoachChatResponse =
+type CoachStreamEvent =
+  | { type: "text_delta"; data: { delta: string } }
   | {
-      success: true;
+      type: "message_saved";
       data: {
         conversationId: string;
         userMessage: CoachApiMessage;
         assistantMessage: CoachApiMessage;
       };
     }
-  | {
-      success: false;
-      error: string;
-    };
+  | { type: "done"; data: { fullText: string } }
+  | { type: "error"; data: { error: string } };
+
+type ParsedSSEEvent = {
+  type: string;
+  data: unknown;
+};
 
 type SpeechToTextResponse =
   | { success: true; data: { text: string } }
@@ -68,6 +72,37 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function parseSSEEvent(raw: string): ParsedSSEEvent | null {
+  let type = "";
+  let data = "";
+
+  for (const line of raw.split("\n")) {
+    if (line.startsWith(":")) continue;
+    if (line.startsWith("event: ")) {
+      type = line.slice(7);
+      continue;
+    }
+    if (line.startsWith("data: ")) {
+      data += (data ? "\n" : "") + line.slice(6);
+    }
+  }
+
+  if (!type || !data) return null;
+
+  return {
+    type,
+    data: JSON.parse(data),
+  };
+}
+
+async function parseErrorResponse(response: Response) {
+  try {
+    const result = (await response.json()) as { error?: string };
+    return result.error || "AI Coach service is temporarily unavailable.";
+  } catch {
+    return "AI Coach service is temporarily unavailable.";
+  }
+}
 function createAudioRecorder(stream: MediaStream) {
   const preferredMimeType = "audio/webm;codecs=opus";
 
@@ -140,24 +175,21 @@ function CoachMessageBubble({ message }: { message: LocalCoachMessage }) {
         ) : (
           <p className="whitespace-pre-wrap">{message.content}</p>
         )}
-        <div
-          className={cn(
-            "mt-2 flex items-center gap-2 text-xs text-slate-400",
-            !isAssistant && "justify-end",
-          )}
-        >
-          {message.pending ? (
-            <>
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Thinking
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="h-3 w-3" />
-              {formatDate(message.createdAt)}
-            </>
-          )}
-        </div>
+        {isAssistant ? (
+          <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
+            {message.pending ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Thinking
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-3 w-3" />
+                {formatDate(message.createdAt)}
+              </>
+            )}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -168,6 +200,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const streamAbortRef = useRef<AbortController | null>(null);
   const activeConversationId = data.activeConversation?.id ?? null;
   const [draft, setDraft] = useState("");
   const [isComposing, setIsComposing] = useState(false);
@@ -199,6 +232,12 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
       block: "end",
     });
   }, [latestMessageId]);
+
+  useEffect(() => {
+    return () => {
+      streamAbortRef.current?.abort();
+    };
+  }, []);
 
   const handleTranscribe = useCallback(
     async (audioBlob: Blob) => {
@@ -309,9 +348,12 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
       return;
     }
 
+    const controller = new AbortController();
     const now = new Date().toISOString();
     const localUserId = `local-user-${now}`;
     const localAssistantId = `local-ai-${now}`;
+    let streamError: string | null = null;
+
     const userMessage: LocalCoachMessage = {
       id: localUserId,
       role: "user",
@@ -322,10 +364,13 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
     const assistantMessage: LocalCoachMessage = {
       id: localAssistantId,
       role: "assistant",
-      content: "Thinking...",
+      content: "",
       createdAt: now,
       pending: true,
     };
+
+    streamAbortRef.current?.abort();
+    streamAbortRef.current = controller;
 
     setDraft("");
     setErrorMessage(null);
@@ -333,7 +378,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
     setLocalMessages((current) => [...current, userMessage, assistantMessage]);
 
     try {
-      const response = await fetch("/api/coach/chat", {
+      const response = await fetch("/api/coach/chat-stream", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -342,40 +387,87 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
           conversationId: activeConversationId ?? undefined,
           message: content,
         }),
+        signal: controller.signal,
       });
-      let result: CoachChatResponse;
-      try {
-        result = (await response.json()) as CoachChatResponse;
-      } catch {
-        result = {
-          success: false,
-          error: response.ok
-            ? "AI Coach could not respond right now. Please try again."
-            : "AI Coach service is temporarily unavailable. Please try again.",
-        };
+
+      if (!response.ok || !response.body) {
+        throw new Error(await parseErrorResponse(response));
       }
 
-      if (!result.success) {
-        throw new Error(result.error);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let isDone = false;
+      let resolvedConversationId = activeConversationId;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() ?? "";
+
+        for (const part of parts) {
+          if (!part.trim()) continue;
+
+          const parsed = parseSSEEvent(part) as CoachStreamEvent | null;
+          if (!parsed) continue;
+
+          switch (parsed.type) {
+            case "text_delta":
+              setLocalMessages((current) =>
+                current.map((message) =>
+                  message.id === localAssistantId
+                    ? {
+                        ...message,
+                        content: message.content + parsed.data.delta,
+                      }
+                    : message,
+                ),
+              );
+              break;
+            case "message_saved":
+              resolvedConversationId = parsed.data.conversationId;
+              setLocalMessages((current) =>
+                current.map((message) => {
+                  if (message.id === localUserId) {
+                    return { ...parsed.data.userMessage, pending: false };
+                  }
+                  if (message.id === localAssistantId) {
+                    return { ...parsed.data.assistantMessage, pending: false };
+                  }
+                  return message;
+                }),
+              );
+              break;
+            case "done":
+              isDone = true;
+              setIsComposing(false);
+              break;
+            case "error":
+              streamError = parsed.data.error;
+              setErrorMessage(parsed.data.error);
+              break;
+          }
+        }
       }
 
-      setLocalMessages((current) =>
-        current.map((message) => {
-          if (message.id === localUserId) {
-            return { ...result.data.userMessage, pending: false };
-          }
-          if (message.id === localAssistantId) {
-            return { ...result.data.assistantMessage, pending: false };
-          }
-          return message;
-        }),
-      );
+      if (streamError) {
+        throw new Error(streamError);
+      }
 
-      if (!activeConversationId) {
-        router.replace(`/coach?id=${result.data.conversationId}`);
+      if (!isDone) {
+        throw new Error("Stream ended before the response was complete.");
+      }
+
+      if (!activeConversationId && resolvedConversationId) {
+        router.replace(`/coach?id=${resolvedConversationId}`);
       }
       router.refresh();
     } catch (error) {
+      if (controller.signal.aborted) return;
+
       const message =
         error instanceof Error ? error.message : "Failed to send message";
       setErrorMessage(message);
@@ -386,6 +478,9 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
         ),
       );
     } finally {
+      if (streamAbortRef.current === controller) {
+        streamAbortRef.current = null;
+      }
       setIsComposing(false);
     }
   }

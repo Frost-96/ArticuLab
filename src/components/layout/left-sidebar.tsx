@@ -272,7 +272,7 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
   }[type];
 
   const newLabel = {
-    coach: "View History",
+    coach: "New Conversation",
     writing: "New Essay",
     speaking: "New Practice",
   }[type];
