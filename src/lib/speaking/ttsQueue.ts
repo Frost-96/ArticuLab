@@ -73,7 +73,7 @@ export class TtsQueue {
     onAudio: OnAudioReady,
     format: TtsFormat = "mp3",
     maxQueueSize: number = 10,
-    timeoutMs: number = 10000,
+    timeoutMs: number = 15000,
     collectMetrics: boolean = false,
   ) {
     this.onAudio = onAudio;

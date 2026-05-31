@@ -25,15 +25,16 @@ export function getSttClient(): AsrClient | null {
     return globalForStt.sttClient;
   }
 
-  const secretId = process.env.TENCENT_STT_SECRET_ID?.trim();
-  const secretKey = process.env.TENCENT_STT_SECRET_KEY?.trim();
+  const secretId = process.env.TENCENT_STT_ONE_SENTENCE_SECRET_ID?.trim();
+  const secretKey = process.env.TENCENT_STT_ONE_SENTENCE_SECRET_KEY?.trim();
   if (!secretId || !secretKey) {
     console.warn("STT credentials missing");
     globalForStt.sttClient = null;
     return null;
   }
 
-  const region = process.env.TENCENT_STT_REGION?.trim() || "ap-guangzhou";
+  const region =
+    process.env.TENCENT_STT_ONE_SENTENCE_REGION?.trim() || "ap-guangzhou";
 
   try {
     globalForStt.sttClient = new tencentcloud.asr.v20190614.Client({
@@ -56,5 +57,14 @@ export function getSttClient(): AsrClient | null {
  * @returns 区域字符串
  */
 export function getSttRegion(): string {
-  return process.env.TENCENT_STT_REGION?.trim() || "ap-guangzhou";
+  return process.env.TENCENT_ONE_SENTENCE_STT_REGION?.trim() || "ap-guangzhou";
+}
+
+/**
+ * 获取腾讯云 STT AppID（录音文件识别极速版需要）
+ *
+ * @returns AppID 字符串，未配置时返回 null
+ */
+export function getSttAppId(): string | null {
+  return process.env.TENCENT_STT_FLASH_APP_ID?.trim() || null;
 }

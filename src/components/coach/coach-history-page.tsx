@@ -54,7 +54,8 @@ type CoachStreamEvent =
       };
     }
   | { type: "done"; data: { fullText: string } }
-  | { type: "error"; data: { error: string } };
+  | { type: "error"; data: { error: string } }
+  | { type: "essay_detected"; data: { message: string } };
 
 type ParsedSSEEvent = {
   type: string;
@@ -272,9 +273,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
         } catch {
           result = {
             success: false,
-            error: response.ok
-              ? t("speechFailed")
-              : t("speechUnavailable"),
+            error: response.ok ? t("speechFailed") : t("speechUnavailable"),
           };
         }
 
@@ -335,9 +334,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
       setIsRecording(true);
       setErrorMessage(null);
     } catch {
-      setErrorMessage(
-        t("micDenied"),
-      );
+      setErrorMessage(t("micDenied"));
     }
   }, [handleTranscribe, t]);
 
@@ -401,7 +398,9 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
       });
 
       if (!response.ok || !response.body) {
-        throw new Error(await parseErrorResponse(response, t("serviceUnavailable")));
+        throw new Error(
+          await parseErrorResponse(response, t("serviceUnavailable")),
+        );
       }
 
       const reader = response.body.getReader();
@@ -459,6 +458,14 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
               streamError = parsed.data.error;
               setErrorMessage(parsed.data.error);
               break;
+            case "essay_detected":
+              // 作文检测命中，移除本地助手消息并提示用户前往写作页面
+              setLocalMessages((current) =>
+                current.filter((item) => item.id !== localAssistantId),
+              );
+              streamError = parsed.data.message;
+              setErrorMessage(parsed.data.message);
+              break;
           }
         }
       }
@@ -478,8 +485,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
     } catch (error) {
       if (controller.signal.aborted) return;
 
-      const message =
-        error instanceof Error ? error.message : t("sendFailed");
+      const message = error instanceof Error ? error.message : t("sendFailed");
       setErrorMessage(message);
       setDraft(content);
       setLocalMessages((current) =>

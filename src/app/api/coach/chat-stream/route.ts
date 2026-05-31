@@ -3,7 +3,11 @@ import { getCurrentUser } from "@/lib/auth";
 import { getFirstError } from "@/lib/error";
 import { generateCoachResponseStream } from "@/lib/coach/aiCoach";
 import { chatMessageSchema } from "@/schema";
-import { createSSEResponse, encodeSSE, heartbeatSSE } from "@/lib/speaking/sseUtils";
+import {
+  createSSEResponse,
+  encodeSSE,
+  heartbeatSSE,
+} from "@/lib/speaking/sseUtils";
 import * as conversationService from "@/server/services/conversation.service";
 import type { MessageData } from "@/types/message/messageTypes";
 
@@ -217,6 +221,17 @@ export async function POST(request: NextRequest) {
             createdConversation,
           });
           shouldRollback = false;
+
+          // 作文检测命中：提示用户前往写作批改页面
+          if ("essayDetected" in coachResult) {
+            send("essay_detected", {
+              message:
+                "It looks like you submitted an essay. Please use the Writing Practice page for detailed feedback.",
+            });
+            send("done", { fullText: "" });
+            return;
+          }
+
           send("error", { error: getCoachFailureMessage(coachResult.error) });
           send("done", { fullText: "" });
           return;
@@ -251,7 +266,9 @@ export async function POST(request: NextRequest) {
             createdConversation,
           });
           shouldRollback = false;
-          send("error", { error: getCoachFailureMessage("Empty AI Coach response") });
+          send("error", {
+            error: getCoachFailureMessage("Empty AI Coach response"),
+          });
           send("done", { fullText: "" });
           return;
         }
@@ -283,7 +300,9 @@ export async function POST(request: NextRequest) {
           }
 
           const message =
-            error instanceof Error ? error.message : "Unknown coach stream error";
+            error instanceof Error
+              ? error.message
+              : "Unknown coach stream error";
           send("error", { error: getCoachFailureMessage(message) });
           send("done", { fullText });
         }

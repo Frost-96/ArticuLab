@@ -56,12 +56,13 @@ async function llmEssayDetection(message: string): Promise<boolean> {
         { role: "user", content: message },
       ],
       temperature: 0,
-      max_tokens: 10,
+      max_tokens: 500,
     });
 
     const result = completion.choices[0]?.message?.content
       ?.trim()
       .toUpperCase();
+    //console.log(`[EssayDetector] ${result}`);
     return result?.startsWith("ESSAY") ?? false;
   } catch {
     return false;
@@ -79,7 +80,7 @@ async function llmEssayDetection(message: string): Promise<boolean> {
  */
 export async function detectEssay(message: string): Promise<boolean> {
   const words = countWords(message);
-
+  //console.log(`[EssayDetector] ${words} words`);
   if (words < 30) return false;
   if (words < 80) return ruleBasedEssayDetection(message);
   return llmEssayDetection(message);

@@ -285,7 +285,7 @@ export async function POST(request: NextRequest) {
             );
           }
         },
-        { maxWords: 30, firstChunkTimeout: 800, laterChunkTimeout: 2500 },
+        { maxWords: 30, firstChunkTimeout: 8000, laterChunkTimeout: 25000 },
       );
 
       try {

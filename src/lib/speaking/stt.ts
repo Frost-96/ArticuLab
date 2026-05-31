@@ -7,6 +7,7 @@ import type {
 } from "tencentcloud-sdk-nodejs-asr/tencentcloud/services/asr/v20190614/asr_models";
 import { parseBuffer } from "music-metadata";
 import { getSttClient } from "./sttClient";
+import { flashSpeechToText } from "./sttFlash";
 
 /** STT 调用结果 */
 export type SttResult =
@@ -14,7 +15,9 @@ export type SttResult =
   | { ok: false; error: string };
 
 /** 音频校验结果 */
-type AudioValidationResult = { ok: true } | { ok: false; error: string };
+type AudioValidationResult =
+  | { ok: true; useFlash: boolean }
+  | { ok: false; error: string };
 
 /** 腾讯云支持的音频格式 */
 type SupportedVoiceFormat =
@@ -78,11 +81,20 @@ const MAX_RAW_AUDIO_SIZE = Math.floor((MAX_BASE64_SIZE * 3) / 4);
 /** 音频时长上限（60 秒） */
 const MAX_AUDIO_DURATION_S = 60;
 
+/** 录音文件识别极速版：音频大小上限（100MB） */
+const FLASH_MAX_AUDIO_SIZE = 100 * 1024 * 1024;
+
+/** 录音文件识别极速版：音频时长上限（2 小时 = 7200 秒） */
+const FLASH_MAX_AUDIO_DURATION_S = 7200;
+
 /**
- * 校验音频 Buffer 的大小和时长
- * - 空 Buffer 检查
- * - 大小 ≤ 2.25MB（腾讯云 Base64 后限制 3MB）
- * - 时长 ≤ 60s（使用 music-metadata 解析）
+ * 校验音频 Buffer 的大小和时长，并决定使用哪个 STT API
+ *
+ * 校验逻辑（优先级从高到低）：
+ * 1. 空文件 → 错误
+ * 2. 超过极速版上限（100MB / 2h）→ 错误
+ * 3. 超过一句话识别上限（2.25MB / 60s）→ 使用极速版（Flash API）
+ * 4. 未超限 → 使用一句话识别（SentenceRecognition）
  *
  * @param audioBuffer - 音频二进制数据
  * @param mimeType - 音频 MIME 类型，传递给 parseBuffer 辅助格式检测
@@ -91,25 +103,24 @@ async function validateAudioBuffer(
   audioBuffer: Buffer,
   mimeType: string,
 ): Promise<AudioValidationResult> {
+  // 1. 空文件检查
   if (audioBuffer.length === 0) {
     return { ok: false, error: "Audio file is empty" };
   }
-  if (audioBuffer.length > MAX_RAW_AUDIO_SIZE) {
-    return { ok: false, error: "Audio file too large (max 2.25MB)" };
+
+  // 2. 超过极速版大小上限 → 错误
+  if (audioBuffer.length > FLASH_MAX_AUDIO_SIZE) {
+    return { ok: false, error: "Audio file too large (max 100MB)" };
   }
 
+  // 3. 尝试解析时长
+  let duration: number | undefined;
   try {
     const metadata = await parseBuffer(audioBuffer, mimeType, {
-      duration: true, // 确保获取精确时长
-      skipCovers: true, // 不需要封面图片，跳过以提升性能
+      duration: true,
+      skipCovers: true,
     });
-    const duration = metadata.format.duration;
-    if (duration !== undefined && duration > MAX_AUDIO_DURATION_S) {
-      return {
-        ok: false,
-        error: `Audio too long (max ${MAX_AUDIO_DURATION_S}s)`,
-      };
-    }
+    duration = metadata.format.duration;
   } catch {
     // 解析失败不阻断流程（未知格式可能无法解析时长），仅记录警告
     console.warn(
@@ -117,7 +128,25 @@ async function validateAudioBuffer(
     );
   }
 
-  return { ok: true };
+  // 4. 超过极速版时长上限 → 错误
+  if (duration !== undefined && duration > FLASH_MAX_AUDIO_DURATION_S) {
+    return {
+      ok: false,
+      error: `Audio too long (max ${FLASH_MAX_AUDIO_DURATION_S / 3600}h)`,
+    };
+  }
+
+  // 5. 超过一句话识别限制（大小或时长）→ 使用极速版
+  const exceedsShortSize = audioBuffer.length > MAX_RAW_AUDIO_SIZE;
+  const exceedsShortDuration =
+    duration !== undefined && duration > MAX_AUDIO_DURATION_S;
+
+  if (exceedsShortSize || exceedsShortDuration) {
+    return { ok: true, useFlash: true };
+  }
+
+  // 6. 未超限 → 使用一句话识别
+  return { ok: true, useFlash: false };
 }
 
 /**
@@ -138,10 +167,15 @@ export async function speechToText(
     return { ok: false, error: "STT client not configured" };
   }
 
-  // 校验音频大小和时长
+  // 校验音频大小和时长，决定使用哪个 STT API
   const validation = await validateAudioBuffer(audioBuffer, mimeType);
   if (!validation.ok) {
     return validation;
+  }
+
+  // 长音频 → 录音文件识别极速版（同步 HTTPS POST）
+  if (validation.useFlash) {
+    return flashSpeechToText(audioBuffer, language, mimeType);
   }
 
   try {

@@ -90,9 +90,7 @@ export function DashboardView({ data }: DashboardViewProps) {
       label: t("currentStreak"),
       value: `${data.stats.consecutiveDays}`,
       detail:
-        data.stats.consecutiveDays > 0
-          ? t("streakActive")
-          : t("streakEmpty"),
+        data.stats.consecutiveDays > 0 ? t("streakActive") : t("streakEmpty"),
       icon: Flame,
       iconClassName: "bg-amber-100 text-amber-600",
     },
@@ -177,9 +175,7 @@ export function DashboardView({ data }: DashboardViewProps) {
           <Card className="bg-white shadow-sm">
             <CardHeader>
               <CardTitle>{t("continueTitle")}</CardTitle>
-              <CardDescription>
-                {t("continueDescription")}
-              </CardDescription>
+              <CardDescription>{t("continueDescription")}</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-3">
               {data.continueItems.map((item) => {
@@ -252,9 +248,7 @@ export function DashboardView({ data }: DashboardViewProps) {
           <Card className="bg-white shadow-sm">
             <CardHeader>
               <CardTitle>{t("skillBreakdown")}</CardTitle>
-              <CardDescription>
-                {t("skillDescription")}
-              </CardDescription>
+              <CardDescription>{t("skillDescription")}</CardDescription>
             </CardHeader>
             <CardContent>
               {data.emptyStates.hasFullRadarData ? (
@@ -297,9 +291,7 @@ export function DashboardView({ data }: DashboardViewProps) {
           <Card className="bg-white shadow-sm">
             <CardHeader>
               <CardTitle>{t("progressTrend")}</CardTitle>
-              <CardDescription>
-                {t("trendDescription")}
-              </CardDescription>
+              <CardDescription>{t("trendDescription")}</CardDescription>
             </CardHeader>
             <CardContent>
               {data.emptyStates.hasTrendData ? (
@@ -362,9 +354,7 @@ export function DashboardView({ data }: DashboardViewProps) {
                 <Target className="size-4 text-amber-600" />
                 {t("areas")}
               </CardTitle>
-              <CardDescription>
-                {t("areasDescription")}
-              </CardDescription>
+              <CardDescription>{t("areasDescription")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {data.emptyStates.hasWeaknessData ? (
@@ -417,9 +407,7 @@ export function DashboardView({ data }: DashboardViewProps) {
                 <Clock className="size-4 text-slate-600" />
                 {t("recentActivity")}
               </CardTitle>
-              <CardDescription>
-                {t("recentDescription")}
-              </CardDescription>
+              <CardDescription>{t("recentDescription")}</CardDescription>
             </CardHeader>
             <CardContent>
               {data.recentActivities.length > 0 ? (

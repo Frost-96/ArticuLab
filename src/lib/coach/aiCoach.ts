@@ -2,7 +2,7 @@ import type { MessageData } from "@/types/message/messageTypes";
 import type { ChatCompletionChunk } from "openai/resources/chat/completions";
 import { Stream } from "openai/streaming";
 import { getCoachLlmClient, getCoachLlmModel } from "./coachLlmClient";
-
+import { detectEssay } from "./essayDetector";
 
 type CoachChatMessage = {
   role: "system" | "user" | "assistant";
@@ -19,7 +19,8 @@ export type CoachStreamResult =
       stream: Stream<ChatCompletionChunk>;
       model: string;
     }
-  | { ok: false; error: string };
+  | { ok: false; error: string }
+  | { ok: false; essayDetected: true };
 
 const COACH_SYSTEM_PROMPT = `You are an English coach for language learners.
 
@@ -62,7 +63,7 @@ export async function generateCoachResponse(
       model: getCoachLlmModel(),
       messages: buildCoachMessages(conversationHistory),
       temperature: 0.4,
-      max_tokens: 220,
+      max_tokens: 1220,
       presence_penalty: 0.2,
       frequency_penalty: 0.2,
     });
@@ -83,6 +84,13 @@ export async function generateCoachResponseStream(
   conversationHistory: MessageData[],
   signal: AbortSignal,
 ): Promise<CoachStreamResult> {
+  // 检测最后一条用户消息是否为作文，如果是则跳过 LLM 调用
+  const lastUserMessage = [...conversationHistory]
+    .reverse()
+    .find((m) => m.role === "user");
+  if (lastUserMessage && (await detectEssay(lastUserMessage.content))) {
+    return { ok: false, essayDetected: true };
+  }
   const client = getCoachLlmClient();
   if (!client) {
     return {
@@ -100,7 +108,7 @@ export async function generateCoachResponseStream(
         messages: buildCoachMessages(conversationHistory),
         stream: true,
         temperature: 0.4,
-        max_tokens: 220,
+        max_tokens: 2200,
         presence_penalty: 0.2,
         frequency_penalty: 0.2,
       },
