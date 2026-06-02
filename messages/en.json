@@ -2,11 +2,18 @@
   "common": {
     "appName": "ArticuLab",
     "english": "English",
-    "chinese": "中文",
+    "chinese": "Chinese",
     "saving": "Saving...",
+    "switching": "Switching...",
     "saveChanges": "Save changes",
     "reset": "Reset",
     "notSet": "Not set",
+    "loading": "Loading...",
+    "loadingPage": "Loading page...",
+    "signingIn": "Signing in...",
+    "submitting": "Submitting...",
+    "creating": "Creating...",
+    "sending": "Sending...",
     "free": "Free",
     "pro": "Pro",
     "comingSoon": "Coming soon",
@@ -15,6 +22,11 @@
     "today": "Today",
     "earlier": "Earlier",
     "pinned": "Pinned"
+  },
+  "auth": {
+    "signingIn": "Signing in...",
+    "creatingAccount": "Creating account...",
+    "sendingReset": "Sending..."
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -37,7 +49,8 @@
     "logout": "Log out",
     "loggedOut": "Logged out",
     "language": "Language",
-    "switchTo": "Switch to {locale}"
+    "switchTo": "Switch to {locale}",
+    "switching": "Switching..."
   },
   "settings": {
     "title": "Settings",
@@ -189,6 +202,7 @@
     "customDescription": "Turn your own question into a clean writing session without leaving the workspace.",
     "placeholder": "Paste or write your own prompt here.",
     "startWriting": "Start writing",
+    "creating": "Creating...",
     "failedStart": "Failed to start writing exercise.",
     "daily": "Daily",
     "ielts_task1": "IELTS Task 1",

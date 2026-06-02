@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   ArrowRight,
   BarChart3,
@@ -10,6 +9,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LoadingLink } from "@/components/ui/loading-overlay";
 
 const highlights = [
   "IELTS and TOEFL writing review",
@@ -44,10 +44,10 @@ export function HeroSection() {
               asChild
               className="h-11 bg-sky-600 px-5 hover:bg-sky-700"
             >
-              <Link href="/signup">
+              <LoadingLink href="/signup">
                 Start practicing
                 <ArrowRight className="ml-1 size-4" />
-              </Link>
+              </LoadingLink>
             </Button>
             <Button size="lg" variant="outline" asChild className="h-11 px-5">
               <a href="#demo">View product demo</a>

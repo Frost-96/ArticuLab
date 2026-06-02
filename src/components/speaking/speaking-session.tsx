@@ -7,8 +7,11 @@ import {
   useRef,
   useState,
 } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import {
+  LoadingLink,
+  useAppLoading,
+  useLoadingRouter,
+} from "@/components/ui/loading-overlay";
 import {
   ArrowLeft,
   Loader2,
@@ -19,6 +22,7 @@ import {
   Volume2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Badge } from "@/components/ui/badge";
 import { endSpeakingAction } from "@/server/actions/speaking.action";
 import { cn } from "@/lib/utils";
@@ -50,15 +54,11 @@ type ParsedSSEEvent = {
 type SpeakingSessionProps = {
   exercise: SpeakingExerciseDetail;
 };
-
-/** 鏍煎紡鍖栫鏁颁负 mm:ss */
 function formatDuration(seconds: number) {
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
   return `${minutes}:${String(rest).padStart(2, "0")}`;
 }
-
-/** 灏?Base64 闊抽鏁版嵁鎾斁涓?Audio */
 function parseSSEEvent(raw: string): ParsedSSEEvent | null {
   let type = "";
   let data = "";
@@ -156,7 +156,8 @@ function createAudioRecorder(stream: MediaStream) {
 }
 
 export function SpeakingSession({ exercise }: SpeakingSessionProps) {
-  const router = useRouter();
+  const router = useLoadingRouter();
+  const { hideLoading, showLoading } = useAppLoading();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -219,17 +220,15 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     }
   }, []);
 
-  function enqueueStreamAudio(data: {
+  const enqueueStreamAudio = useCallback((data: {
     index: number;
     audioBase64: string;
     format: "mp3";
-  }) {
+  }) => {
     streamAudioQueueRef.current.push(data);
     streamAudioQueueRef.current.sort((a, b) => a.index - b.index);
     playNextStreamAudio();
-  }
-
-  /** 寮€濮嬪綍闊?*/
+  }, [playNextStreamAudio]);
   async function handleStartRecording() {
     if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
       setError("Voice recording is not supported in this browser.");
@@ -267,8 +266,6 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
       setError("Microphone access denied. Please allow microphone permission.");
     }
   }
-
-  /** 鍋滄褰曢煶 */
   const handleStopRecording = useCallback(() => {
     const recorder = mediaRecorderRef.current;
     if (!recorder || recorder.state === "inactive") {
@@ -279,8 +276,6 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     recorder.stop();
     setIsRecording(false);
   }, []);
-
-  /** 璋冪敤 STT API 杞啓闊抽 */
   const handleTranscribe = useCallback(async (audioBlob: Blob) => {
     setIsTranscribing(true);
     setError(null);
@@ -321,8 +316,6 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
       setIsTranscribing(false);
     }
   }, []);
-
-  /** 发送消息（流式 Chat API：AI + TTS） */
   const handleSend = useCallback(async () => {
     const content = input.trim();
     if (!content || readOnly || isRecording || isTranscribing) return;
@@ -459,14 +452,13 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     isTranscribing,
     exercise.id,
     exercise.conversationId,
-    playNextStreamAudio,
+    enqueueStreamAudio,
     router,
   ]);
-
-  /** 缁撴潫缁冧範 */
   async function handleFinish() {
     setIsFinishing(true);
     setError(null);
+    showLoading("Finishing...");
 
     const result = await endSpeakingAction({
       exerciseId: exercise.id,
@@ -476,6 +468,7 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
 
     if (!result.success) {
       setError(result.error);
+      hideLoading();
       return;
     }
 
@@ -491,8 +484,6 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
       setError("Unable to play this audio. Please try again.");
     }
   }
-
-  /** 鏄惁姝ｅ湪澶勭悊涓?*/
   const isBusy = isSending || isFinishing || isTranscribing;
 
   return (
@@ -501,10 +492,10 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/speaking">
+              <LoadingLink href="/speaking">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
-              </Link>
+              </LoadingLink>
             </Button>
             <div className="min-w-0">
               <h1 className="truncate font-medium text-slate-900">
@@ -518,16 +509,18 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
 
           <div className="flex shrink-0 items-center gap-2">
             <Badge variant="secondary">{exercise.status}</Badge>
-            <Button
+            <LoadingButton
               variant="outline"
               size="sm"
               className="text-red-600"
               disabled={isFinishing}
               onClick={() => void handleFinish()}
+              isLoading={isFinishing}
+              loadingText="Finishing..."
             >
               <Square className="mr-2 h-3.5 w-3.5 fill-current" />
               Finish
-            </Button>
+            </LoadingButton>
           </div>
         </div>
       </header>
@@ -672,19 +665,17 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                 className="max-h-36 min-h-11 w-full resize-none border-0 bg-transparent px-2 py-2.5 text-sm leading-6 outline-none placeholder:text-slate-400"
               />
 
-              <Button
+              <LoadingButton
                 size="icon"
                 className="h-11 w-11 shrink-0 rounded-full bg-blue-600 text-white hover:bg-blue-700"
                 disabled={!input.trim() || readOnly || isBusy}
                 onClick={() => void handleSend()}
                 aria-label="Send message"
+                isLoading={isSending}
+                loadingText=""
               >
-                {isSending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
+                <Send className="h-4 w-4" />
+              </LoadingButton>
             </div>
             <div className="mt-2 flex items-center justify-between px-2 text-xs text-slate-400">
               <span>

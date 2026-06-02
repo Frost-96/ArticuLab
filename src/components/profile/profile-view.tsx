@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
 import {
   BookOpen,
@@ -18,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { LoadingLink } from "@/components/ui/loading-overlay";
 
 type ProfileViewProps = {
   data: ProfileData;
@@ -104,7 +104,7 @@ export function ProfileView({ data }: ProfileViewProps) {
             </p>
           </div>
           <Button variant="outline" asChild>
-            <Link href="/settings">Edit settings</Link>
+            <LoadingLink href="/settings">Edit settings</LoadingLink>
           </Button>
         </div>
 
@@ -385,7 +385,7 @@ function ProfileEmptyState({
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
         {actions.map((action) => (
           <Button key={action.href + action.label} variant="outline" asChild>
-            <Link href={action.href}>{action.label}</Link>
+            <LoadingLink href={action.href}>{action.label}</LoadingLink>
           </Button>
         ))}
       </div>

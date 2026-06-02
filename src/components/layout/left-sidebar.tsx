@@ -1,6 +1,10 @@
-﻿"use client";
+"use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import {
+  useAppLoading,
+  useLoadingRouter,
+} from "@/components/ui/loading-overlay";
 import {
   type FormEvent,
   useMemo,
@@ -157,7 +161,8 @@ const META_BADGE_STYLES = [
 ];
 
 export function LeftSidebar({ type, items }: LeftSidebarProps) {
-  const router = useRouter();
+  const router = useLoadingRouter();
+  const { hideLoading } = useAppLoading();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -292,6 +297,7 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
         setMutatingId(null);
 
         if (!result.success) {
+          hideLoading();
           toast.error(result.error);
           return;
         }
@@ -332,6 +338,7 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
         setMutatingId(null);
 
         if (!result.success) {
+          hideLoading();
           toast.error(result.error);
           return;
         }
@@ -400,7 +407,13 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
                       <button
                         key={item.id}
                         type="button"
-                        onClick={() => router.push(item.href)}
+                        onClick={() => {
+                          if (active) {
+                            hideLoading();
+                            return;
+                          }
+                          router.push(item.href);
+                        }}
                         title={item.title}
                         className={cn(
                           "block w-full truncate rounded-lg px-2 py-2 text-left text-sm leading-5 transition-colors",
@@ -517,7 +530,13 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
                       ) : null}
                       <button
                         type="button"
-                        onClick={() => router.push(item.href)}
+                        onClick={() => {
+                          if (active) {
+                            hideLoading();
+                            return;
+                          }
+                          router.push(item.href);
+                        }}
                         className="block w-full min-w-0 text-left"
                       >
                         <div className="flex items-start gap-3">

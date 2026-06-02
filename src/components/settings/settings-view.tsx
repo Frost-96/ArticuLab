@@ -1,13 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import {
   useState,
   useTransition,
   type FormEvent,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
+import {
+  LoadingLink,
+  useAppLoading,
+  useLoadingRouter,
+} from "@/components/ui/loading-overlay";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Bell,
@@ -35,6 +38,7 @@ import { logOut } from "@/server/actions/auth.action";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -87,7 +91,8 @@ const selectClassName =
   "flex h-9 w-full rounded-md border border-slate-200 bg-white px-2.5 py-1 text-sm text-slate-900 shadow-none outline-none transition-colors focus-visible:border-slate-400 focus-visible:ring-3 focus-visible:ring-slate-200 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400";
 
 export function SettingsView({ data }: SettingsViewProps) {
-  const router = useRouter();
+  const router = useLoadingRouter();
+  const { hideLoading, showLoading } = useAppLoading();
   const activeLocale = useLocale() as AppLocale;
   const t = useTranslations("settings");
   const nav = useTranslations("nav");
@@ -142,6 +147,7 @@ export function SettingsView({ data }: SettingsViewProps) {
     event.preventDefault();
 
     startSavingTransition(() => {
+      showLoading(common("saving"));
       void submitProfileUpdate();
     });
   }
@@ -155,6 +161,7 @@ export function SettingsView({ data }: SettingsViewProps) {
     });
 
     if (!result.success) {
+      hideLoading();
       toast.error(result.error);
       return;
     }
@@ -171,6 +178,7 @@ export function SettingsView({ data }: SettingsViewProps) {
     setLocaleCookieOnClient(locale);
 
     startLocaleTransition(() => {
+      showLoading(common("switching"));
       void submitLocaleUpdate(locale);
     });
   }
@@ -179,6 +187,7 @@ export function SettingsView({ data }: SettingsViewProps) {
     const result = await saveLocalePreference(locale);
 
     if (!result.success) {
+      hideLoading();
       toast.error(result.error || t("languageSaveFailed"));
       return;
     }
@@ -189,6 +198,7 @@ export function SettingsView({ data }: SettingsViewProps) {
 
   function handleLogout() {
     startLogoutTransition(() => {
+      showLoading(t("loggingOut"));
       void performLogout();
     });
   }
@@ -200,6 +210,7 @@ export function SettingsView({ data }: SettingsViewProps) {
     }
 
     startDeleteAccountTransition(() => {
+      showLoading(t("deleting"));
       void performDeleteAccount();
     });
   }
@@ -214,6 +225,7 @@ export function SettingsView({ data }: SettingsViewProps) {
   async function performDeleteAccount() {
     const result = await deleteCurrentUserAction();
     if (!result.success) {
+      hideLoading();
       toast.error(result.error);
       return;
     }
@@ -236,7 +248,7 @@ export function SettingsView({ data }: SettingsViewProps) {
             </p>
           </div>
           <Button variant="outline" asChild>
-            <Link href="/profile">{t("viewProfile")}</Link>
+            <LoadingLink href="/profile">{t("viewProfile")}</LoadingLink>
           </Button>
         </div>
 
@@ -394,11 +406,11 @@ export function SettingsView({ data }: SettingsViewProps) {
                   description={t("billingDescription")}
                   control={
                     <Button variant="outline" asChild>
-                      <Link href="/pricing">
+                      <LoadingLink href="/pricing">
                         {data.membership.membershipTier === "pro"
                           ? t("manageBilling")
                           : t("upgrade")}
-                      </Link>
+                      </LoadingLink>
                     </Button>
                   }
                 />
@@ -509,16 +521,19 @@ export function SettingsView({ data }: SettingsViewProps) {
                           type="button"
                           disabled={isSavingLocale}
                           onClick={() => handleLocaleChange(locale)}
+                          aria-busy={isSavingLocale || undefined}
                           className={cn(
-                            "rounded px-3 py-1.5 text-sm font-medium transition-colors",
+                            "inline-flex min-w-16 items-center justify-center rounded px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-wait disabled:opacity-70",
                             activeLocale === locale
                               ? "bg-white text-slate-950 shadow-sm"
                               : "text-slate-500 hover:text-slate-900",
                           )}
                         >
-                          {locale === "zh"
-                            ? common("chinese")
-                            : common("english")}
+                          {isSavingLocale && activeLocale !== locale
+                            ? common("switching")
+                            : locale === "zh"
+                              ? common("chinese")
+                              : common("english")}
                         </button>
                       ))}
                     </div>
@@ -541,22 +556,24 @@ export function SettingsView({ data }: SettingsViewProps) {
                   title={nav("logout")}
                   description={t("logoutDescription")}
                   control={
-                    <Button
+                    <LoadingButton
                       type="button"
                       variant="outline"
                       onClick={handleLogout}
                       disabled={!data.dangerZone.canLogout || isLoggingOut}
+                      isLoading={isLoggingOut}
+                      loadingText={t("loggingOut")}
                     >
                       <LogOut className="size-4" />
-                      {isLoggingOut ? t("loggingOut") : nav("logout")}
-                    </Button>
+                      {nav("logout")}
+                    </LoadingButton>
                   }
                 />
                 <SettingsRow
                   title={t("deleteAccount")}
                   description={t("deleteAccountDescription")}
                   control={
-                    <Button
+                    <LoadingButton
                       type="button"
                       variant="outline"
                       className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
@@ -564,10 +581,12 @@ export function SettingsView({ data }: SettingsViewProps) {
                         !data.dangerZone.canDeleteAccount || isDeletingAccount
                       }
                       onClick={handleDeleteAccount}
+                      isLoading={isDeletingAccount}
+                      loadingText={t("deleting")}
                     >
                       <Trash2 className="size-4" />
-                      {isDeletingAccount ? t("deleting") : t("deleteAccount")}
-                    </Button>
+                      {t("deleteAccount")}
+                    </LoadingButton>
                   }
                 />
               </div>
@@ -582,9 +601,14 @@ export function SettingsView({ data }: SettingsViewProps) {
               >
                 {common("reset")}
               </Button>
-              <Button type="submit" disabled={isSaving}>
-                {isSaving ? common("saving") : common("saveChanges")}
-              </Button>
+              <LoadingButton
+                type="submit"
+                disabled={isSaving}
+                isLoading={isSaving}
+                loadingText={common("saving")}
+              >
+                {common("saveChanges")}
+              </LoadingButton>
             </div>
           </form>
         </div>

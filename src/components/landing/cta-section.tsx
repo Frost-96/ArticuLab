@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoadingLink } from "@/components/ui/loading-overlay";
 
 export function CTASection() {
   return (
@@ -25,10 +25,10 @@ export function CTASection() {
             asChild
             className="h-12 w-full bg-white px-8 text-base font-semibold text-sky-700 shadow-sm hover:bg-sky-50 sm:w-auto"
           >
-            <Link href="/signup">
+            <LoadingLink href="/signup">
               Get started for free
               <ArrowRight className="ml-1 size-5" />
-            </Link>
+            </LoadingLink>
           </Button>
           <Button
             size="lg"

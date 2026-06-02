@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import {
+  useAppLoading,
+  useLoadingRouter,
+} from "@/components/ui/loading-overlay";
 import { useTranslations } from "next-intl";
 import { ArrowRight, Mic } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import {
   Card,
   CardContent,
@@ -28,7 +31,8 @@ export function SpeakingPracticePage({
   history,
   loadError,
 }: SpeakingPracticePageProps) {
-  const router = useRouter();
+  const router = useLoadingRouter();
+  const { hideLoading, showLoading } = useAppLoading();
   const t = useTranslations("speaking");
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -44,6 +48,7 @@ export function SpeakingPracticePage({
   async function handleStart(scenarioId: string) {
     setPendingId(scenarioId);
     setError(null);
+    showLoading(t("starting"));
 
     const result = await startSpeakingAction({ scenarioId });
 
@@ -52,6 +57,7 @@ export function SpeakingPracticePage({
         !result.success ? result.error : t("failedStart"),
       );
       setPendingId(null);
+      hideLoading();
       return;
     }
 
@@ -211,17 +217,17 @@ export function SpeakingPracticePage({
                         </p>
                       </div>
 
-                      <Button
+                      <LoadingButton
                         variant="outline"
                         className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
                         disabled={pendingId === scenario.id}
                         onClick={() => void handleStart(scenario.id)}
+                        isLoading={pendingId === scenario.id}
+                        loadingText={t("starting")}
                       >
-                        {pendingId === scenario.id
-                          ? t("starting")
-                          : t("start")}
+                        {t("start")}
                         <ArrowRight className="ml-2 size-4" />
-                      </Button>
+                      </LoadingButton>
                     </div>
                   </div>
                 ))

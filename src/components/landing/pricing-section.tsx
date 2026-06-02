@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { Check, Crown, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { LoadingLink } from "@/components/ui/loading-overlay";
 import { cn } from "@/lib/utils";
 
 const plans = [
@@ -185,7 +185,7 @@ export function PricingSection({ standalone = false }: PricingSectionProps) {
                     plan.popular ? "bg-sky-600 hover:bg-sky-700" : "",
                   )}
                 >
-                  <Link href="/signup">{plan.cta}</Link>
+                  <LoadingLink href="/signup">{plan.cta}</LoadingLink>
                 </Button>
               </div>
             );

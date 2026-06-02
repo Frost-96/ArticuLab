@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import {
+  LoadingLink,
+  useLoadingRouter,
+} from "@/components/ui/loading-overlay";
 import { ArrowLeft, MessageSquare, Mic, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +37,7 @@ function formatDuration(seconds: number) {
 }
 
 export function SpeakingReview({ exercise }: SpeakingReviewProps) {
-  const router = useRouter();
+  const router = useLoadingRouter();
   const feedback = exercise.feedback;
   const shouldGenerateReview = !feedback && exercise.status === "completed";
   const hasRequestedReview = useRef(false);
@@ -89,10 +91,10 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
       <div className="soft-panel flex items-center justify-between gap-4 p-4 sm:p-5">
         <div className="flex items-center gap-4">
           <Button variant="ghost" asChild>
-            <Link href={`/speaking/${exercise.id}`}>
+            <LoadingLink href={`/speaking/${exercise.id}`}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
-            </Link>
+            </LoadingLink>
           </Button>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-slate-950">

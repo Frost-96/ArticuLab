@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { LoadingLink } from "@/components/ui/loading-overlay";
 
 type FooterLink = {
   label: string;
@@ -98,12 +98,12 @@ export function Footer() {
                           {link.label}
                         </a>
                       ) : (
-                        <Link
+                        <LoadingLink
                           href={link.href}
                           className="text-sm text-slate-500 transition-colors hover:text-sky-600"
                         >
                           {link.label}
-                        </Link>
+                        </LoadingLink>
                       )
                     ) : (
                       <span className="text-sm text-slate-400">

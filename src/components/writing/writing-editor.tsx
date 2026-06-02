@@ -8,8 +8,11 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import {
+  LoadingLink,
+  useAppLoading,
+  useLoadingRouter,
+} from "@/components/ui/loading-overlay";
 import {
   ArrowLeft,
   ArrowRight,
@@ -22,6 +25,7 @@ import {
   Timer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -274,7 +278,8 @@ function WritingStopwatch({
 }
 
 export function WritingEditor({ exercise }: WritingEditorProps) {
-  const router = useRouter();
+  const router = useLoadingRouter();
+  const { hideLoading, showLoading } = useAppLoading();
   const [content, setContent] = useState(exercise.content);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -367,16 +372,24 @@ export function WritingEditor({ exercise }: WritingEditorProps) {
   const progressValue = Math.min((wordCount / 250) * 100, 100);
 
   async function handleManualSave() {
-    void (await persistDraft(content));
+    showLoading("Saving...");
+    const saved = await persistDraft(content);
+    if (!saved) {
+      hideLoading();
+      return;
+    }
+    router.refresh("Saving...");
   }
 
   async function handleComplete() {
     setIsSubmitting(true);
     setSaveError(null);
+    showLoading("Submitting...");
 
     const saved = await persistDraft(content);
     if (!saved) {
       setIsSubmitting(false);
+      hideLoading();
       return;
     }
 
@@ -398,6 +411,7 @@ export function WritingEditor({ exercise }: WritingEditorProps) {
       if (!result.success) {
         setSaveError(result.error || "Submission failed");
         setIsSubmitting(false);
+        hideLoading();
         return;
       }
 
@@ -405,6 +419,7 @@ export function WritingEditor({ exercise }: WritingEditorProps) {
     } catch {
       setSaveError("Network error, please try again");
       setIsSubmitting(false);
+      hideLoading();
     }
   }
 
@@ -414,10 +429,10 @@ export function WritingEditor({ exercise }: WritingEditorProps) {
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/writing">
+              <LoadingLink href="/writing">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
-              </Link>
+              </LoadingLink>
             </Button>
             <Badge variant="outline">{exercise.scenarioType}</Badge>
           </div>
@@ -502,15 +517,17 @@ export function WritingEditor({ exercise }: WritingEditorProps) {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button
+            <LoadingButton
               variant="outline"
               onClick={() => void handleManualSave()}
               disabled={readOnly || isSaving || isSubmitting}
+              isLoading={isSaving && !isSubmitting}
+              loadingText="Saving..."
             >
               <Save className="mr-2 h-4 w-4" />
               Save Draft
-            </Button>
-            <Button
+            </LoadingButton>
+            <LoadingButton
               variant={readOnly ? "outline" : "default"}
               className="bg-sky-600 hover:bg-sky-700"
               onClick={() =>
@@ -521,10 +538,12 @@ export function WritingEditor({ exercise }: WritingEditorProps) {
               disabled={
                 (!readOnly && !content.trim()) || isSaving || isSubmitting
               }
+              isLoading={isSubmitting}
+              loadingText="Submitting..."
             >
               {readOnly ? "View Review" : "Finish Writing"}
               <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+            </LoadingButton>
           </div>
         </div>
       </footer>
