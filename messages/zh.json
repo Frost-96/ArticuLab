@@ -28,7 +28,8 @@
     "billing": "订阅",
     "profile": "个人资料",
     "openMenu": "打开菜单",
-    "streak": "{count} 天"
+    "streak": "{count} 天",
+    "logout": "退出登录"
   },
   "userMenu": {
     "learner": "学习者",
@@ -43,6 +44,7 @@
     "title": "设置",
     "description": "管理账号、订阅和学习偏好。",
     "viewProfile": "查看个人资料",
+    "comingSoon": "即将推出",
     "sections": {
       "account": "账号",
       "subscription": "订阅",

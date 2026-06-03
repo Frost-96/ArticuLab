@@ -10,6 +10,7 @@ export const chatMessageSchema = z.object({
     .string()
     .min(1, "Message cannot be empty")
     .max(10000, "Message must not exceed 10000 characters"),
+  isEssay: z.boolean().default(false),
 });
 
 // F-012: 写作批改入口 — 当检测到长文本时自动切换

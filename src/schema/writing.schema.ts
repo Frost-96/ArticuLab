@@ -32,7 +32,7 @@ export const submitWritingSchema = z
   .refine(
     (data) => {
       // 考试类型必须是用户自定义题目
-      if (data.scenarioType !== "daily") return data.isCustomPrompt === true;
+      //if (data.scenarioType !== "daily") return data.isCustomPrompt === true;
       return true;
     },
     {
@@ -125,11 +125,11 @@ export const sentenceFeedbackSchema = z.object({
 
 // 完整批改结果（AI 返回的 JSON 结构）
 export const writingReviewResultSchema = z.object({
-  overallScore: z.number().min(0).max(9),
-  grammarScore: z.number().min(0).max(9),
-  vocabularyScore: z.number().min(0).max(9),
-  coherenceScore: z.number().min(0).max(9),
-  taskScore: z.number().min(0).max(9),
+  overallScore: z.number().min(0).max(100),
+  grammarScore: z.number().min(0).max(100),
+  vocabularyScore: z.number().min(0).max(100),
+  coherenceScore: z.number().min(0).max(100),
+  taskScore: z.number().min(0).max(100),
   overallComment: z.string(),
   sentenceFeedback: z.array(sentenceFeedbackSchema),
   strengths: z.array(z.string()),
