@@ -6,8 +6,8 @@ import { useOnboardingStore } from "@/stores/onboarding-store";
 import type { EnglishLevel } from "@/types/onboarding";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import {
-    useAppLoading,
-    useLoadingRouter,
+  useAppLoading,
+  useLoadingRouter,
 } from "@/components/ui/loading-overlay";
 import { useEffect } from "react";
 import toast, { Toaster } from "react-hot-toast";
@@ -26,19 +26,19 @@ interface OnboardingFlowProps {
 export function OnboardingFlow({
   initialEnglishLevel = null,
 }: OnboardingFlowProps) {
-    const router = useLoadingRouter();
-    const { hideLoading, showLoading } = useAppLoading();
-    const {
-        currentStep,
-        totalSteps,
-        nextStep,
-        prevStep,
-        canProceed,
-        isSubmitting,
-        data,
-        initialize,
-        setIsSubmitting,
-    } = useOnboardingStore();
+  const router = useLoadingRouter();
+  const { hideLoading, showLoading } = useAppLoading();
+  const {
+    currentStep,
+    totalSteps,
+    nextStep,
+    prevStep,
+    canProceed,
+    isSubmitting,
+    data,
+    initialize,
+    setIsSubmitting,
+  } = useOnboardingStore();
 
   useEffect(() => {
     initialize({ englishLevel: initialEnglishLevel });
@@ -50,38 +50,9 @@ export function OnboardingFlow({
   const isGoalStep = currentStep === totalSteps - 2;
   const showNavigation = !isFirstStep && !isLastStep;
 
-    async function handleNext() {
-        if (!canProceed() || isSubmitting) {
-            return;
-        }
-
-        if (!isGoalStep) {
-            nextStep();
-            return;
-        }
-
-        if (!data.englishLevel || !data.learningGoal) {
-            return;
-        }
-
-        setIsSubmitting(true);
-        showLoading("Setting up...");
-
-        const result = await completeOnboarding({
-            englishLevel: data.englishLevel,
-            learningGoal: data.learningGoal,
-        });
-
-        setIsSubmitting(false);
-
-        if (!result.success) {
-            hideLoading();
-            toast.error(result.error);
-            return;
-        }
-
-        toast.success("Your profile is ready");
-        router.replace(result.data.redirect);
+  async function handleNext() {
+    if (!canProceed() || isSubmitting) {
+      return;
     }
 
     if (!isGoalStep) {
@@ -94,6 +65,7 @@ export function OnboardingFlow({
     }
 
     setIsSubmitting(true);
+    showLoading("Setting up...");
 
     const result = await completeOnboarding({
       englishLevel: data.englishLevel,
@@ -103,6 +75,7 @@ export function OnboardingFlow({
     setIsSubmitting(false);
 
     if (!result.success) {
+      hideLoading();
       toast.error(result.error);
       return;
     }
