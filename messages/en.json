@@ -40,7 +40,8 @@
     "billing": "Billing",
     "profile": "Profile",
     "openMenu": "Open menu",
-    "streak": "{count, plural, one {# day} other {# days}}"
+    "streak": "{count, plural, one {# day} other {# days}}",
+    "logout": "Log out"
   },
   "userMenu": {
     "learner": "Learner",
@@ -56,6 +57,7 @@
     "title": "Settings",
     "description": "Manage your account, subscription, and learning preferences.",
     "viewProfile": "View profile",
+    "comingSoon": "Coming soon",
     "sections": {
       "account": "Account",
       "subscription": "Subscription",

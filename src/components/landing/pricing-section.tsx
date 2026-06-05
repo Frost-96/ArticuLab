@@ -27,13 +27,14 @@ const plans = [
       { text: "PDF export", included: false },
       { text: "Priority support", included: false },
     ],
+    isAvailable: true,
   },
   {
     name: "Pro",
     description: "For serious learners preparing for exams.",
     monthlyPrice: 19,
     yearlyPrice: 15,
-    cta: "Start Pro trial",
+    cta: "Coming Soon",
     ctaVariant: "default" as const,
     popular: true,
     features: [
@@ -46,6 +47,7 @@ const plans = [
       { text: "PDF export", included: true },
       { text: "Priority email support", included: true },
     ],
+    isAvailable: false,
   },
 ];
 
@@ -178,7 +180,8 @@ export function PricingSection({ standalone = false }: PricingSectionProps) {
                 </ul>
 
                 <Button
-                  asChild
+                  asChild={plan.isAvailable}
+                  disabled={!plan.isAvailable}
                   variant={plan.ctaVariant}
                   className={cn(
                     "mt-8 h-10 w-full",

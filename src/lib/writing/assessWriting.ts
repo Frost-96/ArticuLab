@@ -1,12 +1,11 @@
-//import type { ScenarioType } from "../../../generated/prisma/enums";
-import type { WritingScenarioType } from "@/schema";
 import { getWritingLlmClient, getWritingLlmModel } from "./llmClient";
 import {
   writingReviewResultSchema,
   type WritingReviewResult,
 } from "@/schema/writing.schema";
 import type { AssessInput } from "@/types/writing/writingTypes";
-import { SYSTEM_WRITING_PROMPT } from "@/lib/aiPrompt";
+import { buildWritingSystemPrompt } from "@/lib/aiPrompt";
+import { SCORE_SCALES } from "./scoreScale";
 /**
  * 批改入参（JSON语义）
  *   {
@@ -16,24 +15,6 @@ import { SYSTEM_WRITING_PROMPT } from "@/lib/aiPrompt";
  *     "wordCount": "number"        // 客户端词数（与 content 已在校验层对齐）
  *   }
  */
-
-/**
- * 按场景类型返回分数区间
- *
- * 输入格式：
- * - t：ScenarioType（Prisma 枚举）
- *
- * 输出格式：
- * - [min, max]：二元组，number
- */
-
-export function scoreRangeForScenarioType(
-  t: WritingScenarioType,
-): [number, number] {
-  if (t === "ielts_task1" || t === "ielts_task2") return [0, 9];
-  if (t === "cet4" || t === "cet6") return [0, 100];
-  return [0, 9];
-}
 /**
  * 将 WritingReviewResult 转换为适合存储的格式
  * （当前直接使用 WritingReviewResult，无需转换）
@@ -59,12 +40,12 @@ export async function assessWriting(
     return { ok: false, error: "LLM client not configured" };
   }
 
-  const [minS, maxS] = scoreRangeForScenarioType(input.scenarioType);
+  const { min, max } = SCORE_SCALES[input.scenarioType];
   const model = getWritingLlmModel();
 
   const userMsg = [
     `Scenario type: ${input.scenarioType}`,
-    `Score range for this task: ${minS} to ${maxS}.`,
+    `Score range for this task: ${min} to ${max}.`,
     `Word count (client): ${input.wordCount}`,
     `Prompt:\n${input.prompt}`,
     `Essay:\n${input.content}`,
@@ -74,7 +55,10 @@ export async function assessWriting(
     const completion = await client.chat.completions.create({
       model,
       messages: [
-        { role: "system", content: SYSTEM_WRITING_PROMPT },
+        {
+          role: "system",
+          content: buildWritingSystemPrompt(input.scenarioType),
+        },
         { role: "user", content: userMsg },
       ],
       response_format: { type: "json_object" },

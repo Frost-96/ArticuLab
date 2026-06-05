@@ -7,7 +7,9 @@ import {
   speakingReviewResultSchema,
   writingReviewResultSchema,
 } from "@/schema";
+import type { WritingScenarioType } from "@/schema/enums";
 import { formatEnglishLevel, getDisplayName } from "@/lib/user-display";
+import { formatScore, normalizeToTen } from "@/lib/writing/scoreScale";
 import { getDashboardSourceData } from "@/server/repositories/dashboard.repository";
 import {
   average,
@@ -81,7 +83,13 @@ export async function getDashboardData(
   ]);
 
   const radar = buildSkillScores(
-    source.reviewedWritingExercises,
+    source.reviewedWritingExercises as Array<{
+      scenarioType: WritingScenarioType;
+      grammarScore: number | null;
+      vocabularyScore: number | null;
+      coherenceScore: number | null;
+      taskScore: number | null;
+    }>,
     source.reviewedSpeakingExercises,
   );
   const trend = buildTrendData(
@@ -152,6 +160,7 @@ export async function getDashboardData(
 function buildTrendData(
   writingRecords: Array<{
     createdAt: Date;
+    scenarioType: string;
     overallScore: number | null;
   }>,
   speakingRecords: Array<{
@@ -177,7 +186,14 @@ function buildTrendData(
           startOfWeek(record.createdAt, { weekStartsOn: 1 }).toISOString() ===
           weekKey,
       )
-      .map((record) => record.overallScore);
+      .map((record) =>
+        record.overallScore !== null
+          ? normalizeToTen(
+              record.overallScore,
+              record.scenarioType as WritingScenarioType,
+            )
+          : null,
+      );
 
     const speakingScores = speakingRecords
       .filter(
@@ -303,6 +319,7 @@ function buildRecentActivities(
   writingRecords: Array<{
     id: string;
     prompt: string;
+    scenarioType: string;
     overallScore: number | null;
     createdAt: Date;
     scenario: { title: string } | null;
@@ -333,9 +350,20 @@ function buildRecentActivities(
       truncate(record.prompt, 48) ??
       "Writing Practice",
     subtitle: truncate(record.prompt, 80),
-    score: record.overallScore,
+    score:
+      record.overallScore === null
+        ? null
+        : normalizeToTen(
+            record.overallScore,
+            record.scenarioType as WritingScenarioType,
+          ),
     scoreLabel:
-      record.overallScore === null ? null : record.overallScore.toFixed(1),
+      record.overallScore === null
+        ? null
+        : formatScore(
+            record.overallScore,
+            record.scenarioType as WritingScenarioType,
+          ),
     createdAt: record.createdAt,
     href:
       record.status === "reviewed"

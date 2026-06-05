@@ -168,6 +168,7 @@ Return a JSON object with the following structure:
   "improvements": ["<improvement1>", "<improvement2>"]
 }
 
+IMPORTANT: You MUST include ALL fields in the JSON response, especially "improvements" and "strengths" arrays. These fields are REQUIRED and must not be omitted.
 Return ONLY the JSON object, no markdown formatting.`;
 }
 

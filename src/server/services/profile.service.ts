@@ -7,6 +7,7 @@ import {
   type CurrentUserDisplaySummary,
   type ProfileData,
 } from "@/schema";
+import type { WritingScenarioType } from "@/schema/enums";
 import {
   formatEnglishLevel,
   formatLearningGoal,
@@ -55,7 +56,13 @@ export async function getProfileData(userId: string): Promise<ProfileData> {
   ]);
 
   const skills = buildSkillScores(
-    source.reviewedWritingExercises,
+    source.reviewedWritingExercises as Array<{
+      scenarioType: WritingScenarioType;
+      grammarScore: number | null;
+      vocabularyScore: number | null;
+      coherenceScore: number | null;
+      taskScore: number | null;
+    }>,
     source.reviewedSpeakingExercises,
   ).map((item) => ({
     skill: item.skill,

@@ -1,6 +1,7 @@
 import { getCoachConversationSummaries } from "@/server/services/coach.service";
 import { getSpeakingHistory } from "@/server/services/speaking.service";
 import { getWritingHistory } from "@/server/services/writing.service";
+import { formatScore } from "@/lib/writing/scoreScale";
 import type { SpeakingHistoryItem } from "@/types/speaking/speakingTypes";
 import type { SidebarHistoryItem } from "@/types/navigation/sidebarTypes";
 import type { WritingExerciseSummary } from "@/types/writing/writingTypes";
@@ -87,7 +88,8 @@ export async function getWritingSidebarItems(
     badge:
       exercise.overallScore === null
         ? undefined
-        : exercise.overallScore.toFixed(1),
+        : (formatScore(exercise.overallScore, exercise.scenarioType) ??
+          undefined),
     meta: getWritingMeta(exercise),
   }));
 }

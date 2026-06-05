@@ -65,7 +65,7 @@ export function Footer() {
               want clear feedback and steady progress.
             </p>
 
-            <div className="flex items-center gap-3">
+            {/* <div className="flex items-center gap-3">
               {socialLinks.map((link) => (
                 <a
                   key={link.label}
@@ -78,7 +78,7 @@ export function Footer() {
                   {link.shortLabel}
                 </a>
               ))}
-            </div>
+            </div> */}
           </div>
 
           {Object.entries(footerLinks).map(([category, links]) => (

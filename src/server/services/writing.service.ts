@@ -53,11 +53,12 @@ function normalizeUserId(userId: string) {
   return parsedId.data;
 }
 
-type WritingExerciseRecord = Awaited<
-  ReturnType<typeof writingRepo.findWritingExerciseById>
-> extends infer T
-  ? NonNullable<T>
-  : never;
+type WritingExerciseRecord =
+  Awaited<
+    ReturnType<typeof writingRepo.findWritingExerciseById>
+  > extends infer T
+    ? NonNullable<T>
+    : never;
 
 function mapWritingExerciseDetail(
   ex: WritingExerciseRecord,

@@ -12,6 +12,7 @@ const profileUserSelect = {
 } satisfies Prisma.UserSelect;
 
 const reviewedWritingSelect = {
+  scenarioType: true,
   grammarScore: true,
   vocabularyScore: true,
   coherenceScore: true,

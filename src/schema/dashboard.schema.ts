@@ -135,9 +135,7 @@ export type DashboardStats = z.infer<typeof dashboardStatsSchema>;
 export type DashboardRadarItem = z.infer<typeof dashboardRadarItemSchema>;
 export type DashboardTrendPoint = z.infer<typeof dashboardTrendPointSchema>;
 export type DashboardActivity = z.infer<typeof dashboardActivitySchema>;
-export type DashboardContinueItem = z.infer<
-  typeof dashboardContinueItemSchema
->;
+export type DashboardContinueItem = z.infer<typeof dashboardContinueItemSchema>;
 export type DashboardWeakness = z.infer<typeof dashboardWeaknessSchema>;
 export type DashboardEmptyStates = z.infer<typeof dashboardEmptyStatesSchema>;
 export type DashboardData = z.infer<typeof dashboardDataSchema>;

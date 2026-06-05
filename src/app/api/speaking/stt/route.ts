@@ -4,8 +4,8 @@ import { sttRequestSchema } from "@/schema/speaking.schema";
 import { getFirstError } from "@/lib/error";
 import { speechToText } from "@/lib/speaking/stt";
 
-/** 音频文件大小上限（10MB） */
-const MAX_AUDIO_SIZE_BYTES = 3 * 1024 * 1024;
+/** 音频文件大小上限（100MB，录音文件识别极速版支持） */
+const MAX_AUDIO_SIZE_BYTES = 100 * 1024 * 1024;
 
 /**
  * POST /api/speaking/stt
