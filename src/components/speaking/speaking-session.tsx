@@ -117,12 +117,12 @@ function audioBase64ToUrl(base64: string, format: "mp3" | "wav") {
   return URL.createObjectURL(blob);
 }
 
-async function playAudioFromUrl(audioUrl: string) {
+async function playAudioFromUrl(audioUrl: string, bucket = "ai-audio") {
   const playableUrl = audioUrl.startsWith("http")
     ? audioUrl
     : await fetch(
         `/api/speaking/getAudioURL?${new URLSearchParams({
-          bucket: "ai-audio",
+          bucket,
           path: audioUrl,
         })}`,
       )
@@ -167,6 +167,8 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
   const isPlayingStreamAudioRef = useRef(false);
   /** 等待后端持久化音频的消息 ID 集合，用于轮询 audioUrl */
   const pendingAudioRef = useRef<Set<string>>(new Set());
+  /** 保留最近一次用户录音的 blob，以便随消息一起发送到服务器 */
+  const lastRecordingRef = useRef<Blob | null>(null);
 
   const [messages, setMessages] = useState<SpeakingMessage[]>(
     exercise.messages,
@@ -349,6 +351,8 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
       if (result.success) {
         if (res.ok) {
           setInput(result.data.text);
+          // 保留录音 blob，以便发送消息时一并上传到服务器
+          lastRecordingRef.current = audioBlob;
         } else {
           setError("Speech recognition failed.");
         }
@@ -392,6 +396,12 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
       formData.append("exerciseId", exercise.id);
       formData.append("conversationId", exercise.conversationId);
       formData.append("message", content);
+      // 如果用户通过录音输入，将音频一并上传以便后续播放和发音评估
+      const recordingBlob = lastRecordingRef.current;
+      lastRecordingRef.current = null;
+      if (recordingBlob) {
+        formData.append("audio", recordingBlob, "recording.webm");
+      }
 
       const res = await fetch("/api/speaking/chat-stream", {
         method: "POST",
@@ -524,11 +534,11 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     router.push(`/speaking/${exercise.id}/review`);
   }
 
-  async function handlePlayAudio(audioUrl: string) {
+  async function handlePlayAudio(audioUrl: string, bucket = "ai-audio") {
     setError(null);
 
     try {
-      await playAudioFromUrl(audioUrl);
+      await playAudioFromUrl(audioUrl, bucket);
     } catch {
       setError("Unable to play this audio. Please try again.");
     }
@@ -729,7 +739,10 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                           }
                           onClick={() => {
                             if (message.audioUrl) {
-                              void handlePlayAudio(message.audioUrl);
+                              void handlePlayAudio(
+                                message.audioUrl,
+                                "user-audio",
+                              );
                             }
                           }}
                         >
@@ -768,7 +781,7 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                             ) : (
                               <Mic className="h-3.5 w-3.5" />
                             )}
-                            评估发音
+                            Analyze
                           </Button>
                         )}
                       </div>

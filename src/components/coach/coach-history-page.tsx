@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
+  Check,
   CheckCircle2,
+  Copy,
   ArrowRight,
   Loader2,
   MessageSquarePlus,
@@ -22,6 +24,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { CoachPageData } from "@/types/coach/coachTypes";
 
 type CoachHistoryPageProps = {
@@ -116,42 +120,121 @@ function createAudioRecorder(stream: MediaStream) {
   return new MediaRecorder(stream);
 }
 
-function HighlightedCoachText({ content }: { content: string }) {
-  const pieces = content.split(
-    /(He goes|He went|verb form|thesis|topic sentences|vocabulary upgrade)/gi,
-  );
+// function HighlightedCoachText({ content }: { content: string }) {
+//   const pieces = content.split(
+//     /(He goes|He went|verb form|thesis|topic sentences|vocabulary upgrade)/gi,
+//   );
+//
+//   return (
+//     <p className="whitespace-pre-wrap">
+//       {pieces.map((piece, index) => {
+//         const normalized = piece.toLowerCase();
+//         const isCorrection =
+//           normalized === "he goes" ||
+//           normalized === "he went" ||
+//           normalized === "verb form";
+//         const isTip =
+//           normalized === "thesis" ||
+//           normalized === "topic sentences" ||
+//           normalized === "vocabulary upgrade";
+//
+//         if (!isCorrection && !isTip) {
+//           return <span key={`${piece}-${index}`}>{piece}</span>;
+//         }
+//
+//         return (
+//           <span
+//             key={`${piece}-${index}`}
+//             className={
+//               isCorrection
+//                 ? "rounded bg-red-50 px-1 font-medium text-red-700"
+//                 : "rounded bg-blue-50 px-1 font-medium text-blue-700"
+//             }
+//           >
+//             {piece}
+//           </span>
+//         );
+//       })}
+//     </p>
+//   );
+// }
 
+/** Markdown 渲染组件，用于 AI coach 回复 */
+function CoachMarkdown({ content }: { content: string }) {
   return (
-    <p className="whitespace-pre-wrap">
-      {pieces.map((piece, index) => {
-        const normalized = piece.toLowerCase();
-        const isCorrection =
-          normalized === "he goes" ||
-          normalized === "he went" ||
-          normalized === "verb form";
-        const isTip =
-          normalized === "thesis" ||
-          normalized === "topic sentences" ||
-          normalized === "vocabulary upgrade";
-
-        if (!isCorrection && !isTip) {
-          return <span key={`${piece}-${index}`}>{piece}</span>;
-        }
-
-        return (
-          <span
-            key={`${piece}-${index}`}
-            className={
-              isCorrection
-                ? "rounded bg-red-50 px-1 font-medium text-red-700"
-                : "rounded bg-blue-50 px-1 font-medium text-blue-700"
-            }
-          >
-            {piece}
-          </span>
-        );
-      })}
-    </p>
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        h1: ({ children }) => (
+          <h1 className="mb-2 text-lg font-bold text-slate-900">{children}</h1>
+        ),
+        h2: ({ children }) => (
+          <h2 className="mb-2 text-base font-bold text-slate-900">
+            {children}
+          </h2>
+        ),
+        h3: ({ children }) => (
+          <h3 className="mb-1 text-sm font-semibold text-slate-900">
+            {children}
+          </h3>
+        ),
+        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+        strong: ({ children }) => (
+          <strong className="font-semibold text-slate-900">{children}</strong>
+        ),
+        em: ({ children }) => (
+          <em className="italic text-slate-700">{children}</em>
+        ),
+        ul: ({ children }) => (
+          <ul className="mb-2 list-disc pl-4 space-y-1">{children}</ul>
+        ),
+        ol: ({ children }) => (
+          <ol className="mb-2 list-decimal pl-4 space-y-1">{children}</ol>
+        ),
+        li: ({ children }) => <li className="text-sm leading-6">{children}</li>,
+        blockquote: ({ children }) => (
+          <blockquote className="mb-2 border-l-2 border-slate-300 pl-3 italic text-slate-600">
+            {children}
+          </blockquote>
+        ),
+        code: ({ children, className }) => {
+          const isInline = !className;
+          if (isInline) {
+            return (
+              <code className="rounded bg-slate-100 px-1 py-0.5 text-xs text-slate-800">
+                {children}
+              </code>
+            );
+          }
+          return (
+            <pre className="mb-2 overflow-x-auto rounded-lg bg-slate-100 p-3">
+              <code className="text-xs text-slate-800">{children}</code>
+            </pre>
+          );
+        },
+        table: ({ children }) => (
+          <div className="mb-2 overflow-x-auto">
+            <table className="w-full border-collapse text-sm">{children}</table>
+          </div>
+        ),
+        thead: ({ children }) => (
+          <thead className="bg-slate-50">{children}</thead>
+        ),
+        th: ({ children }) => (
+          <th className="border border-slate-200 px-2 py-1.5 text-left font-semibold text-slate-700">
+            {children}
+          </th>
+        ),
+        td: ({ children }) => (
+          <td className="border border-slate-200 px-2 py-1.5 text-slate-600">
+            {children}
+          </td>
+        ),
+        hr: () => <hr className="my-3 border-slate-200" />,
+      }}
+    >
+      {content}
+    </ReactMarkdown>
   );
 }
 
@@ -165,27 +248,48 @@ function CoachMessageBubble({
   thinkingLabel: string;
 }) {
   const isAssistant = message.role === "assistant";
+  const [copied, setCopied] = useState(false);
+
+  /** 复制消息内容到剪贴板 */
+  function handleCopy() {
+    navigator.clipboard.writeText(message.content).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
 
   return (
     <div
       className={cn(
-        "flex w-full",
+        "group/message flex w-full",
         isAssistant ? "justify-start" : "justify-end",
       )}
     >
       <div
         className={cn(
-          "max-w-[86%] text-sm leading-7 sm:max-w-[75%]",
+          "relative max-w-[86%] text-sm leading-7 sm:max-w-[75%]",
           isAssistant
             ? "text-slate-800"
             : "rounded-3xl bg-slate-100 px-4 py-2.5 text-slate-900",
         )}
       >
         {isAssistant ? (
-          <HighlightedCoachText content={message.content} />
+          <CoachMarkdown content={message.content} />
         ) : (
           <p className="whitespace-pre-wrap">{message.content}</p>
         )}
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="absolute -right-2 -top-2 rounded-md border border-slate-200 bg-white p-1 text-slate-400 opacity-0 shadow-sm transition-all hover:text-slate-600 group-hover/message:opacity-100"
+          title="Copy"
+        >
+          {copied ? (
+            <Check className="h-3.5 w-3.5 text-green-500" />
+          ) : (
+            <Copy className="h-3.5 w-3.5" />
+          )}
+        </button>
         {isAssistant ? (
           <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
             {message.pending ? (
@@ -221,6 +325,10 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pendingEssay, setPendingEssay] = useState<{
+    content: string;
+    conversationId: string | null;
+  } | null>(null);
   const [localMessages, setLocalMessages] = useState<LocalCoachMessage[]>([]);
   const messages = useMemo(() => {
     const serverMessages = data.activeConversation?.messages ?? [];
@@ -465,6 +573,10 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
               );
               streamError = parsed.data.message;
               setErrorMessage(parsed.data.message);
+              setPendingEssay({
+                content,
+                conversationId: resolvedConversationId,
+              });
               break;
           }
         }
@@ -485,6 +597,145 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
     } catch (error) {
       if (controller.signal.aborted) return;
 
+      const message = error instanceof Error ? error.message : t("sendFailed");
+      setErrorMessage(message);
+      setDraft(content);
+      setLocalMessages((current) =>
+        current.filter(
+          (item) => item.id !== localUserId && item.id !== localAssistantId,
+        ),
+      );
+    } finally {
+      if (streamAbortRef.current === controller) {
+        streamAbortRef.current = null;
+      }
+      setIsComposing(false);
+    }
+  }
+
+  /** 重新发送作文，跳过作文检测直接进入批改模式 */
+  async function handleEssayCorrect() {
+    if (!pendingEssay) return;
+    const { content, conversationId } = pendingEssay;
+    setPendingEssay(null);
+    setDraft(content);
+    // 下一帧执行 handleSend，确保 draft 已更新
+    // 直接用 isEssay 模式调用
+    const controller = new AbortController();
+    const now = new Date().toISOString();
+    const localUserId = `local-user-${now}`;
+    const localAssistantId = `local-ai-${now}`;
+    let streamError: string | null = null;
+
+    const userMessage: LocalCoachMessage = {
+      id: localUserId,
+      role: "user",
+      content,
+      createdAt: now,
+      pending: true,
+    };
+    const assistantMessage: LocalCoachMessage = {
+      id: localAssistantId,
+      role: "assistant",
+      content: "",
+      createdAt: now,
+      pending: true,
+    };
+
+    streamAbortRef.current?.abort();
+    streamAbortRef.current = controller;
+
+    setDraft("");
+    setErrorMessage(null);
+    setIsComposing(true);
+    setLocalMessages((current) => [...current, userMessage, assistantMessage]);
+
+    try {
+      const response = await fetch("/api/coach/chat-stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId: conversationId ?? undefined,
+          message: content,
+          isEssay: true,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error(
+          await parseErrorResponse(response, t("serviceUnavailable")),
+        );
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let isDone = false;
+      let resolvedConversationId = conversationId;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() ?? "";
+
+        for (const part of parts) {
+          if (!part.trim()) continue;
+
+          const parsed = parseSSEEvent(part) as CoachStreamEvent | null;
+          if (!parsed) continue;
+
+          switch (parsed.type) {
+            case "text_delta":
+              setLocalMessages((current) =>
+                current.map((message) =>
+                  message.id === localAssistantId
+                    ? {
+                        ...message,
+                        content: message.content + parsed.data.delta,
+                      }
+                    : message,
+                ),
+              );
+              break;
+            case "message_saved":
+              resolvedConversationId = parsed.data.conversationId;
+              setLocalMessages((current) =>
+                current.map((message) => {
+                  if (message.id === localUserId) {
+                    return { ...parsed.data.userMessage, pending: false };
+                  }
+                  if (message.id === localAssistantId) {
+                    return { ...parsed.data.assistantMessage, pending: false };
+                  }
+                  return message;
+                }),
+              );
+              break;
+            case "done":
+              isDone = true;
+              setIsComposing(false);
+              break;
+            case "error":
+              streamError = parsed.data.error;
+              setErrorMessage(parsed.data.error);
+              break;
+          }
+        }
+      }
+
+      if (streamError) throw new Error(streamError);
+      if (!isDone) throw new Error(t("streamIncomplete"));
+
+      if (!conversationId && resolvedConversationId) {
+        router.replace(`/coach?id=${resolvedConversationId}`);
+      }
+      router.refresh();
+    } catch (error) {
+      if (controller.signal.aborted) return;
       const message = error instanceof Error ? error.message : t("sendFailed");
       setErrorMessage(message);
       setDraft(content);
@@ -590,8 +841,19 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
         <footer className="shrink-0 bg-white px-3 pb-4 sm:px-4">
           <div className="mx-auto max-w-4xl">
             {errorMessage ? (
-              <div className="mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                {errorMessage}
+              <div className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                <span>{errorMessage}</span>
+                {pendingEssay ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 border-teal-300 text-teal-700 hover:bg-teal-50 hover:text-teal-800"
+                    disabled={isBusy}
+                    onClick={() => void handleEssayCorrect()}
+                  >
+                    Coach Review
+                  </Button>
+                ) : null}
               </div>
             ) : null}
             {messages.length ? (

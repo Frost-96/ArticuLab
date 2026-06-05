@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { saveDraftAction } from "@/server/actions/writing.action";
+import { targetWords } from "@/lib/writing/writingConfig";
 import type { WritingExerciseDetail } from "@/types/writing/writingTypes";
 
 type WritingEditorProps = {
@@ -364,7 +365,8 @@ export function WritingEditor({ exercise }: WritingEditorProps) {
   }, [persistDraft, readOnly]);
 
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
-  const progressValue = Math.min((wordCount / 250) * 100, 100);
+  const target = targetWords[exercise.scenarioType] ?? 150;
+  const progressValue = Math.min((wordCount / target) * 100, 100);
 
   async function handleManualSave() {
     void (await persistDraft(content));
@@ -497,7 +499,7 @@ export function WritingEditor({ exercise }: WritingEditorProps) {
             </div>
             <div className="w-32">
               <Progress value={progressValue} className="h-2" />
-              <p className="mt-1 text-xs text-slate-400">Target 250+</p>
+              <p className="mt-1 text-xs text-slate-400">Target {target}+</p>
             </div>
           </div>
 
