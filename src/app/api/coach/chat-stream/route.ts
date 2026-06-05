@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     return jsonError(getFirstError(parsed.error), 400);
   }
 
-  const { conversationId: inputConversationId, message } = parsed.data;
+  const { conversationId: inputConversationId, message, isEssay } = parsed.data;
   if (!message.trim()) {
     return jsonError("Message cannot be empty", 400);
   }
@@ -213,7 +213,11 @@ export async function POST(request: NextRequest) {
       let shouldRollback = true;
 
       try {
-        const coachResult = await generateCoachResponseStream(history, signal);
+        const coachResult = await generateCoachResponseStream(
+          history,
+          signal,
+          isEssay,
+        );
         if (!coachResult.ok) {
           await rollbackCoachWrite(user.userId, {
             messageId: userMessage.id,

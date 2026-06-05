@@ -93,7 +93,7 @@ export function TopNavbar({ userSummary }: TopNavbarProps) {
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-50",
                   )}
                 >
-              <item.icon className="h-4 w-4" />
+                  <item.icon className="h-4 w-4" />
                   {t(item.titleKey)}
                 </Link>
               );

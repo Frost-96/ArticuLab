@@ -37,7 +37,9 @@ export function SpeakingPracticePage({
     (exercise) => exercise.fluencyScore !== null,
   ).length;
   const continueExercises = [
-    ...history.exercises.filter((exercise) => exercise.status === "in_progress"),
+    ...history.exercises.filter(
+      (exercise) => exercise.status === "in_progress",
+    ),
     ...history.exercises.filter((exercise) => exercise.status === "reviewed"),
   ].slice(0, 3);
 
@@ -48,9 +50,7 @@ export function SpeakingPracticePage({
     const result = await startSpeakingAction({ scenarioId });
 
     if (!result.success || !result.data) {
-      setError(
-        !result.success ? result.error : t("failedStart"),
-      );
+      setError(!result.success ? result.error : t("failedStart"));
       setPendingId(null);
       return;
     }
@@ -72,9 +72,7 @@ export function SpeakingPracticePage({
                   {t("badge")}
                 </Badge>
               </div>
-              <p className="mt-1 text-slate-500">
-                {t("description")}
-              </p>
+              <p className="mt-1 text-slate-500">{t("description")}</p>
             </div>
 
             <div className="grid grid-cols-3 gap-3 lg:w-[360px]">
@@ -117,9 +115,7 @@ export function SpeakingPracticePage({
           <Card className="border-slate-200 bg-white shadow-sm">
             <CardHeader>
               <CardTitle className="text-base">{t("continueTitle")}</CardTitle>
-              <CardDescription>
-                {t("continueDescription")}
-              </CardDescription>
+              <CardDescription>{t("continueDescription")}</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-3">
               {continueExercises.map((exercise) => {
@@ -170,9 +166,7 @@ export function SpeakingPracticePage({
                 <Mic className="size-4 text-blue-600" />
                 {t("available")}
               </CardTitle>
-              <CardDescription>
-                {t("availableDescription")}
-              </CardDescription>
+              <CardDescription>{t("availableDescription")}</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 p-4">
               {scenarios.length > 0 ? (
@@ -217,9 +211,7 @@ export function SpeakingPracticePage({
                         disabled={pendingId === scenario.id}
                         onClick={() => void handleStart(scenario.id)}
                       >
-                        {pendingId === scenario.id
-                          ? t("starting")
-                          : t("start")}
+                        {pendingId === scenario.id ? t("starting") : t("start")}
                         <ArrowRight className="ml-2 size-4" />
                       </Button>
                     </div>

@@ -1,12 +1,7 @@
 ﻿"use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import {
-  type FormEvent,
-  useMemo,
-  useState,
-  useTransition,
-} from "react";
+import { type FormEvent, useMemo, useState, useTransition } from "react";
 import {
   Loader2,
   MessageSquare,
@@ -221,6 +216,11 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
     writing: PenLine,
     speaking: Mic,
   }[type];
+  /** \u5f53\u524d\u662f\u5426\u5728\u4e3b\u9875\u9762\uff08\u65e0\u5177\u4f53 exercise\uff09\uff0c\u7528\u4e8e\u7981\u7528 New \u6309\u94ae */
+  const isOnMainPage =
+    (type === "writing" && pathname === "/writing") ||
+    (type === "speaking" && pathname === "/speaking");
+
   const recentItems = orderedItems.slice(0, 6);
   const hasActiveRecentItem = recentItems.some(
     (item) => currentHref === item.href,
@@ -366,9 +366,11 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
           size="icon"
           className={cn(
             "h-9 w-9 rounded-xl text-slate-600 transition-colors hover:bg-slate-200 hover:text-slate-950",
+            isOnMainPage && "opacity-50 cursor-not-allowed",
           )}
-          onClick={() => router.push(newHref)}
+          onClick={() => !isOnMainPage && router.push(newHref)}
           title={newLabel}
+          disabled={isOnMainPage}
         >
           <SquarePen className="h-4 w-4" />
         </Button>
@@ -462,8 +464,10 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
               className={cn(
                 "h-9 w-full justify-start gap-2 rounded-xl px-3 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-200 hover:text-slate-950",
                 theme.ring,
+                isOnMainPage && "opacity-50 cursor-not-allowed",
               )}
-              onClick={() => router.push(newHref)}
+              onClick={() => !isOnMainPage && router.push(newHref)}
+              disabled={isOnMainPage}
             >
               <Plus className="h-4 w-4" />
               {newLabel}
@@ -662,4 +666,3 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
     </aside>
   );
 }
-

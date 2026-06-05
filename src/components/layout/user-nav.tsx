@@ -126,8 +126,7 @@ export function UserNav({ userSummary }: UserNavProps) {
         >
           <Languages className="mr-2 h-4 w-4" />
           {t("switchTo", {
-            locale:
-              nextLocale === "zh" ? common("chinese") : common("english"),
+            locale: nextLocale === "zh" ? common("chinese") : common("english"),
           })}
         </DropdownMenuItem>
         <DropdownMenuSeparator />

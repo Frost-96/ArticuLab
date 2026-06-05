@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
     createdAt: item.createdAt,
   }));
 
-  const coachResult = await generateCoachResponse(history);
+  const coachResult = await generateCoachResponse(history, false);
   if (!coachResult.ok) {
     console.error("AI Coach failed:", coachResult.error);
     await rollbackCoachWrite(user.userId, {

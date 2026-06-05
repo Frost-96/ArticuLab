@@ -165,6 +165,8 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     Array<{ index: number; audioBase64: string; format: "mp3" }>
   >([]);
   const isPlayingStreamAudioRef = useRef(false);
+  /** 等待后端持久化音频的消息 ID 集合，用于轮询 audioUrl */
+  const pendingAudioRef = useRef<Set<string>>(new Set());
 
   const [messages, setMessages] = useState<SpeakingMessage[]>(
     exercise.messages,
@@ -177,6 +179,8 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const readOnly = exercise.status !== "in_progress";
+  /** 正在进行发音评估的消息 ID 集合 */
+  const [evaluatingIds, setEvaluatingIds] = useState<Set<string>>(new Set());
   const latestMessageId = messages[messages.length - 1]?.id;
 
   useEffect(() => {
@@ -191,6 +195,42 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
       streamAbortRef.current?.abort();
     };
   }, []);
+
+  /** 服务端数据更新后同步到本地 state（如 audioUrl 持久化完成） */
+  useEffect(() => {
+    setMessages(exercise.messages);
+  }, [exercise.messages]);
+
+  /** 轮询等待后端持久化音频完成，间隔逐渐减半 */
+  useEffect(() => {
+    if (pendingAudioRef.current.size === 0) return;
+
+    let timer: ReturnType<typeof setTimeout>;
+    let delay = 4000;
+    const minDelay = 1000;
+
+    const poll = () => {
+      let changed = false;
+      for (const id of pendingAudioRef.current) {
+        const msg = messages.find((m) => m.id === id);
+        if (msg?.audioUrl) {
+          pendingAudioRef.current.delete(id);
+          changed = true;
+        }
+      }
+      if (changed) {
+        pendingAudioRef.current = new Set(pendingAudioRef.current);
+      }
+      if (pendingAudioRef.current.size > 0) {
+        startTransition(() => router.refresh());
+        delay = Math.max(minDelay, delay / 2);
+        timer = setTimeout(poll, delay);
+      }
+    };
+
+    timer = setTimeout(poll, delay);
+    return () => clearTimeout(timer);
+  }, [messages, router]);
 
   const playNextStreamAudio = useCallback(() => {
     if (isPlayingStreamAudioRef.current) return;
@@ -411,6 +451,8 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
             case "done":
               isDone = true;
               setIsSending(false);
+              /** 标记消息等待后端持久化音频 */
+              pendingAudioRef.current.add(localAssistantId);
               break;
             case "error":
               streamError = parsed.data.error;
@@ -492,6 +534,71 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     }
   }
 
+  /** 对用户录音进行发音评估 */
+  async function handleEvaluatePronunciation(
+    messageId: string,
+    audioUrl: string,
+    referenceText: string,
+  ) {
+    setEvaluatingIds((prev) => new Set(prev).add(messageId));
+    setError(null);
+
+    try {
+      const audioRes = await fetch(audioUrl);
+      const audioBlob = await audioRes.blob();
+
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "recording.webm");
+      formData.append("referenceText", referenceText);
+      formData.append("language", "en-US");
+      formData.append("messageId", messageId);
+
+      const res = await fetch("/api/speaking/pronunciation", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = (await res.json()) as {
+        success: boolean;
+        data?: {
+          pronunciationScore: number;
+          accuracyScore: number;
+          fluencyScore: number;
+          completenessScore: number;
+          prosodyScore: number;
+        };
+        error?: string;
+      };
+
+      if (result.success && result.data) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  pronunciationScore: result.data!.pronunciationScore,
+                  pronunciationAccuracy: result.data!.accuracyScore,
+                  pronunciationFluency: result.data!.fluencyScore,
+                  pronunciationCompleteness: result.data!.completenessScore,
+                  pronunciationProsody: result.data!.prosodyScore,
+                }
+              : m,
+          ),
+        );
+      } else {
+        setError(result.error || "Pronunciation evaluation failed.");
+      }
+    } catch {
+      setError("Failed to evaluate pronunciation. Please try again.");
+    } finally {
+      setEvaluatingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(messageId);
+        return next;
+      });
+    }
+  }
+
   /** 鏄惁姝ｅ湪澶勭悊涓?*/
   const isBusy = isSending || isFinishing || isTranscribing;
 
@@ -521,12 +628,20 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
             <Button
               variant="outline"
               size="sm"
-              className="text-red-600"
-              disabled={isFinishing}
-              onClick={() => void handleFinish()}
+              className={
+                exercise.status === "reviewed"
+                  ? "text-blue-600"
+                  : "text-red-600"
+              }
+              disabled={exercise.status !== "reviewed" && isFinishing}
+              onClick={
+                exercise.status === "reviewed"
+                  ? () => router.push(`/speaking/${exercise.id}/review`)
+                  : () => void handleFinish()
+              }
             >
               <Square className="mr-2 h-3.5 w-3.5 fill-current" />
-              Finish
+              {exercise.status === "reviewed" ? "Review" : "Finish"}
             </Button>
           </div>
         </div>
@@ -600,7 +715,64 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                           Audio
                         </Button>
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="mt-3 flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-1 rounded-full px-2 text-xs text-slate-600 hover:text-slate-900"
+                          disabled={!message.audioUrl}
+                          title={
+                            message.audioUrl
+                              ? "Play your recording"
+                              : "Audio not available"
+                          }
+                          onClick={() => {
+                            if (message.audioUrl) {
+                              void handlePlayAudio(message.audioUrl);
+                            }
+                          }}
+                        >
+                          <Volume2 className="h-3.5 w-3.5" />
+                          Audio
+                        </Button>
+                        {message.pronunciationScore != null ? (
+                          <span className="text-xs font-medium text-green-600">
+                            {message.pronunciationScore}分
+                          </span>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 gap-1 rounded-full px-2 text-xs text-slate-600 hover:text-slate-900"
+                            disabled={
+                              !message.audioUrl || evaluatingIds.has(message.id)
+                            }
+                            title={
+                              !message.audioUrl
+                                ? "Audio not available"
+                                : "Evaluate pronunciation"
+                            }
+                            onClick={() => {
+                              if (message.audioUrl) {
+                                void handleEvaluatePronunciation(
+                                  message.id,
+                                  message.audioUrl,
+                                  message.content,
+                                );
+                              }
+                            }}
+                          >
+                            {evaluatingIds.has(message.id) ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Mic className="h-3.5 w-3.5" />
+                            )}
+                            评估发音
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))

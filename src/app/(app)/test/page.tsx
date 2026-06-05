@@ -1416,6 +1416,88 @@ export default function TestPage() {
               </CardContent>
             </Card>
 
+            {/* STT 文件测试（录音文件识别极速版） */}
+            <Card>
+              <CardHeader>
+                <CardTitle>STT 文件测试</CardTitle>
+                <CardDescription>
+                  调用 /api/speaking/test-stt 对服务端音频文件进行 STT
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  <Button
+                    onClick={async () => {
+                      setSpeakingResult({
+                        loading: true,
+                        message: "Testing output.wav...",
+                      });
+                      try {
+                        const res = await fetch("/api/speaking/test-stt", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            filename: "output.wav",
+                            language: "en",
+                          }),
+                        });
+                        const result = await res.json();
+                        setSpeakingResult(result);
+                        if (result.success) setSttText(result.data.text);
+                      } catch {
+                        setSpeakingResult({
+                          success: false,
+                          error: "Network error",
+                        });
+                      }
+                    }}
+                    variant="outline"
+                  >
+                    output.wav（短音频，一句话识别）
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      setSpeakingResult({
+                        loading: true,
+                        message: "Testing sample-speech-5m.mp3...",
+                      });
+                      try {
+                        const res = await fetch("/api/speaking/test-stt", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            filename: "sample-speech-5m.mp3",
+                            language: "en",
+                          }),
+                        });
+                        const result = await res.json();
+                        setSpeakingResult(result);
+                        if (result.success) setSttText(result.data.text);
+                      } catch {
+                        setSpeakingResult({
+                          success: false,
+                          error: "Network error",
+                        });
+                      }
+                    }}
+                    variant="outline"
+                  >
+                    sample-speech-5m.mp3（长音频，录音文件识别极速版）
+                  </Button>
+                </div>
+                {sttText && (
+                  <div className="rounded-md border p-3">
+                    <Label className="text-xs text-muted-foreground">
+                      转写结果
+                    </Label>
+                    <p className="mt-1 text-sm whitespace-pre-wrap">
+                      {sttText}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Chat 对话测试 */}
             <Card>
               <CardHeader>
