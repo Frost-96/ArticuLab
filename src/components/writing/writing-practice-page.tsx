@@ -22,16 +22,14 @@ type WritingPracticePageProps = {
   history: WritingHistoryResult;
 };
 
-const customScenarioTypes = Object.keys(
-  {
-    daily: true,
-    ielts_task1: true,
-    ielts_task2: true,
-    toefl: true,
-    cet4: true,
-    cet6: true,
-  },
-) as WritingScenarioType[];
+const customScenarioTypes = Object.keys({
+  daily: true,
+  ielts_task1: true,
+  ielts_task2: true,
+  toefl: true,
+  cet4: true,
+  cet6: true,
+}) as WritingScenarioType[];
 
 const writingSectionIconClass =
   "flex h-10 w-10 items-center justify-center rounded-lg bg-sky-100 text-sky-700 shadow-sm";
@@ -101,9 +99,7 @@ export function WritingPracticePage({
     });
 
     if (!result.success || !result.data) {
-      setError(
-        !result.success ? result.error : t("failedStart"),
-      );
+      setError(!result.success ? result.error : t("failedStart"));
       setPendingKey(null);
       hideLoading();
       return;
@@ -324,9 +320,7 @@ export function WritingPracticePage({
                                 variant="outline"
                                 className="rounded-full border-sky-200 bg-sky-50 px-2.5 text-sky-700"
                               >
-                                {
-                                  t(scenario.category as WritingScenarioType)
-                                }
+                                {t(scenario.category as WritingScenarioType)}
                               </Badge>
                               <span className="text-xs font-medium text-slate-400">
                                 {scenario.difficulty}
