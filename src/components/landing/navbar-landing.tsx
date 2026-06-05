@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingLink } from "@/components/ui/loading-overlay";
 import { cn } from "@/lib/utils";
 
-const navLinks = [
+const navLinks: Array<{ label: string; href: string }> = [
   //{ label: "Features", href: "#features" },
   //{ label: "How It Works", href: "#how-it-works" },
   //{ label: "Pricing", href: "#pricing" },

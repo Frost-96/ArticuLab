@@ -3,14 +3,33 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   LoadingLink,
+  useAppLoading,
   useLoadingRouter,
 } from "@/components/ui/loading-overlay";
-import { ArrowLeft, MessageSquare, Mic, TrendingUp } from "lucide-react";
+import {
+  ArrowLeft,
+  MessageSquare,
+  Mic,
+  Sparkles,
+  TrendingUp,
+  Volume2,
+  Waves,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import type { SpeakingExerciseDetail } from "@/types/speaking/speakingTypes";
+import { LoadingButton } from "@/components/ui/loading-button";
+import { cn } from "@/lib/utils";
+import type {
+  SpeakingExerciseDetail,
+  SpeakingMessage,
+} from "@/types/speaking/speakingTypes";
+import type {
+  PronunciationPhonemeResult,
+  PronunciationResultLite,
+  PronunciationWordResultLite,
+} from "@/schema";
 
 type SpeakingReviewProps = {
   exercise: SpeakingExerciseDetail;
@@ -19,6 +38,22 @@ type SpeakingReviewProps = {
 type SpeakingReviewResponse =
   | { success: true; data: unknown }
   | { success: false; error: string };
+
+type PronunciationEntry = {
+  messageId: string;
+  text: string;
+  feedback: PronunciationResultLite;
+};
+
+type PronunciationMetric = {
+  label: string;
+  value: number;
+};
+
+type WeakPronunciationWord = PronunciationWordResultLite & {
+  messageId: string;
+  context: string;
+};
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -36,9 +71,108 @@ function formatDuration(seconds: number) {
   return `${minutes}:${String(rest).padStart(2, "0")}`;
 }
 
+function formatScore(value: number) {
+  return Math.round(value).toString();
+}
+
+function getScoreTone(score: number) {
+  if (score >= 80) {
+    return {
+      text: "text-emerald-700",
+      bg: "bg-emerald-50",
+      border: "border-emerald-200",
+    };
+  }
+
+  if (score >= 60) {
+    return {
+      text: "text-amber-700",
+      bg: "bg-amber-50",
+      border: "border-amber-200",
+    };
+  }
+
+  return {
+    text: "text-red-700",
+    bg: "bg-red-50",
+    border: "border-red-200",
+  };
+}
+
+function getPronunciationEntries(
+  messages: SpeakingMessage[],
+): PronunciationEntry[] {
+  return messages
+    .filter(
+      (message): message is SpeakingMessage & {
+        pronunciationFeedback: PronunciationResultLite;
+      } => message.role === "user" && Boolean(message.pronunciationFeedback),
+    )
+    .map((message) => ({
+      messageId: message.id,
+      text: message.content,
+      feedback: message.pronunciationFeedback,
+    }));
+}
+
+function averagePronunciationMetrics(
+  entries: PronunciationEntry[],
+): PronunciationMetric[] {
+  const metrics = [
+    ["Pronunciation", "pronunciationScore"],
+    ["Accuracy", "accuracyScore"],
+    ["Fluency", "fluencyScore"],
+    ["Completeness", "completenessScore"],
+    ["Prosody", "prosodyScore"],
+  ] as const;
+
+  return metrics.map(([label, key]) => ({
+    label,
+    value:
+      entries.reduce((sum, entry) => sum + entry.feedback[key], 0) /
+      Math.max(entries.length, 1),
+  }));
+}
+
+function getWeakPronunciationWords(
+  entries: PronunciationEntry[],
+): WeakPronunciationWord[] {
+  return entries
+    .flatMap((entry) =>
+      entry.feedback.words.map((word) => ({
+        ...word,
+        messageId: entry.messageId,
+        context: entry.text,
+      })),
+    )
+    .sort((a, b) => a.accuracyScore - b.accuracyScore)
+    .slice(0, 12);
+}
+
+function splitIntoSyllables(word: string) {
+  const cleaned = word.replace(/[^a-zA-Z']/g, "");
+  if (cleaned.length <= 3) {
+    return cleaned ? [cleaned] : [word];
+  }
+
+  const matches = cleaned.match(/[^aeiouy]*[aeiouy]+(?:[^aeiouy]*$|[^aeiouy](?=[^aeiouy]))?/gi);
+  return matches && matches.length > 0 ? matches : [cleaned];
+}
+
+function formatContext(value: string) {
+  const trimmed = value.trim().replace(/\s+/g, " ");
+  return trimmed.length > 140 ? `${trimmed.slice(0, 137)}...` : trimmed;
+}
+
 export function SpeakingReview({ exercise }: SpeakingReviewProps) {
   const router = useLoadingRouter();
+  const { hideLoading, showLoading } = useAppLoading();
   const feedback = exercise.feedback;
+  const pronunciationEntries = getPronunciationEntries(exercise.messages);
+  const pronunciationMetrics =
+    averagePronunciationMetrics(pronunciationEntries);
+  const weakPronunciationWords =
+    getWeakPronunciationWords(pronunciationEntries);
   const shouldGenerateReview = !feedback && exercise.status === "completed";
   const hasRequestedReview = useRef(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -51,6 +185,7 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
 
     setIsGenerating(true);
     setReviewError(null);
+    showLoading("Generating review...");
 
     try {
       const response = await fetch("/api/speaking/review", {
@@ -66,15 +201,23 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
         throw new Error(result.error);
       }
 
-      router.refresh();
+      router.refresh("Loading review...");
     } catch (error) {
       setReviewError(
         error instanceof Error ? error.message : "Failed to generate review",
       );
+      hideLoading();
     } finally {
       setIsGenerating(false);
     }
-  }, [exercise.id, isGenerating, router, shouldGenerateReview]);
+  }, [
+    exercise.id,
+    hideLoading,
+    isGenerating,
+    router,
+    shouldGenerateReview,
+    showLoading,
+  ]);
 
   useEffect(() => {
     if (!shouldGenerateReview || hasRequestedReview.current) {
@@ -288,6 +431,13 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
               </CardContent>
             </Card>
           </div>
+
+          <PronunciationAnalysis
+            exerciseId={exercise.id}
+            entries={pronunciationEntries}
+            metrics={pronunciationMetrics}
+            weakWords={weakPronunciationWords}
+          />
         </>
       ) : (
         <Card className="border-dashed bg-white shadow-sm">
@@ -312,8 +462,14 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
                 {reviewError}
               </div>
             ) : null}
-            {shouldGenerateReview && !isGenerating ? (
-              <Button onClick={() => void requestReview()}>Retry review</Button>
+            {shouldGenerateReview ? (
+              <LoadingButton
+                onClick={() => void requestReview()}
+                isLoading={isGenerating}
+                loadingText="Generating..."
+              >
+                Retry review
+              </LoadingButton>
             ) : null}
           </CardContent>
         </Card>
@@ -348,6 +504,246 @@ export function SpeakingReview({ exercise }: SpeakingReviewProps) {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function PronunciationAnalysis({
+  exerciseId,
+  entries,
+  metrics,
+  weakWords,
+}: {
+  exerciseId: string;
+  entries: PronunciationEntry[];
+  metrics: PronunciationMetric[];
+  weakWords: WeakPronunciationWord[];
+}) {
+  if (entries.length === 0) {
+    return (
+      <Card className="border-dashed bg-white shadow-sm">
+        <CardContent className="space-y-4 p-6">
+          <div className="flex size-11 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+            <Volume2 className="size-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Pronunciation Analysis
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Pronunciation analysis appears after evaluating your recorded
+              responses in the speaking session.
+            </p>
+          </div>
+          <Button variant="outline" asChild>
+            <LoadingLink href={`/speaking/${exerciseId}`}>
+              Back to practice
+            </LoadingLink>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="bg-white shadow-sm">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Volume2 className="size-5 text-blue-600" />
+          Pronunciation Analysis
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid gap-3 md:grid-cols-5">
+          {metrics.map((metric) => {
+            const tone = getScoreTone(metric.value);
+
+            return (
+              <div
+                key={metric.label}
+                className={cn(
+                  "rounded-lg border p-4",
+                  tone.border,
+                  tone.bg,
+                )}
+              >
+                <p className="text-xs font-medium uppercase text-slate-500">
+                  {metric.label}
+                </p>
+                <p className={cn("mt-2 text-2xl font-semibold", tone.text)}>
+                  {formatScore(metric.value)}
+                </p>
+                <Progress value={metric.value} className="mt-3 h-1.5" />
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">
+                Weak Words and Phonemes
+              </h3>
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                Lowest-scoring words across your evaluated responses.
+              </p>
+            </div>
+
+            {weakWords.length > 0 ? (
+              <div className="grid gap-3">
+                {weakWords.map((word, index) => (
+                  <WeakWordCard
+                    key={`${word.messageId}-${word.word}-${index}`}
+                    word={word}
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyPanel message="No word-level pronunciation details are available yet." />
+            )}
+          </div>
+
+          <div className="space-y-3 rounded-lg border border-blue-100 bg-blue-50 p-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-4 text-blue-700" />
+              <h3 className="text-sm font-semibold text-blue-950">
+                How to read this
+              </h3>
+            </div>
+            <p className="text-sm leading-6 text-blue-950/80">
+              Word and phoneme scores come from the saved pronunciation
+              assessment. Syllables are derived from the word spelling for
+              visual grouping and reuse the word score.
+            </p>
+            <div className="space-y-2 text-xs text-blue-950/70">
+              <LegendRow colorClass="bg-emerald-500" label="80-100 strong" />
+              <LegendRow colorClass="bg-amber-500" label="60-79 needs care" />
+              <LegendRow colorClass="bg-red-500" label="Below 60 priority" />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function WeakWordCard({ word }: { word: WeakPronunciationWord }) {
+  const tone = getScoreTone(word.accuracyScore);
+  const syllables = splitIntoSyllables(word.word);
+
+  return (
+    <div className="rounded-lg border border-slate-200 p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="break-words text-base font-semibold text-slate-950">
+              {word.word}
+            </p>
+            {word.errorType && word.errorType !== "None" ? (
+              <Badge variant="outline" className="border-red-200 text-red-700">
+                {word.errorType}
+              </Badge>
+            ) : null}
+          </div>
+          <p className="mt-2 text-xs leading-5 text-slate-500">
+            {formatContext(word.context)}
+          </p>
+        </div>
+        <div
+          className={cn(
+            "w-fit rounded-md border px-2.5 py-1 text-sm font-semibold",
+            tone.border,
+            tone.bg,
+            tone.text,
+          )}
+        >
+          {formatScore(word.accuracyScore)}
+        </div>
+      </div>
+
+      {word.phonemes?.length ? (
+        <div className="mt-4">
+          <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase text-slate-400">
+            <Waves className="size-3.5" />
+            Phonemes
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {word.phonemes.map((phoneme, index) => (
+              <PhonemeBadge
+                key={`${word.messageId}-${word.word}-${phoneme.phoneme}-${index}`}
+                phoneme={phoneme}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-4">
+        <p className="mb-2 text-xs font-medium uppercase text-slate-400">
+          Syllables derived from spelling
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {syllables.map((syllable, index) => (
+            <span
+              key={`${word.messageId}-${word.word}-syllable-${index}`}
+              className={cn(
+                "rounded-md border px-2 py-1 text-xs font-medium",
+                tone.border,
+                tone.bg,
+                tone.text,
+              )}
+            >
+              {syllable}
+              <span className="ml-1 font-normal opacity-70">
+                {formatScore(word.accuracyScore)}
+              </span>
+            </span>
+          ))}
+          <span className="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-500">
+            derived
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PhonemeBadge({
+  phoneme,
+}: {
+  phoneme: PronunciationPhonemeResult;
+}) {
+  const tone = getScoreTone(phoneme.accuracyScore);
+
+  return (
+    <span
+      className={cn(
+        "rounded-md border px-2 py-1 text-xs font-medium",
+        tone.border,
+        tone.bg,
+        tone.text,
+      )}
+    >
+      {phoneme.phoneme}
+      <span className="ml-1 font-normal opacity-70">
+        {formatScore(phoneme.accuracyScore)}
+      </span>
+    </span>
+  );
+}
+
+function LegendRow({
+  colorClass,
+  label,
+}: {
+  colorClass: string;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className={cn("size-2 rounded-full", colorClass)} />
+      {label}
     </div>
   );
 }
