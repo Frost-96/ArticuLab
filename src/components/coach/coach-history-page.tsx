@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  useAppLoading,
+  useLoadingRouter,
+} from "@/components/ui/loading-overlay";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Check,
@@ -16,6 +20,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
@@ -311,7 +316,9 @@ function CoachMessageBubble({
 }
 
 export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
-  const router = useRouter();
+  const router = useLoadingRouter();
+  const nextRouter = useRouter();
+  const { showLoading } = useAppLoading();
   const locale = useLocale();
   const t = useTranslations("coach");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -593,7 +600,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
       if (!activeConversationId && resolvedConversationId) {
         router.replace(`/coach?id=${resolvedConversationId}`);
       }
-      router.refresh();
+      nextRouter.refresh();
     } catch (error) {
       if (controller.signal.aborted) return;
 
@@ -733,7 +740,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
       if (!conversationId && resolvedConversationId) {
         router.replace(`/coach?id=${resolvedConversationId}`);
       }
-      router.refresh();
+      nextRouter.refresh();
     } catch (error) {
       if (controller.signal.aborted) return;
       const message = error instanceof Error ? error.message : t("sendFailed");
@@ -805,9 +812,10 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                     <div className="mt-6 grid gap-3 sm:grid-cols-2">
                       <button
                         type="button"
-                        onClick={() =>
-                          router.push(`/coach?id=${latestConversation.id}`)
-                        }
+                        onClick={() => {
+                          showLoading();
+                          router.push(`/coach?id=${latestConversation.id}`);
+                        }}
                         className="group rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-left text-sm leading-5 text-teal-800 transition hover:bg-teal-100"
                       >
                         <div className="flex items-center justify-between gap-3">
@@ -822,7 +830,10 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => router.push("/coach")}
+                        onClick={() => {
+                          showLoading();
+                          router.push("/coach");
+                        }}
                         className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm leading-5 text-slate-700 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800"
                       >
                         <span className="font-semibold">{t("startNew")}</span>
@@ -888,7 +899,7 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                 />
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
+                    <LoadingButton
                       variant="outline"
                       size="icon"
                       className={cn(
@@ -905,15 +916,15 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                       aria-label={
                         isRecording ? t("stopRecording") : t("startVoice")
                       }
+                      isLoading={isTranscribing}
+                      loadingText=""
                     >
-                      {isTranscribing ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : isRecording ? (
+                      {isRecording ? (
                         <Pause className="h-4 w-4" />
                       ) : (
                         <Mic className="h-4 w-4" />
                       )}
-                    </Button>
+                    </LoadingButton>
                   </TooltipTrigger>
                   <TooltipContent>
                     {isRecording
@@ -923,19 +934,17 @@ export function CoachHistoryPage({ data }: CoachHistoryPageProps) {
                         : t("voiceInput")}
                   </TooltipContent>
                 </Tooltip>
-                <Button
+                <LoadingButton
                   size="icon"
                   className="h-11 w-11 rounded-full bg-teal-600 text-white hover:bg-teal-700"
                   onClick={() => void handleSend()}
                   disabled={!canSend}
                   aria-label={t("send")}
+                  isLoading={isComposing}
+                  loadingText=""
                 >
-                  {isComposing ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </Button>
+                  <Send className="h-4 w-4" />
+                </LoadingButton>
               </div>
             </div>
           </div>

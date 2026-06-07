@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { Compass, Home, SearchX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { LoadingLink } from "@/components/ui/loading-overlay";
 
 export default function NotFound() {
   return (
@@ -24,16 +24,16 @@ export default function NotFound() {
 
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <Button asChild className="bg-sky-600 hover:bg-sky-700">
-              <Link href="/">
+              <LoadingLink href="/">
                 <Home className="mr-2 size-4" />
                 Go to homepage
-              </Link>
+              </LoadingLink>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/dashboard">
+              <LoadingLink href="/dashboard">
                 <Compass className="mr-2 size-4" />
                 Open dashboard
-              </Link>
+              </LoadingLink>
             </Button>
           </div>
         </CardContent>

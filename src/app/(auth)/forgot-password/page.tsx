@@ -1,23 +1,33 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { ArrowLeft, Mail, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LoadingLink, useAppLoading } from "@/components/ui/loading-overlay";
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations("auth");
+  const { hideLoading, showLoading } = useAppLoading();
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function handleSubmit() {
-    if (!email.trim()) {
+    if (!email.trim() || isSubmitting) {
       return;
     }
 
-    setSubmitted(true);
+    setIsSubmitting(true);
+    showLoading(t("sendingReset"));
+    window.setTimeout(() => {
+      setSubmitted(true);
+      setIsSubmitting(false);
+      hideLoading();
+    }, 350);
   }
 
   return (
@@ -76,24 +86,26 @@ export default function ForgotPasswordPage() {
                 />
               </div>
 
-              <Button
+              <LoadingButton
                 className="w-full bg-sky-600 hover:bg-sky-700"
                 onClick={handleSubmit}
                 disabled={!email.trim()}
+                isLoading={isSubmitting}
+                loadingText={t("sendingReset")}
               >
                 Send reset link
-              </Button>
+              </LoadingButton>
             </>
           )}
 
           <div className="space-y-2 border-t border-slate-100 pt-4">
-            <Link
+            <LoadingLink
               href="/login"
               className="inline-flex items-center gap-2 text-sm font-medium text-sky-600 hover:underline"
             >
               <ArrowLeft className="size-4" />
               Back to login
-            </Link>
+            </LoadingLink>
             <p className="text-xs leading-5 text-slate-400">
               This page is ready for the UX flow. If you want, we can connect it
               to a real email reset backend next.

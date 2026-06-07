@@ -10,7 +10,7 @@ import {
   Mic,
   Sparkles,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useLoadingRouter } from "@/components/ui/loading-overlay";
 
 const quickActions = [
   {
@@ -54,7 +54,7 @@ const goalLabel: Record<string, string> = {
 };
 
 export function CompleteStep() {
-  const router = useRouter();
+  const router = useLoadingRouter();
   const { data } = useOnboardingStore();
 
   return (

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -15,6 +14,7 @@ import {
 import type { CurrentUserDisplaySummary } from "@/schema";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { LoadingLink } from "@/components/ui/loading-overlay";
 import { useUIStore } from "@/stores/uiStore";
 import { UserNav } from "./user-nav";
 
@@ -69,21 +69,21 @@ export function TopNavbar({ userSummary }: TopNavbarProps) {
           </Button>
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
+          <LoadingLink href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sky-600">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
             <span className="hidden text-base font-semibold text-slate-950 sm:block">
               ArticuLab
             </span>
-          </Link>
+          </LoadingLink>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {
               const isActive = pathname.startsWith(item.href);
               return (
-                <Link
+                <LoadingLink
                   key={item.href}
                   href={item.href}
                   className={cn(
@@ -95,7 +95,7 @@ export function TopNavbar({ userSummary }: TopNavbarProps) {
                 >
                   <item.icon className="h-4 w-4" />
                   {t(item.titleKey)}
-                </Link>
+                </LoadingLink>
               );
             })}
           </nav>

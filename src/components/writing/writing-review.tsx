@@ -1,9 +1,9 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowLeft, FileText, MessageSquare, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { LoadingLink } from "@/components/ui/loading-overlay";
 import type { SentenceFeedback } from "@/schema";
 import type { WritingExerciseDetail } from "@/types/writing/writingTypes";
 
@@ -102,10 +102,10 @@ export function WritingReview({ exercise }: WritingReviewProps) {
       <div className="soft-panel flex items-center justify-between gap-4 p-4 sm:p-5">
         <div className="flex items-center gap-4">
           <Button variant="ghost" asChild>
-            <Link href={`/writing/${exercise.id}`}>
+            <LoadingLink href={`/writing/${exercise.id}`}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
-            </Link>
+            </LoadingLink>
           </Button>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-slate-950">

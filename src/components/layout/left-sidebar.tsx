@@ -1,7 +1,17 @@
-﻿"use client";
+"use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { type FormEvent, useMemo, useState, useTransition } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import {
+  useAppLoading,
+  useLoadingRouter,
+} from "@/components/ui/loading-overlay";
+import {
+  type FormEvent,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import {
   Loader2,
   MessageSquare,
@@ -26,14 +36,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/uiStore";
 import toast, { Toaster } from "react-hot-toast";
+import { useTranslations } from "next-intl";
 import {
   deleteConversationAction,
   updateConversationTitleAction,
 } from "@/server/actions/conversation.action";
-import { deleteSpeakingExerciseAction } from "@/server/actions/speaking.action";
+import {
+  deleteSpeakingExerciseAction,
+  startSpeakingAction,
+} from "@/server/actions/speaking.action";
 import {
   deleteWritingExerciseAction,
   renameWritingExerciseAction,
@@ -152,7 +175,8 @@ const META_BADGE_STYLES = [
 ];
 
 export function LeftSidebar({ type, items }: LeftSidebarProps) {
-  const router = useRouter();
+  const router = useLoadingRouter();
+  const { hideLoading } = useAppLoading();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -164,7 +188,29 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
   const [deleteTarget, setDeleteTarget] = useState<SidebarHistoryItem | null>(
     null,
   );
+  /** 已删除的 exercise ID 集合，用于乐观更新——删除成功后立即从列表中隐藏 */
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+  /** 自定义口语练习对话框状态 */
+  const [showNewPracticeDialog, setShowNewPracticeDialog] = useState(false);
+  const [customAiRole, setCustomAiRole] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+  const t = useTranslations("speaking");
   const { sidebarCollapsed, toggleSidebarCollapse } = useUIStore();
+
+  // 当服务端数据刷新后（router.refresh() 完成），清理已被服务端确认删除的 ID
+  useEffect(() => {
+    if (deletedIds.size === 0) return;
+    const serverIds = new Set(items.map((i) => i.id));
+    setDeletedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of prev) {
+        if (!serverIds.has(id)) {
+          next.delete(id);
+        }
+      }
+      return next.size === prev.size ? prev : next;
+    });
+  }, [items, deletedIds.size]);
 
   const query = searchParams.toString();
   const currentHref = query ? `${pathname}?${query}` : pathname;
@@ -173,17 +219,19 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
   const { pinnedIdSet, togglePinnedId } =
     usePinnedSidebarItems(pinnedStorageKey);
   const orderedItems = useMemo(() => {
-    return [...items].sort((a, b) => {
-      const aPinned = pinnedIdSet.has(a.id);
-      const bPinned = pinnedIdSet.has(b.id);
+    return [...items]
+      .filter((item) => !deletedIds.has(item.id))
+      .sort((a, b) => {
+        const aPinned = pinnedIdSet.has(a.id);
+        const bPinned = pinnedIdSet.has(b.id);
 
-      if (aPinned !== bPinned) {
-        return aPinned ? -1 : 1;
-      }
+        if (aPinned !== bPinned) {
+          return aPinned ? -1 : 1;
+        }
 
-      return items.indexOf(a) - items.indexOf(b);
-    });
-  }, [items, pinnedIdSet]);
+        return items.indexOf(a) - items.indexOf(b);
+      });
+  }, [items, pinnedIdSet, deletedIds]);
   const groups = useMemo(() => {
     const pinnedItems = orderedItems.filter((item) => pinnedIdSet.has(item.id));
     const unpinnedItems = orderedItems.filter(
@@ -229,6 +277,30 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
 
   function togglePinnedItem(item: SidebarHistoryItem) {
     togglePinnedId(item.id);
+  }
+
+  /** 处理自定义口语练习创建 */
+  async function handleCreateCustomPractice() {
+    const role = customAiRole.trim();
+    if (!role) return;
+
+    setIsCreating(true);
+    const result = await startSpeakingAction({
+      scenarioCategory: "free",
+      title: role.length > 20 ? role.slice(0, 20) + "..." : role,
+      aiRole: role,
+    });
+
+    setIsCreating(false);
+
+    if (!result.success || !result.data) {
+      toast.error(result.success ? t("failedStart") : result.error);
+      return;
+    }
+
+    setShowNewPracticeDialog(false);
+    setCustomAiRole("");
+    router.push(`/speaking/${result.data.exercise.id}`);
   }
 
   function getRenameConversationId(item: SidebarHistoryItem) {
@@ -292,6 +364,7 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
         setMutatingId(null);
 
         if (!result.success) {
+          hideLoading();
           toast.error(result.error);
           return;
         }
@@ -332,11 +405,13 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
         setMutatingId(null);
 
         if (!result.success) {
+          hideLoading();
           toast.error(result.error);
           return;
         }
 
         setDeleteTarget(null);
+        setDeletedIds((prev) => new Set(prev).add(item.id));
         if (currentHref === item.href) {
           router.push(newHref);
         }
@@ -366,11 +441,19 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
           size="icon"
           className={cn(
             "h-9 w-9 rounded-xl text-slate-600 transition-colors hover:bg-slate-200 hover:text-slate-950",
-            isOnMainPage && "opacity-50 cursor-not-allowed",
+            type !== "speaking" &&
+              isOnMainPage &&
+              "opacity-50 cursor-not-allowed",
           )}
-          onClick={() => !isOnMainPage && router.push(newHref)}
+          onClick={() => {
+            if (type === "speaking" && isOnMainPage) {
+              setShowNewPracticeDialog(true);
+            } else if (!isOnMainPage) {
+              router.push(newHref);
+            }
+          }}
           title={newLabel}
-          disabled={isOnMainPage}
+          disabled={type !== "speaking" && isOnMainPage}
         >
           <SquarePen className="h-4 w-4" />
         </Button>
@@ -402,7 +485,13 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
                       <button
                         key={item.id}
                         type="button"
-                        onClick={() => router.push(item.href)}
+                        onClick={() => {
+                          if (active) {
+                            hideLoading();
+                            return;
+                          }
+                          router.push(item.href);
+                        }}
                         title={item.title}
                         className={cn(
                           "block w-full truncate rounded-lg px-2 py-2 text-left text-sm leading-5 transition-colors",
@@ -464,10 +553,18 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
               className={cn(
                 "h-9 w-full justify-start gap-2 rounded-xl px-3 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-200 hover:text-slate-950",
                 theme.ring,
-                isOnMainPage && "opacity-50 cursor-not-allowed",
+                type !== "speaking" &&
+                  isOnMainPage &&
+                  "opacity-50 cursor-not-allowed",
               )}
-              onClick={() => !isOnMainPage && router.push(newHref)}
-              disabled={isOnMainPage}
+              onClick={() => {
+                if (type === "speaking" && isOnMainPage) {
+                  setShowNewPracticeDialog(true);
+                } else if (!isOnMainPage) {
+                  router.push(newHref);
+                }
+              }}
+              disabled={type !== "speaking" && isOnMainPage}
             >
               <Plus className="h-4 w-4" />
               {newLabel}
@@ -521,7 +618,13 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
                       ) : null}
                       <button
                         type="button"
-                        onClick={() => router.push(item.href)}
+                        onClick={() => {
+                          if (active) {
+                            hideLoading();
+                            return;
+                          }
+                          router.push(item.href);
+                        }}
                         className="block w-full min-w-0 text-left"
                       >
                         <div className="flex items-start gap-3">
@@ -663,6 +766,51 @@ export function LeftSidebar({ type, items }: LeftSidebarProps) {
         }}
         onConfirm={confirmDeleteItem}
       />
+      {/* 自定义口语练习对话框 */}
+      <Dialog
+        open={showNewPracticeDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowNewPracticeDialog(false);
+            setCustomAiRole("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("newPracticeTitle")}</DialogTitle>
+            <DialogDescription>{t("aiRoleHint")}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="custom-ai-role">{t("aiRoleLabel")}</Label>
+              <Input
+                id="custom-ai-role"
+                placeholder={t("aiRolePlaceholder")}
+                maxLength={100}
+                value={customAiRole}
+                onChange={(e) => setCustomAiRole(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && customAiRole.trim()) {
+                    void handleCreateCustomPractice();
+                  }
+                }}
+              />
+              <p className="text-right text-xs text-slate-400">
+                {customAiRole.length}/100
+              </p>
+            </div>
+            <Button
+              className="w-full bg-blue-600 text-white hover:bg-blue-700"
+              disabled={!customAiRole.trim() || isCreating}
+              onClick={() => void handleCreateCustomPractice()}
+            >
+              {isCreating && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {t("startPractice")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 }

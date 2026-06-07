@@ -1,25 +1,40 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login } from "@/server/actions/auth.action";
 import { Eye, EyeOff, Sparkles } from "lucide-react";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
+import {
+  LoadingLink,
+  useAppLoading,
+  useLoadingRouter,
+} from "@/components/ui/loading-overlay";
 import { Suspense, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 
 function LoginForm() {
-  const router = useRouter();
+  const router = useLoadingRouter();
+  const { hideLoading, showLoading } = useAppLoading();
+  const t = useTranslations("auth");
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const next = searchParams.get("next") ?? undefined;
 
   async function onClick() {
+    if (isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    showLoading(t("signingIn"));
     const user = await login({
       email,
       password,
@@ -27,6 +42,8 @@ function LoginForm() {
     });
 
     if (!user.success) {
+      setIsSubmitting(false);
+      hideLoading();
       toast.error(user.error);
       return;
     }
@@ -115,12 +132,12 @@ function LoginForm() {
               <Label htmlFor="password" className="text-sm">
                 Password
               </Label>
-              <Link
+              <LoadingLink
                 href="/forgot-password"
                 className="text-xs text-sky-600 hover:underline"
               >
                 Forgot password?
-              </Link>
+              </LoadingLink>
             </div>
             <div className="relative">
               <Input
@@ -146,21 +163,23 @@ function LoginForm() {
             </div>
           </div>
 
-          <Button
+          <LoadingButton
             className="h-10 w-full bg-sky-600 hover:bg-sky-700"
             onClick={onClick}
+            isLoading={isSubmitting}
+            loadingText={t("signingIn")}
           >
             Sign In
-          </Button>
+          </LoadingButton>
 
           <p className="text-center text-sm text-slate-500">
             Don&apos;t have an account?{" "}
-            <Link
+            <LoadingLink
               href={signUpHref}
               className="font-medium text-sky-600 hover:underline"
             >
               Sign up free
-            </Link>
+            </LoadingLink>
           </p>
         </CardContent>
       </Card>

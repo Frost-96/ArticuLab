@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import {
+  useAppLoading,
+  useLoadingRouter,
+} from "@/components/ui/loading-overlay";
 import { useTranslations } from "next-intl";
 import { ArrowRight, FileText, PenLine, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,7 +61,8 @@ export function WritingPracticePage({
   scenarios,
   history,
 }: WritingPracticePageProps) {
-  const router = useRouter();
+  const router = useLoadingRouter();
+  const { hideLoading, showLoading } = useAppLoading();
   const t = useTranslations("writing");
   const [customPrompt, setCustomPrompt] = useState("");
   const [customScenarioType, setCustomScenarioType] =
@@ -85,6 +89,7 @@ export function WritingPracticePage({
   }) {
     setPendingKey(input.key);
     setError(null);
+    showLoading(t("creating"));
 
     const result = await createWritingExerciseAction({
       scenarioType: input.scenarioType,
@@ -96,6 +101,7 @@ export function WritingPracticePage({
     if (!result.success || !result.data) {
       setError(!result.success ? result.error : t("failedStart"));
       setPendingKey(null);
+      hideLoading();
       return;
     }
 
@@ -228,6 +234,8 @@ export function WritingPracticePage({
                       <button
                         key={scenario.id}
                         type="button"
+                        disabled={pendingKey === scenario.id}
+                        aria-busy={pendingKey === scenario.id || undefined}
                         onClick={() =>
                           void startExercise({
                             key: scenario.id,
@@ -238,7 +246,7 @@ export function WritingPracticePage({
                             scenarioId: scenario.id,
                           })
                         }
-                        className={`group w-full rounded-lg border border-slate-200 bg-white p-5 text-left transition-colors hover:border-sky-200 hover:bg-slate-50 ${writingPaperClass}`}
+                        className={`group w-full rounded-lg border border-slate-200 bg-white p-5 text-left transition-colors hover:border-sky-200 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-70 ${writingPaperClass}`}
                       >
                         <div className="relative flex items-start justify-between gap-4">
                           <div className="space-y-3">
@@ -291,6 +299,8 @@ export function WritingPracticePage({
                       <button
                         key={scenario.id}
                         type="button"
+                        disabled={pendingKey === scenario.id}
+                        aria-busy={pendingKey === scenario.id || undefined}
                         onClick={() =>
                           void startExercise({
                             key: scenario.id,
@@ -301,7 +311,7 @@ export function WritingPracticePage({
                             scenarioId: scenario.id,
                           })
                         }
-                        className="group w-full rounded-lg border border-slate-200 bg-white p-5 text-left transition-colors hover:border-sky-200 hover:bg-slate-50"
+                        className="group w-full rounded-lg border border-slate-200 bg-white p-5 text-left transition-colors hover:border-sky-200 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-70"
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="space-y-3">
@@ -377,9 +387,11 @@ export function WritingPracticePage({
                     className="rounded-lg border-white/60 bg-white/90 px-4 py-3 font-mono text-sm leading-7 shadow-sm focus-visible:ring-sky-500"
                   />
 
-                  <Button
+                  <LoadingButton
                     className="h-10 w-full rounded-md bg-sky-600 text-sm font-semibold shadow-sm hover:bg-sky-700"
                     disabled={!customPrompt.trim() || pendingKey === "custom"}
+                    isLoading={pendingKey === "custom"}
+                    loadingText={t("creating")}
                     onClick={() =>
                       void startExercise({
                         key: "custom",
@@ -391,7 +403,7 @@ export function WritingPracticePage({
                   >
                     {t("startWriting")}
                     <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
+                  </LoadingButton>
                 </div>
               </CardContent>
             </Card>

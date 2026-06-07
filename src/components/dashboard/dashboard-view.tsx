@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import {
   ArrowRight,
@@ -15,7 +14,7 @@ import {
   Target,
   Trophy,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { LoadingLink, useLoadingRouter } from "@/components/ui/loading-overlay";
 import {
   CartesianGrid,
   Line,
@@ -59,7 +58,7 @@ const activityColorMap = {
 };
 
 export function DashboardView({ data }: DashboardViewProps) {
-  const router = useRouter();
+  const router = useLoadingRouter();
   const t = useTranslations("dashboard");
   const nav = useTranslations("nav");
   const common = useTranslations("common");
@@ -162,10 +161,10 @@ export function DashboardView({ data }: DashboardViewProps) {
             </div>
             {quickActions.map((action) => (
               <Button key={action.href} variant="outline" asChild>
-                <Link href={action.href}>
+                <LoadingLink href={action.href}>
                   <action.icon className="mr-2 size-4" />
                   {action.label}
-                </Link>
+                </LoadingLink>
               </Button>
             ))}
           </div>
@@ -183,7 +182,7 @@ export function DashboardView({ data }: DashboardViewProps) {
                 const colorClass = activityColorMap[item.type];
 
                 return (
-                  <Link
+                  <LoadingLink
                     key={`${item.type}-${item.id}`}
                     href={item.href}
                     className="group rounded-md border border-slate-200 p-4 transition-colors hover:border-sky-200 hover:bg-slate-50"
@@ -211,7 +210,7 @@ export function DashboardView({ data }: DashboardViewProps) {
                       </span>
                       <span className="text-slate-400">{item.timeLabel}</span>
                     </div>
-                  </Link>
+                  </LoadingLink>
                 );
               })}
             </CardContent>
@@ -376,10 +375,10 @@ export function DashboardView({ data }: DashboardViewProps) {
                         </p>
                       </div>
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={weakness.href}>
+                        <LoadingLink href={weakness.href}>
                           {t("practice")}
                           <ArrowRight className="ml-1 size-3" />
-                        </Link>
+                        </LoadingLink>
                       </Button>
                     </div>
                     <p className="mt-3 text-xs text-slate-600">
@@ -455,7 +454,9 @@ export function DashboardView({ data }: DashboardViewProps) {
                   })}
 
                   <Button variant="outline" className="mt-4 w-full" asChild>
-                    <Link href="/writing">{t("startNewSession")}</Link>
+                    <LoadingLink href="/writing">
+                      {t("startNewSession")}
+                    </LoadingLink>
                   </Button>
                 </div>
               ) : (
@@ -498,7 +499,7 @@ function ModuleEmptyState({
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
         {actions.map((action) => (
           <Button key={action.href + action.label} variant="outline" asChild>
-            <Link href={action.href}>{action.label}</Link>
+            <LoadingLink href={action.href}>{action.label}</LoadingLink>
           </Button>
         ))}
       </div>

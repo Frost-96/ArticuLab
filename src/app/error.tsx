@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect } from "react";
 import { AlertTriangle, Home, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { LoadingLink } from "@/components/ui/loading-overlay";
 
 export default function Error({
   error,
@@ -51,10 +51,10 @@ export default function Error({
               Try again
             </Button>
             <Button asChild variant="outline">
-              <Link href="/">
+              <LoadingLink href="/">
                 <Home className="mr-2 size-4" />
                 Back to homepage
-              </Link>
+              </LoadingLink>
             </Button>
           </div>
         </CardContent>

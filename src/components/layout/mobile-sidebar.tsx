@@ -1,7 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import {
+  LoadingLink,
+  useAppLoading,
+  useLoadingRouter,
+} from "@/components/ui/loading-overlay";
 import { useTranslations } from "next-intl";
 import {
   ChevronRight,
@@ -49,7 +53,8 @@ type MobileSidebarProps = {
 
 export function MobileSidebar({ userSummary }: MobileSidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
+  const router = useLoadingRouter();
+  const { showLoading } = useAppLoading();
   const nav = useTranslations("nav");
   const userMenu = useTranslations("userMenu");
   const mobile = useTranslations("mobile");
@@ -62,6 +67,7 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
   const userInitials = getInitials(displayName);
 
   async function handleLogout() {
+    showLoading(userMenu("logout"));
     await logOut();
     setSidebarOpen(false);
     toast.success(userMenu("loggedOut"));
@@ -125,7 +131,7 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
                 const isActive = pathname.startsWith(item.href);
 
                 return (
-                  <Link
+                  <LoadingLink
                     key={item.href}
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
@@ -144,7 +150,7 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
                         isActive && "text-sky-700",
                       )}
                     />
-                  </Link>
+                  </LoadingLink>
                 );
               })}
             </div>
@@ -156,7 +162,7 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
                 const isActive = pathname === item.href;
 
                 return (
-                  <Link
+                  <LoadingLink
                     key={item.href}
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
@@ -169,7 +175,7 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
                   >
                     <item.icon className="h-5 w-5" />
                     {nav(item.titleKey)}
-                  </Link>
+                  </LoadingLink>
                 );
               })}
             </div>
@@ -188,9 +194,12 @@ export function MobileSidebar({ userSummary }: MobileSidebarProps) {
                   className="mt-3 w-full bg-sky-600 text-white hover:bg-sky-700"
                   asChild
                 >
-                  <Link href="/pricing" onClick={() => setSidebarOpen(false)}>
+                  <LoadingLink
+                    href="/pricing"
+                    onClick={() => setSidebarOpen(false)}
+                  >
                     {mobile("viewPlans")}
-                  </Link>
+                  </LoadingLink>
                 </Button>
               </div>
             </div>

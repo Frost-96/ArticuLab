@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { LoadingOverlayProvider } from "@/components/ui/loading-overlay";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -22,7 +23,9 @@ export default async function RootLayout({
     >
       <body>
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <TooltipProvider>{children}</TooltipProvider>
+          <LoadingOverlayProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+          </LoadingOverlayProvider>
         </NextIntlClientProvider>
       </body>
     </html>

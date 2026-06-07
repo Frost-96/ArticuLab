@@ -5,7 +5,10 @@ import { completeOnboarding } from "@/server/actions/auth.action";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 import type { EnglishLevel } from "@/types/onboarding";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import {
+  useAppLoading,
+  useLoadingRouter,
+} from "@/components/ui/loading-overlay";
 import { useEffect } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { StepIndicator } from "./step-indicator";
@@ -23,7 +26,8 @@ interface OnboardingFlowProps {
 export function OnboardingFlow({
   initialEnglishLevel = null,
 }: OnboardingFlowProps) {
-  const router = useRouter();
+  const router = useLoadingRouter();
+  const { hideLoading, showLoading } = useAppLoading();
   const {
     currentStep,
     totalSteps,
@@ -61,6 +65,7 @@ export function OnboardingFlow({
     }
 
     setIsSubmitting(true);
+    showLoading("Setting up...");
 
     const result = await completeOnboarding({
       englishLevel: data.englishLevel,
@@ -70,6 +75,7 @@ export function OnboardingFlow({
     setIsSubmitting(false);
 
     if (!result.success) {
+      hideLoading();
       toast.error(result.error);
       return;
     }

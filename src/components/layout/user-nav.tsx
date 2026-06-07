@@ -1,7 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import {
+  LoadingLink,
+  useAppLoading,
+  useLoadingRouter,
+} from "@/components/ui/loading-overlay";
 import { useLocale, useTranslations } from "next-intl";
 import { useTransition } from "react";
 import {
@@ -28,13 +31,15 @@ import { logOut } from "@/server/actions/auth.action";
 import { saveLocalePreference } from "@/server/actions/settings.action";
 import toast, { Toaster } from "react-hot-toast";
 import type { AppLocale } from "@/i18n/locales";
+import { setLocaleCookieOnClient } from "@/i18n/client";
 
 type UserNavProps = {
   userSummary: CurrentUserDisplaySummary | null;
 };
 
 export function UserNav({ userSummary }: UserNavProps) {
-  const router = useRouter();
+  const router = useLoadingRouter();
+  const { hideLoading, showLoading } = useAppLoading();
   const locale = useLocale() as AppLocale;
   const t = useTranslations("userMenu");
   const nav = useTranslations("nav");
@@ -47,6 +52,7 @@ export function UserNav({ userSummary }: UserNavProps) {
   const nextLocale: AppLocale = locale === "zh" ? "en" : "zh";
 
   async function handleLogout() {
+    showLoading(t("logout"));
     await logOut();
     toast.success(t("loggedOut"));
     router.push("/login");
@@ -54,11 +60,15 @@ export function UserNav({ userSummary }: UserNavProps) {
   }
 
   function handleSwitchLocale() {
+    setLocaleCookieOnClient(nextLocale);
+
     startLocaleTransition(() => {
+      showLoading(common("switching"));
       void (async () => {
         const result = await saveLocalePreference(nextLocale);
 
         if (!result.success) {
+          hideLoading();
           toast.error(result.error);
           return;
         }
@@ -102,44 +112,48 @@ export function UserNav({ userSummary }: UserNavProps) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/profile" className="cursor-pointer">
+          <LoadingLink href="/profile" className="cursor-pointer">
             <User className="mr-2 h-4 w-4" />
             {nav("profile")}
-          </Link>
+          </LoadingLink>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/settings" className="cursor-pointer">
+          <LoadingLink href="/settings" className="cursor-pointer">
             <Settings className="mr-2 h-4 w-4" />
             {nav("settings")}
-          </Link>
+          </LoadingLink>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/pricing" className="cursor-pointer">
+          <LoadingLink href="/pricing" className="cursor-pointer">
             <CreditCard className="mr-2 h-4 w-4" />
             {nav("billing")}
-          </Link>
+          </LoadingLink>
         </DropdownMenuItem>
         <DropdownMenuItem
           className="cursor-pointer"
           disabled={isSwitchingLocale}
           onClick={handleSwitchLocale}
+          aria-busy={isSwitchingLocale || undefined}
         >
           <Languages className="mr-2 h-4 w-4" />
-          {t("switchTo", {
-            locale: nextLocale === "zh" ? common("chinese") : common("english"),
-          })}
+          {isSwitchingLocale
+            ? t("switching")
+            : t("switchTo", {
+                locale:
+                  nextLocale === "zh" ? common("chinese") : common("english"),
+              })}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {membershipTier === "free" ? (
           <>
             <DropdownMenuItem asChild>
-              <Link
+              <LoadingLink
                 href="/pricing"
                 className="cursor-pointer text-sky-600 focus:text-sky-600"
               >
                 <Crown className="mr-2 h-4 w-4" />
                 {t("upgrade")}
-              </Link>
+              </LoadingLink>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>

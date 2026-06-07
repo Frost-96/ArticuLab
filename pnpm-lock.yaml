@@ -6391,10 +6391,14 @@ packages:
     engines: { node: ">=10" }
 
   js-tokens@4.0.0:
+<<<<<<< HEAD
+    resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==, tarball: https://registry.npmmirror.com/js-tokens/-/js-tokens-4.0.0.tgz}
+=======
     resolution:
       {
         integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==,
       }
+>>>>>>> 98ef6071d2f4f3b69f94780e40ccace10de3e9d3
 
   js-yaml@4.1.1:
     resolution:
@@ -6670,10 +6674,14 @@ packages:
       }
 
   loose-envify@1.4.0:
+<<<<<<< HEAD
+    resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==, tarball: https://registry.npmmirror.com/loose-envify/-/loose-envify-1.4.0.tgz}
+=======
     resolution:
       {
         integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==,
       }
+>>>>>>> 98ef6071d2f4f3b69f94780e40ccace10de3e9d3
     hasBin: true
 
   lru-cache@5.1.1:
@@ -7305,6 +7313,9 @@ packages:
       }
     engines: { node: ">=18" }
 
+  nprogress@0.2.0:
+    resolution: {integrity: sha512-I19aIingLgR1fmhftnbWWO3dXc0hSxqHQHQb3H8m+K3TnEn/iSeTZZOyvKXWqQESMwuUVnatlCnZdLBZZt2VSA==, tarball: https://registry.npmmirror.com/nprogress/-/nprogress-0.2.0.tgz}
+
   nypm@0.6.5:
     resolution:
       {
@@ -7320,11 +7331,16 @@ packages:
       }
 
   object-assign@4.1.1:
+<<<<<<< HEAD
+    resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==, tarball: https://registry.npmmirror.com/object-assign/-/object-assign-4.1.1.tgz}
+    engines: {node: '>=0.10.0'}
+=======
     resolution:
       {
         integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==,
       }
     engines: { node: ">=0.10.0" }
+>>>>>>> 98ef6071d2f4f3b69f94780e40ccace10de3e9d3
 
   object-inspect@1.13.4:
     resolution:
@@ -7862,10 +7878,7 @@ packages:
     engines: { node: ">= 6" }
 
   prop-types@15.8.1:
-    resolution:
-      {
-        integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==,
-      }
+    resolution: {integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==, tarball: https://registry.npmmirror.com/prop-types/-/prop-types-15.8.1.tgz}
 
   proper-lockfile@4.1.2:
     resolution:
@@ -7997,10 +8010,14 @@ packages:
       react-dom: ">=16"
 
   react-is@16.13.1:
+<<<<<<< HEAD
+    resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==, tarball: https://registry.npmmirror.com/react-is/-/react-is-16.13.1.tgz}
+=======
     resolution:
       {
         integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==,
       }
+>>>>>>> 98ef6071d2f4f3b69f94780e40ccace10de3e9d3
 
   react-markdown@10.1.0:
     resolution:
@@ -14507,6 +14524,8 @@ snapshots:
     dependencies:
       path-key: 4.0.0
       unicorn-magic: 0.3.0
+
+  nprogress@0.2.0: {}
 
   nypm@0.6.5:
     dependencies:
