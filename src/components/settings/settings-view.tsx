@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useTransition,
-  type FormEvent,
-  type ReactNode,
-} from "react";
+import { useState, useTransition, type FormEvent, type ReactNode } from "react";
 import {
   LoadingLink,
   useAppLoading,

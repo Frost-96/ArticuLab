@@ -239,7 +239,12 @@
     "interview": "Interview",
     "travel": "Travel",
     "business": "Business",
-    "free": "Free Talk"
+    "free": "Free Talk",
+    "newPracticeTitle": "Custom Speaking Practice",
+    "aiRoleLabel": "AI Role Description",
+    "aiRolePlaceholder": "e.g. A friendly British taxi driver",
+    "aiRoleHint": "Describe the role AI should play, max 100 characters",
+    "startPractice": "Start Practice"
   },
   "coach": {
     "title": "How can I help with your English today?",

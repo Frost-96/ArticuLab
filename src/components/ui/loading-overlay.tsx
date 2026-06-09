@@ -37,8 +37,9 @@ type LoadingLinkProps = LinkProps &
     loadingLabel?: string;
   };
 
-const LoadingOverlayContext =
-  createContext<LoadingOverlayContextValue | null>(null);
+const LoadingOverlayContext = createContext<LoadingOverlayContextValue | null>(
+  null,
+);
 
 function isModifiedNavigation(event: MouseEvent<HTMLAnchorElement>) {
   return (
@@ -102,14 +103,12 @@ function shouldShowLinkLoading(
     return false;
   }
 
-  return !isHashOnlyNavigation(hrefValue) && !isCurrentPageNavigation(hrefValue);
+  return (
+    !isHashOnlyNavigation(hrefValue) && !isCurrentPageNavigation(hrefValue)
+  );
 }
 
-export function LoadingOverlayProvider({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export function LoadingOverlayProvider({ children }: { children: ReactNode }) {
   const t = useTranslations("common");
   const defaultLabel = t("loading");
   const [state, setState] = useState({
@@ -119,9 +118,7 @@ export function LoadingOverlayProvider({
 
   const hideLoading = useCallback(() => {
     setState((current) =>
-      current.isLoading
-        ? { isLoading: false, label: defaultLabel }
-        : current,
+      current.isLoading ? { isLoading: false, label: defaultLabel } : current,
     );
   }, [defaultLabel]);
 

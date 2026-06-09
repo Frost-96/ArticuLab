@@ -104,7 +104,9 @@ function getPronunciationEntries(
 ): PronunciationEntry[] {
   return messages
     .filter(
-      (message): message is SpeakingMessage & {
+      (
+        message,
+      ): message is SpeakingMessage & {
         pronunciationFeedback: PronunciationResultLite;
       } => message.role === "user" && Boolean(message.pronunciationFeedback),
     )
@@ -155,7 +157,9 @@ function splitIntoSyllables(word: string) {
     return cleaned ? [cleaned] : [word];
   }
 
-  const matches = cleaned.match(/[^aeiouy]*[aeiouy]+(?:[^aeiouy]*$|[^aeiouy](?=[^aeiouy]))?/gi);
+  const matches = cleaned.match(
+    /[^aeiouy]*[aeiouy]+(?:[^aeiouy]*$|[^aeiouy](?=[^aeiouy]))?/gi,
+  );
   return matches && matches.length > 0 ? matches : [cleaned];
 }
 
@@ -561,11 +565,7 @@ function PronunciationAnalysis({
             return (
               <div
                 key={metric.label}
-                className={cn(
-                  "rounded-lg border p-4",
-                  tone.border,
-                  tone.bg,
-                )}
+                className={cn("rounded-lg border p-4", tone.border, tone.bg)}
               >
                 <p className="text-xs font-medium uppercase text-slate-500">
                   {metric.label}
@@ -709,11 +709,7 @@ function WeakWordCard({ word }: { word: WeakPronunciationWord }) {
   );
 }
 
-function PhonemeBadge({
-  phoneme,
-}: {
-  phoneme: PronunciationPhonemeResult;
-}) {
+function PhonemeBadge({ phoneme }: { phoneme: PronunciationPhonemeResult }) {
   const tone = getScoreTone(phoneme.accuracyScore);
 
   return (

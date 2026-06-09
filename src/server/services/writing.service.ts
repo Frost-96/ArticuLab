@@ -42,6 +42,7 @@ import {
   inferExerciseStatus,
   getFeedback,
 } from "@/lib/writing/exerciseHelpers";
+import { normalizeScore } from "@/lib/writing/writingConfig";
 
 function normalizeUserId(userId: string) {
   const parsedId = idSchema.safeParse(userId);
@@ -137,14 +138,31 @@ const loadWritingHistory = cache(
 
     const stats = await writingRepo.countCompletedExercises(userId);
 
+    // 获取所有已完成练习的分数和类型，用于归一化平均分计算
+    const scores = await writingRepo.findCompletedExerciseScores(userId);
+
+    // 归一化到 0-100 百分比后取平均
+    const normalizedAvg =
+      scores.length > 0
+        ? scores.reduce(
+            (sum, ex) =>
+              sum +
+              normalizeScore(
+                ex.scenarioType as WritingScenarioType,
+                ex.overallScore!,
+              ),
+            0,
+          ) / scores.length
+        : null;
+
     const summary =
       stats.count > 0
         ? {
             totalExercises: total,
             completedExercises: stats.count,
             averageScore:
-              stats.average != null
-                ? Math.round(stats.average * 10) / 10
+              normalizedAvg != null
+                ? Math.round(normalizedAvg * 10) / 10
                 : null,
             highestScore: stats.max ?? null,
             lowestScore: stats.min ?? null,

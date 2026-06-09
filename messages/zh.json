@@ -239,7 +239,12 @@
     "interview": "面试",
     "travel": "旅行",
     "business": "商务",
-    "free": "自由对话"
+    "free": "自由对话",
+    "newPracticeTitle": "自定义口语练习",
+    "aiRoleLabel": "AI 角色描述",
+    "aiRolePlaceholder": "例如：一位友好的英国出租车司机",
+    "aiRoleHint": "描述 AI 应扮演的角色，最多 100 字符",
+    "startPractice": "开始练习"
   },
   "coach": {
     "title": "今天想怎样提升英语？",

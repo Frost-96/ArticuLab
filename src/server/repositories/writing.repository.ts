@@ -99,6 +99,18 @@ export async function countCompletedExercises(userId: string) {
   };
 }
 
+/**
+ * 获取所有已完成练习的 scenarioType 和 overallScore（用于归一化平均分计算）
+ * @param userId - 用户 ID
+ * @returns 练习列表，每项包含 scenarioType 和 overallScore
+ */
+export async function findCompletedExerciseScores(userId: string) {
+  return prisma.writingExercise.findMany({
+    where: { userId, isDeleted: false, overallScore: { not: null } },
+    select: { scenarioType: true, overallScore: true },
+  });
+}
+
 // ==================== 按 ID 查询写作练习 ====================
 
 /**

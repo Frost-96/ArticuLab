@@ -158,7 +158,7 @@ export async function generateSpeakingResponseStream(
   }
 
   const {
-    maxTokens = 120,
+    maxTokens = 700,
     temperature = 0.5,
     presencePenalty = 0.3,
     frequencyPenalty = 0.2,

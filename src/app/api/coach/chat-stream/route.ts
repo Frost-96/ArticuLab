@@ -230,7 +230,7 @@ export async function POST(request: NextRequest) {
           if ("essayDetected" in coachResult) {
             send("essay_detected", {
               message:
-                "It looks like you submitted an essay. Please use the Writing Practice page for detailed feedback.",
+                "It looks like you submitted an essay. For detailed scoring and feedback, please use the Writing Practice page. \nIf you'd like Coach to review it here, click the button on the right.",
             });
             send("done", { fullText: "" });
             return;

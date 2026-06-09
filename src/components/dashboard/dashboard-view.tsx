@@ -14,10 +14,7 @@ import {
   Target,
   Trophy,
 } from "lucide-react";
-import {
-  LoadingLink,
-  useLoadingRouter,
-} from "@/components/ui/loading-overlay";
+import { LoadingLink, useLoadingRouter } from "@/components/ui/loading-overlay";
 import {
   CartesianGrid,
   Line,
