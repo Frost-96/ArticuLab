@@ -97,6 +97,7 @@ function createLocalSpeakingMessage(
   id: string,
   role: SpeakingMessage["role"],
   content: string,
+  pending?: boolean,
 ): SpeakingMessage {
   return {
     id,
@@ -104,6 +105,7 @@ function createLocalSpeakingMessage(
     content,
     audioUrl: null,
     createdAt: new Date().toISOString(),
+    pending,
   };
 }
 
@@ -386,8 +388,8 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     setInput("");
     setMessages((prev) => [
       ...prev,
-      createLocalSpeakingMessage(localUserId, "user", content),
-      createLocalSpeakingMessage(localAssistantId, "assistant", ""),
+      createLocalSpeakingMessage(localUserId, "user", content, false),
+      createLocalSpeakingMessage(localAssistantId, "assistant", "", true),
     ]);
 
     try {
@@ -439,6 +441,7 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                     ? {
                         ...message,
                         content: message.content + parsed.data.delta,
+                        pending: false,
                       }
                     : message,
                 ),
@@ -734,27 +737,35 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
                   >
                     <p className="whitespace-pre-wrap">{message.content}</p>
                     {message.role === "assistant" ? (
-                      <div className="mt-3 flex items-center gap-2 text-slate-500">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 gap-1 rounded-full px-2 text-xs text-slate-600 hover:text-slate-900"
-                          disabled={!message.audioUrl}
-                          title={
-                            message.audioUrl
-                              ? "Play audio"
-                              : "Audio is not available for this message"
-                          }
-                          onClick={() => {
-                            if (message.audioUrl) {
-                              void handlePlayAudio(message.audioUrl);
+                      message.pending ? (
+                        /** AI 思考中：显示转圈动画 */
+                        <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-400">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Thinking...
+                        </div>
+                      ) : (
+                        <div className="mt-3 flex items-center gap-2 text-slate-500">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 gap-1 rounded-full px-2 text-xs text-slate-600 hover:text-slate-900"
+                            disabled={!message.audioUrl}
+                            title={
+                              message.audioUrl
+                                ? "Play audio"
+                                : "Audio is not available for this message"
                             }
-                          }}
-                        >
-                          <Volume2 className="h-3.5 w-3.5" />
-                          Audio
-                        </Button>
-                      </div>
+                            onClick={() => {
+                              if (message.audioUrl) {
+                                void handlePlayAudio(message.audioUrl);
+                              }
+                            }}
+                          >
+                            <Volume2 className="h-3.5 w-3.5" />
+                            Audio
+                          </Button>
+                        </div>
+                      )
                     ) : (
                       <div className="mt-3 flex items-center gap-2">
                         <Button
