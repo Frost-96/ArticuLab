@@ -172,7 +172,7 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
   >([]);
   const isPlayingStreamAudioRef = useRef(false);
   /** 等待后端持久化音频的消息 ID 集合，用于轮询 audioUrl */
-  const pendingAudioRef = useRef<Set<string>>(new Set());
+  const savedAssistantMessageIdRef = useRef<string | null>(null);
   /** 保留最近一次用户录音的 blob，以便随消息一起发送到服务器 */
   const lastRecordingRef = useRef<Blob | null>(null);
 
@@ -186,6 +186,9 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
   const [isFinishing, setIsFinishing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [pendingAudioMessageIds, setPendingAudioMessageIds] = useState<
+    Set<string>
+  >(new Set());
   const readOnly = exercise.status !== "in_progress";
   /** 正在进行发音评估的消息 ID 集合 */
   const [evaluatingIds, setEvaluatingIds] = useState<Set<string>>(new Set());
@@ -211,34 +214,36 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
 
   /** 轮询等待后端持久化音频完成，间隔逐渐减半 */
   useEffect(() => {
-    if (pendingAudioRef.current.size === 0) return;
+    if (pendingAudioMessageIds.size === 0) return;
 
     let timer: ReturnType<typeof setTimeout>;
-    let delay = 4000;
-    const minDelay = 1000;
+    let delay = 1000;
+    const maxDelay = 4000;
 
     const poll = () => {
-      let changed = false;
-      for (const id of pendingAudioRef.current) {
-        const msg = messages.find((m) => m.id === id);
-        if (msg?.audioUrl) {
-          pendingAudioRef.current.delete(id);
-          changed = true;
-        }
+      const audioReadyIds = new Set(
+        messages
+          .filter((message) => message.audioUrl)
+          .map((message) => message.id),
+      );
+      const nextPendingIds = new Set(
+        [...pendingAudioMessageIds].filter((id) => !audioReadyIds.has(id)),
+      );
+
+      if (nextPendingIds.size !== pendingAudioMessageIds.size) {
+        setPendingAudioMessageIds(nextPendingIds);
       }
-      if (changed) {
-        pendingAudioRef.current = new Set(pendingAudioRef.current);
-      }
-      if (pendingAudioRef.current.size > 0) {
+
+      if (nextPendingIds.size > 0) {
         startTransition(() => nextRouter.refresh());
-        delay = Math.max(minDelay, delay / 2);
+        delay = Math.min(maxDelay, delay * 1.5);
         timer = setTimeout(poll, delay);
       }
     };
 
     timer = setTimeout(poll, delay);
     return () => clearTimeout(timer);
-  }, [messages, router]);
+  }, [messages, nextRouter, pendingAudioMessageIds]);
 
   const playNextStreamAudio = useCallback(() => {
     if (isPlayingStreamAudioRef.current) return;
@@ -382,6 +387,7 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
     streamAbortRef.current = controller;
     streamAudioQueueRef.current = [];
     isPlayingStreamAudioRef.current = false;
+    savedAssistantMessageIdRef.current = null;
 
     setIsSending(true);
     setError(null);
@@ -451,6 +457,7 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
               enqueueStreamAudio(parsed.data);
               break;
             case "message_saved":
+              savedAssistantMessageIdRef.current = parsed.data.messageId;
               setTotalTurns(parsed.data.totalTurns);
               setMessages((prev) =>
                 prev.map((message) =>
@@ -467,7 +474,12 @@ export function SpeakingSession({ exercise }: SpeakingSessionProps) {
               isDone = true;
               setIsSending(false);
               /** 标记消息等待后端持久化音频 */
-              pendingAudioRef.current.add(localAssistantId);
+              if (savedAssistantMessageIdRef.current) {
+                setPendingAudioMessageIds(
+                  (prev) =>
+                    new Set([...prev, savedAssistantMessageIdRef.current!]),
+                );
+              }
               break;
             case "error":
               streamError = parsed.data.error;
