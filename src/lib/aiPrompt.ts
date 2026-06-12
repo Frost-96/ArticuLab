@@ -89,19 +89,173 @@ const IELTS_TASK1_PROMPT = `
 EXAM TYPE: IELTS Writing Task 1
 SCALE: All five scores use 0-9 band scale (half-band increments like 6.5, 7.0, 7.5).
 
-TASK: The user has written a response describing visual information (graph, chart, table, diagram, map, or process).
+# Task 1 Patterns
 
-WORD COUNT: Minimum 150 words.
-- 120-149 words: deduct 0.5 from taskScore.
-- Under 120 words: deduct 1.0 from taskScore.
+Use this reference for IELTS Academic Writing Task 1 coaching when the visual type matters.
 
-IELTS TASK 1 SPECIFIC CRITERIA:
-- taskScore (Task Achievement): Does the response include a clear overview? Are key features selected and reported accurately? Are data/trends described with appropriate language?
-- coherenceScore: Is information logically organized (e.g., by time, by category)? Are paragraphs used appropriately? Are cohesive devices used effectively?
-- vocabularyScore: Is there paraphrasing of the question? Is there a range of vocabulary for describing trends (e.g., "increased sharply", "remained stable", "fluctuated")?
-- grammarScore: Is there a variety of sentence structures (complex, compound)? Are there tense errors? Is punctuation accurate?
+## Universal Report Shape
 
-OVERVIEW CHECK: An overview statement (summarizing main trends/features) is essential. If missing, deduct 1.0 from taskScore.`;
+Default 4-paragraph structure:
+1. Introduction: paraphrase the task without adding opinion.
+2. Overview: summarize the most important patterns without detailed numbers.
+3. Body 1: grouped details for the first major pattern.
+4. Body 2: grouped details for the second major pattern.
+
+Band 7 reports usually select, group, and compare. They do not describe every data point.
+
+## Overview Frames
+
+- Overall, X experienced the most significant change, while Y remained relatively stable.
+- Overall, the figures can be divided into two clear groups: X, which ..., and Y, which ....
+- Overall, A was consistently the highest category, whereas B accounted for the smallest share throughout.
+- Overall, the process consists of X main stages, beginning with ... and ending with ....
+- Overall, the area became more urbanized, with new facilities added and green/open space reduced.
+
+Avoid detailed numbers in the overview unless a number is itself the key feature.
+
+## Line Graphs
+
+Select:
+- starting and ending values
+- highest and lowest lines
+- major increases/decreases
+- crossings
+- peaks/troughs
+- periods of stability
+
+Useful language:
+- rose sharply/steadily/slightly from X to Y
+- fell back to
+- reached a peak of
+- bottomed out at
+- overtook
+- remained broadly stable
+- followed a similar pattern
+- by contrast / whereas / while
+
+Common errors:
+- "the number increased itself" -> "the number increased"
+- "had a dramatically rise" -> "rose dramatically" / "saw a dramatic rise"
+- "in 1990 to 2000" -> "from 1990 to 2000"
+- "the data was fluctuated" -> "the figure fluctuated"
+
+## Bar Charts
+
+Select:
+- highest/lowest bars
+- meaningful gaps
+- categories with similar values
+- changes across years if multiple periods
+
+Useful language:
+- the figure for X was twice as high as that for Y
+- X ranked first, at ...
+- X and Y were broadly similar, at around ...
+- by comparison, only ...
+- made up/accounted for/represented
+
+Avoid listing bars one by one. Group by size or trend.
+
+## Pie Charts
+
+Select:
+- largest/smallest shares
+- categories that increase/decrease
+- combined shares when useful
+- rank changes
+
+Useful language:
+- accounted for the largest proportion
+- made up just over one-third
+- the share of X doubled/halved
+- X replaced Y as the dominant category
+- together, X and Y represented ...
+
+Common issue: do not use "number" for percentages unless discussing people/items. Use "proportion", "share", or "percentage".
+
+## Tables
+
+Select:
+- ranking
+- extremes
+- similar groups
+- standout countries/categories
+- overall patterns across rows/columns
+
+Useful language:
+- had the highest rate of
+- recorded the lowest figure
+- followed by
+- was considerably higher/lower than
+- showed little variation
+
+Avoid reading row by row. The examiner rewards synthesis.
+
+## Maps
+
+Default structure:
+1. Introduction
+2. Overview: main transformation
+3. Body 1: unchanged/removed features and one side of the map
+4. Body 2: new/developed features and the other side
+
+Useful language:
+- was replaced by
+- was converted into
+- was extended/expanded
+- was demolished
+- was relocated to
+- to the north/south/east/west of
+- in the centre of
+- along the coast/road/river
+- adjacent to / opposite / next to
+
+Common errors:
+- do not overuse "there is/there are"
+- use passive voice for changes: "A car park was built"
+- mention unchanged features if they help the overview
+
+## Processes
+
+Default structure:
+1. Introduction
+2. Overview: number of stages, start, end, linear/cyclical
+3. Body 1: early/middle stages
+4. Body 2: later/final stages
+
+Useful language:
+- begins with / starts when
+- is then transported to
+- after this / subsequently / once
+- is heated/cooled/mixed/filtered
+- before being
+- the final product is
+
+Use passive voice for manufacturing and natural process descriptions when the actor is unknown or irrelevant.
+
+Common errors:
+- missing overview
+- switching between present and past
+- writing opinions or reasons
+- using "firstly/secondly" too mechanically for every stage
+
+## Mixed Visuals
+
+Explain the relationship between visuals:
+- The chart shows X, while the table gives details about Y.
+- The map illustrates changes in location, and the chart shows the corresponding figures.
+
+Write one overview that covers both visuals. Body paragraphs can split by visual or by theme, whichever is clearer.
+
+## Band 7 Upgrade Moves
+
+- Replace repeated "increase/decrease" with varied but safe verbs.
+- Combine comparison and data in one sentence.
+- Use "whereas/while" to compare opposite trends.
+- Use "with + noun + -ing/-ed" only when the logic is clear.
+- Use approximations accurately: just over, just under, roughly, nearly, approximately.
+- Use "respectively" only when it clearly maps two values to two nouns.
+`;
 
 /** IELTS Task 2 提示词 — 议论文 */
 const IELTS_TASK2_PROMPT = `
@@ -110,17 +264,151 @@ SCALE: All five scores use 0-9 band scale (half-band increments like 6.5, 7.0, 7
 
 TASK: The user has written an essay responding to an IELTS Task 2 prompt (agree/disagree, discuss both views, advantages/disadvantages, problem/solution, or two-part question).
 
-WORD COUNT: Minimum 250 words.
-- 220-249 words: deduct 0.5 from taskScore.
-- Under 220 words: deduct 1.0 from taskScore.
+## Universal Essay Shape
 
-IELTS TASK 2 SPECIFIC CRITERIA:
-- taskScore (Task Response): Does the response address ALL parts of the task? Is the writer's position clear throughout? Are ideas extended and well-supported with examples/reasons?
-- coherenceScore: Is there a clear introduction (paraphrase + thesis), body paragraphs (topic sentence + support), and conclusion? Are transitions smooth?
-- vocabularyScore: Is there a wide range of vocabulary? Are less common words used accurately? Is there skillful paraphrasing?
-- grammarScore: Is there a variety of complex structures? Are errors rare? Is punctuation accurate?
+Default 4-paragraph structure:
+1. Introduction: paraphrase the topic and give a direct thesis.
+2. Body 1: first main idea with explanation and example/result.
+3. Body 2: second main idea, opposing view, or solution depending on question type.
+4. Conclusion: restate the position and main reasons without adding new ideas.
 
-ESSAY TYPE CHECK: Identify the essay type from the prompt and evaluate whether the response matches the expected structure (e.g., "discuss both views" requires balanced treatment of both sides).`;
+Band 7 essays usually have fewer ideas, developed more clearly.
+
+## Introduction Frames
+
+Opinion:
+- I agree/disagree with this view because ... and ....
+- I largely agree with this argument, although ... should also be considered.
+
+Discussion + opinion:
+- While some people believe that ..., I would argue that ....
+
+Advantages/disadvantages:
+- Although this trend can ..., I believe its drawbacks are more serious because ....
+
+Problem/solution:
+- This problem is mainly caused by ..., and it can be addressed through ....
+
+Two-part:
+- There are several reasons for this trend, and I believe it is largely positive/negative.
+
+Avoid:
+- "With the development of society..."
+- "Everything has two sides."
+- "This essay will discuss..." when a direct thesis would be stronger.
+
+## Body Paragraph Logic
+
+Use TEEL or PEEL, but do not name it in the answer:
+- Topic sentence: one clear claim.
+- Explanation: why/how it works.
+- Example: concrete but concise.
+- Link: connect back to the question or thesis.
+
+Useful reasoning chain:
+Claim -> mechanism -> consequence -> example -> relevance.
+
+Example:
+"Online courses can improve access to education" is only a claim.
+Band 7 development explains who gains access, what barrier is reduced, and what the result is.
+
+## Opinion Essays
+
+Common prompts:
+- To what extent do you agree or disagree?
+- Do you agree or disagree?
+
+Strategy:
+- Give a clear position in the introduction.
+- Use both body paragraphs to support that position.
+- For partial agreement, define the boundary: "I agree when..., but not when..."
+
+Avoid writing one paragraph for agree and one for disagree if your position becomes unclear.
+
+## Discussion Essays
+
+Common prompts:
+- Discuss both views and give your own opinion.
+
+Strategy:
+- Body 1: explain the view you do not ultimately prefer, fairly and specifically.
+- Body 2: explain the view you support more strongly.
+- State your own view in introduction and conclusion.
+
+Useful frame:
+- Supporters of this view argue that ...
+- This argument is understandable because ...
+- However, I believe ... because ...
+
+## Advantage/Disadvantage Essays
+
+If asked "Do the advantages outweigh the disadvantages?", answer directly.
+
+Strategy:
+- Body 1: weaker side.
+- Body 2: stronger side.
+- Compare weight, not just count.
+
+Useful language:
+- The main drawback is that ...
+- This benefit is more significant because ...
+- On balance, the advantages are more substantial than the disadvantages.
+
+## Problem/Solution Essays
+
+Strategy:
+- Match problems and solutions clearly.
+- Make solutions realistic and connected to the cause.
+
+Useful language:
+- One major cause is ...
+- This leads to ...
+- A practical response would be to ...
+- This would reduce the problem by ...
+
+Avoid solutions that are too vague: "the government should take measures".
+
+## Two-Part Questions
+
+Strategy:
+- Answer both questions explicitly.
+- Usually use one body paragraph per question.
+- Keep coverage balanced unless one part clearly deserves more space.
+
+Useful language:
+- There are two main reasons for this.
+- I believe this is a positive/negative development because ...
+
+## Direct Questions
+
+Strategy:
+- Do not force a memorized template.
+- Turn each question into a body paragraph or combine closely related questions.
+- Make the thesis answer the exact prompt.
+
+## Common Band 6 to Band 7 Fixes
+
+Task Response:
+- Replace broad claims with narrower, provable claims.
+- Add the missing "why/how" step after each topic sentence.
+- Use examples as evidence, not as a separate undeveloped idea.
+
+Coherence and Cohesion:
+- Make each body paragraph revolve around one controlling idea.
+- Put contrast where the logic changes, not randomly.
+- Avoid stacking linkers: "Moreover, furthermore, in addition".
+
+Lexical Resource:
+- Replace vague nouns: thing, aspect, factor, problem, benefit.
+- Use verb-noun collocations: reduce inequality, improve access, impose restrictions, provide incentives, widen participation, create opportunities.
+- Avoid unnatural absolutes: all, every, completely, definitely, always.
+
+Grammar:
+- Fix comma splices by using a period, semicolon, or conjunction.
+- Use articles before singular countable nouns.
+- Use plural nouns for general groups: students, governments, parents.
+- Avoid overpacked sentences with multiple clauses if accuracy breaks down.
+`;
 
 /** TOEFL 提示词 */
 const TOEFL_PROMPT = `
@@ -232,12 +520,12 @@ DAILY WRITING STYLE NOTE:
 
 /** 考试类型到提示词的映射 */
 const SCENARIO_PROMPTS: Record<WritingScenarioType, string> = {
-  ielts_task1: IELTS_TASK1_PROMPT,
-  ielts_task2: IELTS_TASK2_PROMPT,
-  toefl: TOEFL_PROMPT,
-  cet4: CET4_PROMPT,
-  cet6: CET6_PROMPT,
-  daily: DAILY_PROMPT,
+    ielts_task1: IELTS_TASK1_PROMPT,
+    ielts_task2: IELTS_TASK2_PROMPT,
+    toefl: TOEFL_PROMPT,
+    cet4: CET4_PROMPT,
+    cet6: CET6_PROMPT,
+    daily: DAILY_PROMPT,
 };
 
 /**
@@ -251,7 +539,7 @@ const SCENARIO_PROMPTS: Record<WritingScenarioType, string> = {
  * - 完整的 system prompt 字符串
  */
 export function buildWritingSystemPrompt(
-  scenarioType: WritingScenarioType,
+    scenarioType: WritingScenarioType,
 ): string {
-  return BASE_WRITING_PROMPT + "\n" + SCENARIO_PROMPTS[scenarioType];
+    return BASE_WRITING_PROMPT + "\n" + SCENARIO_PROMPTS[scenarioType];
 }
