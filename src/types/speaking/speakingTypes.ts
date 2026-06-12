@@ -50,6 +50,8 @@ export type SpeakingMessage = {
   content: string;
   audioUrl: string | null;
   createdAt: string;
+  /** 是否处于等待 AI 回复的 pending 状态（本地乐观消息使用） */
+  pending?: boolean;
   // 发音评估分数（仅 user 消息有值）
   pronunciationScore?: number | null;
   pronunciationAccuracy?: number | null;
